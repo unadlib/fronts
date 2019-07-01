@@ -1,0 +1,22 @@
+{
+  "name": "phare",
+  "version": "0.0.2",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unadlib/phare.git"
+  },
+  "author": "unadlib",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/unadlib/phare/issues"
+  },
+  "homepage": "https://github.com/unadlib/phare#readme",
+  "devDependencies": {
+    "lerna": "^3.15.0"
+  }
+}
