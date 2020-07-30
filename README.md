@@ -26,6 +26,7 @@ site.json
 {
     "name": "header",
     "version": "0.2.3",
+    "main": "index.js",
     "deps": {
         "body": "https://example.com/v0.2.3/body",
         "footer": "^0.3.4",
