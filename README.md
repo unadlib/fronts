@@ -20,3 +20,17 @@
 - Building tools cli
 - Webpack handling version control for same lib
 
+site.json
+
+```json
+{
+    "name": "header",
+    "version": "0.2.3",
+    "deps": {
+        "body": "https://example.com/v0.2.3/body",
+        "footer": "^0.3.4",
+    },
+    "hub": "https://examplehub.com/",
+    "container": "WebWorker"
+}
+```
