@@ -31,7 +31,8 @@ site.json
         "body": "https://example.com/v0.2.3/body",
         "footer": "^0.3.4",
     },
-    "hub": "https://examplehub.com/",
+    "registry": "https://examplehub.com/",
     "container": "WebWorker"
 }
 ```
+
