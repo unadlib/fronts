@@ -1,13 +1,8 @@
-/* eslint-disable no-console */
-/* eslint-disable import/no-dynamic-require */
-/* eslint-disable global-require */
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable import/no-extraneous-dependencies */
 import path from 'path';
 import { rollup } from 'rollup';
 import resolvePlugin from '@rollup/plugin-node-resolve';
 import replacePlugin from '@rollup/plugin-replace';
-import commonjsPlugin from '@rollup/plugin-commonjs';
+// import commonjsPlugin from "@rollup/plugin-commonjs";
 import { terser as terserPlugin } from 'rollup-plugin-terser';
 import chalk from 'chalk';
 
@@ -31,17 +26,9 @@ const generateBundledModules = async ({
   const isUmd = format === 'umd';
   const plugins = [
     resolvePlugin(),
-    commonjsPlugin({
-      namedExports: {
-        react: Object.keys(require('react')),
-        'react-dom': Object.keys(require('react-dom')),
-        'react-is': Object.keys(require('react-is')),
-        'react-router-dom': Object.keys(require('react-router-dom')),
-        'react-redux': Object.keys(require('react-redux')),
-        redux: Object.keys(require('redux')),
-        inversify: Object.keys(require('inversify')),
-      },
-    }),
+    // commonjsPlugin({
+    //   namedExports: {},
+    // }),
   ];
   plugins.push(
     replacePlugin({

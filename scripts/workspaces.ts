@@ -1,11 +1,11 @@
-import globParent from 'glob-parent';
-import fs from 'fs-extra';
-import path from 'path';
+import globParent from "glob-parent";
+import fs from "fs-extra";
+import path from "path";
 
 export const buildTypes = {
-  es: 'esm',
-  cjs: 'cjs',
-  umd: 'umd',
+  es: "esm",
+  cjs: "cjs",
+  umd: "umd",
 } as const;
 
 export type Package = {
@@ -22,7 +22,7 @@ export type Handler = (
 ) => Promise<void>;
 
 export const handleWorkspaces = async (handler: Handler) => {
-  const { workspaces }: Package = fs.readJSONSync(path.resolve('package.json'));
+  const { workspaces }: Package = fs.readJSONSync(path.resolve("package.json"));
   for (const pattern of workspaces) {
     const packageParentDir = path.resolve(globParent(pattern));
     const packageChildDirs = fs.readdirSync(packageParentDir);

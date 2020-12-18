@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs-extra';
@@ -58,7 +57,7 @@ const compileTypeScript = ({
   if (result.emitSkipped) {
     const message = result.diagnostics
       .map(
-        diagnostic =>
+        (diagnostic) =>
           `${ts.DiagnosticCategory[diagnostic.category]} ${diagnostic.code} (${
             diagnostic.file
           }:${diagnostic.start}): ${diagnostic.messageText}`
