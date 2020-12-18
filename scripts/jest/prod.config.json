@@ -1,0 +1,10 @@
+{
+  "preset": "ts-jest",
+  "rootDir": "../../",
+  "globals": {
+    "__DEV__": false
+  },
+  "testPathIgnorePatterns": [
+    "example"
+  ]
+}
