@@ -23,6 +23,9 @@ export type Handler = (
 
 export const handleWorkspaces = async (handler: Handler) => {
   const { workspaces }: Package = fs.readJSONSync(path.resolve("package.json"));
+  if (!workspaces) {
+    throw new Error(`Please set 'workspaces' in root package.json file.`);
+  }
   for (const pattern of workspaces) {
     const packageParentDir = path.resolve(globParent(pattern));
     const packageChildDirs = fs.readdirSync(packageParentDir);

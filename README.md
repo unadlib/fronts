@@ -13,7 +13,7 @@
 - Redefining the life cycle of micro-frontend
 - Error handling
 - Logger with micro-frontends configs & versions
-- Allow recursive micro-frontends
+- nested micro-frontends
 - Standalone development mode with a micro-frontend
 - Global Event system
 - Handling data consistency

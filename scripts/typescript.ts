@@ -113,7 +113,7 @@ const compile = async (generate: Generate) => {
     const packageChildPath = path.resolve(packageParentDir, packageChildDir);
     const project = packageChildPath.replace(`${process.cwd()}/`, '');
     spawn('yarn', ['build', '-p', project], { stdio: 'inherit' });
-    // await compileProject(generate, packageChildPath);
+    await compileProject(generate, packageChildPath);
   });
 };
 

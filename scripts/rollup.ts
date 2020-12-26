@@ -37,6 +37,7 @@ const generateBundledModules = async ({
     terserPlugin()
   );
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { dependencies = {}, devDependencies = {} } = require(path.resolve(
       outputFile,
       '../../package.json'

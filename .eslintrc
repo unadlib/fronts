@@ -24,7 +24,10 @@
     "sourceType": "module"
   },
   "plugins": ["prettier", "@typescript-eslint"],
-  "rules": {},
+  "rules": {
+    "@typescript-eslint/no-non-null-assertion": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0
+  },
   "settings": {
     "import/resolver": {
       "node": {

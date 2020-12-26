@@ -1,7 +1,11 @@
 {
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devEngines": {
+    "node": "10.x || 11.x || 12.x || 13.x || 14.x"
+  },
   "scripts": {
     "test:prod": "NODE_ENV=production jest --config ./scripts/jest/prod.config.json",
     "test:dev": "NODE_ENV=development jest --config ./scripts/jest/dev.config.json",
