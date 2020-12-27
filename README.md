@@ -1,5 +1,7 @@
 # phare
 
+A Progressive  Micro Integration Infrastructure Framework
+
 - Reuse of public libraries in every micro-frontends
 - Scripts cache management / Incremental updates
 - Handling exceptions to switch main routes
@@ -36,3 +38,4 @@ site.json
 }
 ```
 
+> container: Inline, Sandbox, Standalone, iFrame, WebWorker, WebAssembly, SharedWorker, WebComponents
