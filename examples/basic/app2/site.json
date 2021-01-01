@@ -2,7 +2,7 @@
   "name": "app2",
   "filename": "remoteEntry.js",
   "exposes": {
-    "./ButtonContainer": "./src/ButtonContainer"
+    "./src/App": "./src/App"
   },
   "remotes": {
     "app3": "app3@http://localhost:3003/remoteEntry.js"

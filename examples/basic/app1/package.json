@@ -1,5 +1,5 @@
 {
-  "name": "basic-example-app1",
+  "name": "app1",
   "version": "0.0.0",
   "private": true,
   "devDependencies": {
@@ -22,6 +22,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "app2": "^0.0.0",
     "react": "^16.13.0",
     "react-dom": "^16.13.0",
     "react-router-dom": "^5.1.2"
