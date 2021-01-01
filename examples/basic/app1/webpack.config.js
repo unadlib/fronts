@@ -2,6 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
 const path = require('path');
+const getPlugins = require('../../../packages/phare-bundler').getPlugins;
 
 module.exports = {
   entry: './src/index',
@@ -26,13 +27,7 @@ module.exports = {
     ],
   },
   plugins: [
-    new ModuleFederationPlugin({
-      name: 'app1',
-      remotes: {
-        app2: 'app2@http://localhost:3002/remoteEntry.js',
-      },
-      shared: { react: { singleton: true }, 'react-dom': { singleton: true } },
-    }),
+    ...getPlugins(),
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
