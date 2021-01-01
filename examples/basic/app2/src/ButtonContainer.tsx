@@ -1,6 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import App3 from 'app3/src/App';
-// const RemoteButton = React.lazy(() => import('app3/bootstrap'));
 
 const style = {
   padding: 12,
@@ -8,16 +7,19 @@ const style = {
 };
 
 const ButtonContainer = () => {
-  // useEffect(() => {
-  //   import(`app3/bootstrap`);
-  // }, []);
+  useEffect(() => {
+    // @ts-ignore
+    import(`app3/bootstrap`).then((e: any) => {
+      e.default?.();
+    });
+  }, []);
   return (
     <div style={style}>
       App 2 Container
       <br />
       <br />
       <div id="app3/bootstrap"></div>
-      <App3 />
+      {/* <App3 /> */}
     </div>
   );
 };
