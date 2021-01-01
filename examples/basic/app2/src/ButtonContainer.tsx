@@ -7,19 +7,19 @@ const style = {
 };
 
 const ButtonContainer = () => {
-  useEffect(() => {
-    // @ts-ignore
-    import(`app3/bootstrap`).then((e: any) => {
-      e.default?.();
-    });
-  }, []);
+  // useEffect(() => {
+  //   // @ts-ignore
+  //   import(`app3/bootstrap`).then((e: any) => {
+  //     e.default?.();
+  //   });
+  // }, []);
   return (
     <div style={style}>
       App 2 Container
       <br />
       <br />
-      <div id="app3/bootstrap"></div>
-      {/* <App3 /> */}
+      {/* <div id="app3/bootstrap"></div> */}
+      <App3 />
     </div>
   );
 };
