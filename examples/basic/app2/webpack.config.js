@@ -14,10 +14,13 @@ module.exports = {
   output: {
     publicPath: 'auto',
   },
+  resolve: {
+    extensions: [".ts", ".tsx", ".js", ".jsx"],
+  },
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.(j|t)sx?$/,
         loader: 'babel-loader',
         exclude: /node_modules/,
         options: {
