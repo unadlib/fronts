@@ -1,5 +1,5 @@
 {
-  "name": "phare-example-app2",
+  "name": "basic-example-app1",
   "version": "0.0.0",
   "private": true,
   "devDependencies": {
@@ -16,7 +16,7 @@
   "scripts": {
     "start": "webpack-cli serve",
     "build": "webpack --mode production",
-    "serve": "serve dist -p 3002",
+    "serve": "serve dist -p 3001",
     "clean": "rm -rf dist"
   },
   "dependencies": {

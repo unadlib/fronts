@@ -1,0 +1,14 @@
+{
+  "name": "app2",
+  "filename": "remoteEntry.js",
+  "exposes": {
+    "./ButtonContainer": "./src/ButtonContainer"
+  },
+  "remotes": {
+    "app3": "app3@http://localhost:3003/remoteEntry.js"
+  },
+  "shared": {
+    "react": { "singleton": true },
+    "react-dom": { "singleton": true }
+  }
+}

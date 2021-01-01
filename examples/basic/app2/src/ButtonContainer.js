@@ -1,0 +1,25 @@
+import React, { useEffect, useRef } from 'react';
+import App3 from 'app3/src/App';
+// const RemoteButton = React.lazy(() => import('app3/bootstrap'));
+
+const style = {
+  padding: 12,
+  backgroundColor: '#cccccc',
+};
+
+const ButtonContainer = () => {
+  // useEffect(() => {
+  //   import(`app3/bootstrap`);
+  // }, []);
+  return (
+    <div style={style}>
+      App 2 Container
+      <br />
+      <br />
+      <div id="app3/bootstrap"></div>
+      <App3 />
+    </div>
+  );
+};
+
+export default ButtonContainer;
