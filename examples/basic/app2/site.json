@@ -1,9 +1,7 @@
 {
   "name": "app2",
-  "filename": "remoteEntry.js",
-  "exposes": {
-    "./src/App": "./src/App"
-  },
+  "main": "remoteEntry.js",
+  "exports": ["./src/App"],
   "remotes": {
     "app3": "app3@http://localhost:3003/remoteEntry.js"
   },

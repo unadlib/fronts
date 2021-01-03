@@ -1,10 +1,8 @@
 {
   "name": "app3",
-  "filename": "remoteEntry.js",
-  "exposes": {
-    "./bootstrap": "./src/bootstrap",
-    "./src/App": "./src/App"
-  },
+  "main": "remoteEntry.js",
+  "bootstrap": "./src/bootstrap",
+  "exports": ["./src/App"],
   "shared": {
     "react": { "singleton": true },
     "react-dom": { "singleton": true }

@@ -38,4 +38,6 @@ site.json
 }
 ```
 
-> container: Inline, Sandbox, Standalone, iFrame, WebWorker, WebAssembly, SharedWorker, WebComponents
+> container: Inline, Sandbox, Standalone, iFrame, WebComponents
+
+> WebWorker, WebAssembly, SharedWorker
