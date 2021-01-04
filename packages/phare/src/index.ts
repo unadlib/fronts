@@ -1,1 +1,1 @@
-export * from './lazy';
+export * from './loadApp';

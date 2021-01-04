@@ -12,10 +12,6 @@ interface SiteConfig
     Exclude<keyof ModuleFederationPluginOptions, 'exposes' | 'filename'>
   > {
   /**
-   * Expose the start path of the container
-   */
-  bootstrap?: string;
-  /**
    * The main filename of the container as relative path inside the `output.path` directory.
    */
   main?: string;
@@ -34,7 +30,7 @@ export const getPlugins = () => {
     );
   }
 
-  const { main, exports, bootstrap, ...otherConfig } = siteConfig;
+  const { main, exports, ...otherConfig } = siteConfig;
 
   const config: ModuleFederationPluginOptions = {
     ...otherConfig,
@@ -46,16 +42,6 @@ export const getPlugins = () => {
   } else if (typeof main !== 'undefined') {
     throw new Error(
       `The "main" field should be a string type in ${currentPath}`
-    );
-  }
-
-  if (typeof bootstrap === 'string') {
-    Object.assign(config.exposes, {
-      '.': bootstrap,
-    });
-  } else if (typeof bootstrap !== 'undefined') {
-    throw new Error(
-      `The "bootstrap" field should be a string type in ${currentPath}`
     );
   }
 
@@ -78,7 +64,7 @@ export const getPlugins = () => {
 
   return [
     new DefinePlugin({
-      'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}/bootstrap`),
+      'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}`),
     }),
     new container.ModuleFederationPlugin({
       ...config,

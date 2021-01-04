@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { loadApp } from '../../../../packages/phare';
 // import App3 from 'app3/src/App';
 
 const style = {
@@ -7,18 +8,20 @@ const style = {
 };
 
 const ButtonContainer = () => {
+  const ref = useRef(null);
   useEffect(() => {
-    // @ts-ignore
-    import('app3').then((e: any) => {
-      e.default?.();
+    let callback: (() => void) | void;
+    loadApp(() => import('app3/src/bootstrap'), ref.current).then((unmount) => {
+      callback = unmount;
     });
+    return () => callback && callback();
   }, []);
   return (
     <div style={style}>
       App 2 Container
       <br />
       <br />
-      <div id="app3/bootstrap"></div>
+      <div ref={ref}></div>
       {/* <App3 /> */}
     </div>
   );

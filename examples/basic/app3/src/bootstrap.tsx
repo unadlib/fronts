@@ -1,11 +1,14 @@
-import App from './App';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import App from './App';
 
-if (!document.getElementById(process.env.APP_NAME!)) {
-  ReactDOM.render(<App />, document.getElementById('root'));
+export default function render(element?: HTMLElement | null) {
+  console.log('process.env.APP_NAME', process.env.APP_NAME);
+  if (!element) return;
+  ReactDOM.render(<App />, element);
+  return () => {
+    ReactDOM.unmountComponentAtNode(element!)
+  };
 }
 
-export default function () {
-  ReactDOM.render(<App />, document.getElementById(process.env.APP_NAME!));
-}
+render();
