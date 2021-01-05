@@ -41,3 +41,7 @@ site.json
 > container: Inline, Sandbox, Standalone, iFrame, WebComponents
 
 > WebWorker, WebAssembly, SharedWorker
+
+# TODO
+
+- `cross-origin-errors` when ues React.lazy

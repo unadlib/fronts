@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { boot } from '../../../../packages/phare';
 import App from './App';
 
 export default function render(element: HTMLElement | null) {
@@ -9,6 +10,4 @@ export default function render(element: HTMLElement | null) {
   };
 }
 
-if (!(window as any).__APP__) {
-  render(document.getElementById('root'));
-}
+boot(render, document.getElementById('root'));
