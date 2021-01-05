@@ -43,5 +43,3 @@ site.json
 > WebWorker, WebAssembly, SharedWorker
 
 # TODO
-
-- `cross-origin-errors` when ues React.lazy
