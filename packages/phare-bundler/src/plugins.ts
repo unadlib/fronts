@@ -22,6 +22,7 @@ interface SiteConfig
 }
 
 export const getPlugins = () => {
+  if (process.env.SPA) return [];
   const currentPath = path.resolve(process.cwd(), 'site.json');
   const siteConfig: SiteConfig = require(currentPath);
   if (typeof siteConfig.name !== 'string') {

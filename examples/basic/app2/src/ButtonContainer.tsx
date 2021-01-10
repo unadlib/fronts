@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-// import { loadApp } from '../../../../packages/phare';
 // import { useApp } from '../../../../packages/phare-react';
 import App3 from 'app3/src/App';
 
