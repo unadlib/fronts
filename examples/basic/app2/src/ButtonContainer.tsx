@@ -1,5 +1,5 @@
 import React from 'react';
-// import { useApp } from '../../../../packages/phare-react';
+// import { useApp } from '../../../../packages/fronts-react';
 import App3 from 'app3/src/App';
 
 const style = {

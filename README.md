@@ -1,4 +1,4 @@
-# phare
+# fronts
 
 A Progressive  Micro Integration Infrastructure Framework
 

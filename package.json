@@ -18,14 +18,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unadlib/phare.git"
+    "url": "git+https://github.com/unadlib/fronts.git"
   },
   "author": "unadlib",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/unadlib/phare/issues"
+    "url": "https://github.com/unadlib/fronts/issues"
   },
-  "homepage": "https://github.com/unadlib/phare#readme",
+  "homepage": "https://github.com/unadlib/fronts#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-node-resolve": "^11.0.1",

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { DynamicImport, loadApp } from 'phare';
+import { DynamicImport, loadApp } from 'fronts';
 
 export const useApp = (dynamicImport: DynamicImport) => {
   const ref = useRef(null);

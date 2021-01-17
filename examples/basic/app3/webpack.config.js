@@ -1,7 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
-const getPlugins = require('../../../packages/phare-bundler').getPlugins;
+const getPlugins = require('../../../packages/fronts-bundler').getPlugins;
 const path = require('path');
 
 module.exports = {

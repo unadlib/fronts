@@ -1,5 +1,5 @@
 {
-  "name": "phare-bundler",
+  "name": "fronts-bundler",
   "version": "0.0.0",
   "description": "",
   "main": "dist/index.cjs.js",

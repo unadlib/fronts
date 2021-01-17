@@ -1,5 +1,5 @@
 {
-  "name": "phare-react",
+  "name": "fronts-react",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,7 +13,7 @@
     "react": "^17.0.1"
   },
   "dependencies": {
-    "phare": "^0.0.1"
+    "fronts": "^0.0.1"
   },
   "devDependencies": {
     "@types/react": "^17.0.0"

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { boot } from '../../../../packages/phare';
+import { boot } from '../../../../packages/fronts';
 import App from './App';
 
 export default function render(element: HTMLElement | null) {
