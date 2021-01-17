@@ -2,20 +2,36 @@
 import path from 'path';
 import { container, DefinePlugin } from 'webpack';
 
-interface DependencyConfig {
+const DEFAULT_DEPENDENCY_CONFIG_MAIN = 'remoteEntry.js';
+
+interface RemotesConfig {
   /**
    * Container locations from which modules should be resolved and loaded at runtime.
    */
   external: string | string[];
-
   /**
    * The name of the share scope shared with this remote.
    */
   shareScope?: string;
+}
 
-  host: string;
-
-  main: string;
+interface DependencyConfig {
+  /**
+   * Container locations from which modules should be resolved and loaded at runtime.
+   */
+  external?: string | string[];
+  /**
+   * The name of the share scope shared with this remote.
+   */
+  shareScope?: string;
+  /**
+   * The host url for this remote.
+   */
+  host?: string;
+  /**
+   * The main filename for this remote.
+   */
+  main?: string;
 }
 
 type ModuleFederationPluginOptions = ConstructorParameters<
@@ -38,8 +54,10 @@ interface SiteConfig
    * Modules that should be exposed by this container. When provided, property name is used as public name, otherwise public name is automatically inferred from request.
    */
   exports?: string[];
-
-  // dependencies: [];
+  /**
+   * Container dependent locations and request scopes from which modules should be resolved and loaded at runtime. When provided, property name is used as request scope, otherwise request scope is automatically inferred from container dependent location.
+   */
+  dependencies?: Record<string, DependencyConfig | string>;
 }
 
 export const getPlugins = () => {
@@ -52,20 +70,24 @@ export const getPlugins = () => {
     );
   }
 
-  const { main, exports, ...otherConfig } = siteConfig;
+  const {
+    main = DEFAULT_DEPENDENCY_CONFIG_MAIN,
+    exports,
+    dependencies,
+    ...otherConfig
+  } = siteConfig;
 
-  const config: ModuleFederationPluginOptions = {
-    ...otherConfig,
-    exposes: {},
-  };
-
-  if (typeof main === 'string') {
-    config.filename = main;
-  } else if (typeof main !== 'undefined') {
+  if (typeof main !== 'string') {
     throw new Error(
       `The "main" field should be a string type in ${currentPath}`
     );
   }
+
+  const config: ModuleFederationPluginOptions = {
+    ...otherConfig,
+    filename: main,
+    exposes: {},
+  };
 
   if (Array.isArray(exports)) {
     if (exports.includes('.')) {
@@ -84,8 +106,46 @@ export const getPlugins = () => {
     );
   }
 
-  // if (dependencies) {
-  // }
+  if (dependencies) {
+    if (typeof dependencies !== 'object') {
+      throw new Error(
+        `The "dependencies" field should be a object type in ${currentPath}`
+      );
+    }
+    config.remotes = Object.entries(dependencies).reduce(
+      (previousValue, [dependency, dependencyConfig]) => {
+        if (typeof dependencyConfig === 'string') {
+          return Object.assign(previousValue, {
+            [dependency]: `${dependency}@${dependencyConfig}`,
+          });
+        } else if (typeof dependencyConfig === 'object') {
+          let external = dependencyConfig.external;
+          if (!external) {
+            if (typeof dependencyConfig.host !== 'string') {
+              throw new Error(
+                `Type Error: ${dependency} config "host" field should be a string in the "dependencies" field from ${currentPath}.`
+              );
+            }
+            external = `${dependency}@${dependencyConfig.host}${
+              /\/$/.test(dependencyConfig.host) ? '' : '/'
+            }${dependencyConfig.main ?? DEFAULT_DEPENDENCY_CONFIG_MAIN}`;
+          }
+          const remoteConfig: RemotesConfig = { external };
+          if (dependencyConfig.shareScope) {
+            remoteConfig.shareScope = dependencyConfig.shareScope;
+          }
+          return Object.assign(previousValue, {
+            [dependency]: remoteConfig,
+          });
+        } else {
+          throw new Error(
+            `Type Error: ${dependency} value is ${dependencyConfig} in the "dependencies" field, and all properties of object "dependencies" should be a object/string type in ${currentPath}`
+          );
+        }
+      },
+      {} as Record<string, RemotesConfig>
+    );
+  }
 
   return [
     new DefinePlugin({

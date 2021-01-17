@@ -1,6 +1,5 @@
 {
   "name": "app3",
-  "main": "remoteEntry.js",
   "exports": ["./src/App", "./src/bootstrap"],
   "shared": {
     "react": { "singleton": true },
