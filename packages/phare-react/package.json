@@ -9,9 +9,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "phare": "^0.0.1",
+  "peerDependencies": {
     "react": "^17.0.1"
+  },
+  "dependencies": {
+    "phare": "^0.0.1"
   },
   "devDependencies": {
     "@types/react": "^17.0.0"

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 // import { useApp } from '../../../../packages/phare-react';
 import App3 from 'app3/src/App';
 
@@ -8,6 +8,14 @@ const style = {
 };
 
 const ButtonContainer = () => {
+  // const ref = useRef(null);
+  // useEffect(() => {
+  //   let callback: (() => void) | void;
+  //   loadApp(() => import('app3/src/bootstrap'), ref.current).then((unmount) => {
+  //     callback = unmount;
+  //   });
+  //   return () => callback && callback();
+  // }, []);
   // const ref = useApp(() => import('app3/src/bootstrap'));
   return (
     <div style={style}>

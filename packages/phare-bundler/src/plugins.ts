@@ -2,6 +2,22 @@
 import path from 'path';
 import { container, DefinePlugin } from 'webpack';
 
+interface DependencyConfig {
+  /**
+   * Container locations from which modules should be resolved and loaded at runtime.
+   */
+  external: string | string[];
+
+  /**
+   * The name of the share scope shared with this remote.
+   */
+  shareScope?: string;
+
+  host: string;
+
+  main: string;
+}
+
 type ModuleFederationPluginOptions = ConstructorParameters<
   typeof container.ModuleFederationPlugin
 >[0];
@@ -9,7 +25,10 @@ type ModuleFederationPluginOptions = ConstructorParameters<
 interface SiteConfig
   extends Pick<
     ModuleFederationPluginOptions,
-    Exclude<keyof ModuleFederationPluginOptions, 'exposes' | 'filename'>
+    Exclude<
+      keyof ModuleFederationPluginOptions,
+      'exposes' | 'filename' | 'remotes'
+    >
   > {
   /**
    * The main filename of the container as relative path inside the `output.path` directory.
@@ -19,6 +38,8 @@ interface SiteConfig
    * Modules that should be exposed by this container. When provided, property name is used as public name, otherwise public name is automatically inferred from request.
    */
   exports?: string[];
+
+  // dependencies: [];
 }
 
 export const getPlugins = () => {
@@ -62,6 +83,9 @@ export const getPlugins = () => {
       `The "exports" field should be a Array<string> type in ${currentPath}`
     );
   }
+
+  // if (dependencies) {
+  // }
 
   return [
     new DefinePlugin({
