@@ -1,6 +1,7 @@
-import React from 'react';
-// import { useApp } from '../../../../packages/fronts-react';
+import React, { useState, useEffect, useRef } from 'react';
 import App3 from 'app3/src/App';
+// import { useApp } from 'fronts-react';
+// import { loadApp } from 'fronts';
 
 const style = {
   padding: 12,
@@ -8,6 +9,8 @@ const style = {
 };
 
 const ButtonContainer = () => {
+  const [count, setCount] = useState(0);
+
   // const ref = useRef(null);
   // useEffect(() => {
   //   let callback: (() => void) | void;
@@ -16,10 +19,14 @@ const ButtonContainer = () => {
   //   });
   //   return () => callback && callback();
   // }, []);
-  // const ref = useApp(() => import('app3/src/bootstrap'));
+
+  // const App3 = useApp(() => import('app3/src/bootstrap'));
   return (
     <div style={style}>
       App 2 Container
+      <button type="button" onClick={() => setCount(count + 1)}>
+        {count}
+      </button>
       <br />
       <br />
       {/* <div ref={ref}></div> */}

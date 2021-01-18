@@ -26,19 +26,26 @@ site.json
 
 ```json
 {
-    "name": "header",
+    "name": "app",
     "version": "0.2.3",
     "main": "index.js",
-    "deps": {
-        "body": "https://example.com/v0.2.3/body",
+    "dependencies": {
+        "header": "^0.2.3",
         "footer": "^0.3.4",
     },
     "registry": "https://examplehub.com/",
 }
 ```
 
-> mode: Inline, Sandbox, Standalone, iFrame, WebComponents
+> mode: Inline, Standalone, iFrame, WebComponents
 
-> WebWorker, WebAssembly, SharedWorker
+> runner: Sandbox, WebWorker, WebAssembly, SharedWorker
 
 # TODO
+
+- `const App = useApp(() => import('app3'));`
+- `const IFrame = useIFrame('app3');`
+- `const url = getIFrame('app3')`
+- `WebComponents`
+- `version`
+- `Sandbox`
