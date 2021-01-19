@@ -43,8 +43,9 @@ site.json
 
 # TODO
 
-- `const App = useApp(() => import('app3'));`
+- [x] `const App = useApp(() => import('app3'));`
 - `const IFrame = useIFrame('app3');`
+- Dynamic configuration
 - `const url = getIFrame('app3')`
 - `WebComponents`
 - `version`

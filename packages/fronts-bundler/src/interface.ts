@@ -47,6 +47,10 @@ export interface SiteConfig
    */
   main?: string;
   /**
+   * The bootstrap of the container. Both local and remote start the current application via the bootstrap.
+   */
+  bootstrap?: string;
+  /**
    * Modules that should be exposed by this container. When provided, property name is used as public name, otherwise public name is automatically inferred from request.
    */
   exports?: string[];

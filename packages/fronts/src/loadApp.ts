@@ -5,6 +5,15 @@ export const importApp = (dynamicImport: DynamicImport) => {
   return dynamicImport();
 };
 
+
+/**
+ * Load app script from remote
+ *
+ * # Example
+ * ```ts
+ * loadApp(() => import('app1'), targetNode).then((unmount) => {});
+ * ```
+ */
 export const loadApp = (dynamicImport: DynamicImport, target: NodeElement) => {
   return importApp(dynamicImport).then((module) => {
     if (typeof module.default !== 'function') {

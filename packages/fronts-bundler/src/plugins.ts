@@ -23,6 +23,7 @@ export const getPlugins = () => {
     main = DEFAULT_DEPENDENCY_CONFIG_MAIN,
     exports,
     dependencies,
+    bootstrap,
     ...otherConfig
   } = siteConfig;
 
@@ -44,10 +45,19 @@ export const getPlugins = () => {
         `The "exports" field should be a Array<string> type WITHOUT '.' in ${currentPath}`
       );
     }
-    // TODO: set exposes ExposesObject
+    if (typeof bootstrap !== 'string' && typeof bootstrap !== 'undefined') {
+      throw new Error(
+        `The "bootstrap" field should be a string in ${currentPath}`
+      );
+    }
+    const exposes = bootstrap ? { '.': bootstrap } : {};
+    // TODO: set exposes ExposesObject string[]
     Object.assign(
       config.exposes,
-      exports.reduce((acc, name) => Object.assign(acc, { [name]: name }), {})
+      exports.reduce(
+        (acc, name) => Object.assign(acc, { [name]: name }),
+        exposes
+      )
     );
   } else if (typeof siteConfig.exports !== 'undefined') {
     throw new Error(
