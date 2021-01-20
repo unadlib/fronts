@@ -16,8 +16,6 @@ export const useIFrame = <
         }
       }
       const url = useIFrameURL(siteName);
-      console.log(url);
-      return null;
       return <iframe frameBorder="no" {...props} src={url} />;
     }),
     [siteName]
