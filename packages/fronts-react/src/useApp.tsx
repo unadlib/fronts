@@ -19,7 +19,7 @@ export const useApp: <T extends { [k: string]: any } = { [k: string]: any }>(
       useEffect(() => {
         if (typeof ModuleRef!.current!.default !== 'function') {
           throw new Error(
-            `The current App should define default exported rendering functions.`
+            `The current App should define default exported rendering functions in the dependent "${process.env.APP_NAME}" App.`
           );
         }
         return ModuleRef!.current!.default(ref.current);

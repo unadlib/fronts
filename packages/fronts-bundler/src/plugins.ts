@@ -6,11 +6,13 @@ import {
   ModuleFederationPluginOptions,
   RemotesConfig,
 } from './interface';
+import { getUrl } from './utils';
 
 const DEFAULT_DEPENDENCY_CONFIG_MAIN = 'remoteEntry.js';
 
 export const getPlugins = () => {
   if (process.env.SPA) return [];
+  const depURLs: Record<string, string | string[]> = {};
   const currentPath = path.resolve(process.cwd(), 'site.json');
   const siteConfig: SiteConfig = require(currentPath);
   if (typeof siteConfig.name !== 'string') {
@@ -74,6 +76,7 @@ export const getPlugins = () => {
     config.remotes = Object.entries(dependencies).reduce(
       (previousValue, [dependency, dependencyConfig]) => {
         if (typeof dependencyConfig === 'string') {
+          depURLs[dependency] = getUrl(dependencyConfig);
           return Object.assign(previousValue, {
             [dependency]: `${dependency}@${dependencyConfig}`,
           });
@@ -93,6 +96,11 @@ export const getPlugins = () => {
           if (dependencyConfig.shareScope) {
             remoteConfig.shareScope = dependencyConfig.shareScope;
           }
+          if (Array.isArray(external)) {
+            depURLs[dependency] = external.map(getUrl);
+          } else {
+            depURLs[dependency] = getUrl(external);
+          }
           return Object.assign(previousValue, {
             [dependency]: remoteConfig,
           });
@@ -109,6 +117,7 @@ export const getPlugins = () => {
   return [
     new DefinePlugin({
       'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}`),
+      'process.env.DEP_URLS': JSON.stringify(`${JSON.stringify(depURLs)}`),
     }),
     new container.ModuleFederationPlugin({
       ...config,
