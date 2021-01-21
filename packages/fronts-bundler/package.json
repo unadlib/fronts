@@ -11,7 +11,14 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
+  "peerDependencies": {
+    "string-replace-loader": "^3.0.1",
     "webpack": "^5.11.1"
+  },
+  "devDependencies": {
+    "webpack": "^5.11.1"
+  },
+  "dependencies": {
+    "string-replace-loader": "^3.0.1"
   }
 }

@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import path from 'path';
 import { container, DefinePlugin } from 'webpack';
-import {
-  SiteConfig,
-  ModuleFederationPluginOptions,
-  RemotesConfig,
-} from './interface';
+import { getSiteConfig } from './getSiteConfig';
+import { ModuleFederationPluginOptions, RemotesConfig } from './interface';
 import { getUrl } from './utils';
 
 const DEFAULT_DEPENDENCY_CONFIG_MAIN = 'remoteEntry.js';
@@ -14,7 +11,7 @@ export const getPlugins = () => {
   if (process.env.SPA) return [];
   const depURLs: Record<string, string | string[]> = {};
   const currentPath = path.resolve(process.cwd(), 'site.json');
-  const siteConfig: SiteConfig = require(currentPath);
+  const siteConfig = getSiteConfig();
   if (typeof siteConfig.name !== 'string') {
     throw new Error(
       `The "name" field should be a string type in ${currentPath}`
@@ -26,6 +23,7 @@ export const getPlugins = () => {
     exports,
     dependencies,
     bootstrap,
+    version,
     ...otherConfig
   } = siteConfig;
 

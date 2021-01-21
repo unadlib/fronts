@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { DynamicImport, importApp, Render } from 'fronts';
+import { DynamicImport, loadApp, Render } from 'fronts';
 import { AppWrapper } from './interface';
 
 export const useApp: <T extends { [k: string]: any } = { [k: string]: any }>(
@@ -8,7 +8,7 @@ export const useApp: <T extends { [k: string]: any } = { [k: string]: any }>(
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    importApp(dynamicImport).then((module: any) => {
+    loadApp(dynamicImport).then((module: any) => {
       setLoaded(true);
       ModuleRef.current = module;
     });

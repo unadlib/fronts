@@ -1,10 +1,8 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ModuleFederationPlugin = require('webpack').container
-  .ModuleFederationPlugin;
 const path = require('path');
-const getPlugins = require('../../../packages/fronts-bundler').getPlugins;
+const { createWebpackConfig } = require('../../../packages/fronts-bundler');
 
-module.exports = {
+module.exports = createWebpackConfig({
   entry: './src/index',
   mode: 'development',
   devServer: {
@@ -12,10 +10,10 @@ module.exports = {
     port: 3001,
   },
   output: {
-    publicPath: 'auto',
+    path: path.resolve(__dirname, 'dist/1.0.0'),
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },
   module: {
     rules: [
@@ -30,9 +28,8 @@ module.exports = {
     ],
   },
   plugins: [
-    ...getPlugins(),
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
   ],
-};
+});
