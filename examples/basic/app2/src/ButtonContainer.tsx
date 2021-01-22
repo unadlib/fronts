@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import App3 from 'app3/src/App';
+// import App3 from 'app3/src/App';
 import { useApp } from 'fronts-react';
 // import { useApp as useAppWithFronts } from 'fronts';
 
@@ -20,7 +20,7 @@ const ButtonContainer = () => {
   //   return () => callback && callback();
   // }, []);
 
-  // const App3 = useApp(() => import('app3'));
+  const App3 = useApp(() => import('app3/src/bootstrap'));
   return (
     <div style={style}>
       App 2 Container

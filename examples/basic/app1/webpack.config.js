@@ -1,6 +1,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
-const { createWebpackConfig } = require('../../../packages/fronts-bundler');
+const { createWebpackConfig } = require('fronts-bundler');
 
 module.exports = createWebpackConfig({
   entry: './src/index',
@@ -14,6 +14,9 @@ module.exports = createWebpackConfig({
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    alias: {
+      react: path.resolve(__dirname, '../../../node_modules/react'),
+    },
   },
   module: {
     rules: [

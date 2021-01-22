@@ -1,7 +1,6 @@
 {
   "name": "app3",
-  "bootstrap": "./src/bootstrap",
-  "exports": ["./src/App"],
+  "exports": ["./src/App", "./src/bootstrap"],
   "shared": {
     "react": { "singleton": true },
     "react-dom": { "singleton": true }

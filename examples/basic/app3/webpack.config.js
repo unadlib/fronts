@@ -1,7 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
-const getPlugins = require('../../../packages/fronts-bundler').getPlugins;
+const getPlugins = require('fronts-bundler').getPlugins;
 const path = require('path');
 
 module.exports = {
@@ -16,6 +16,9 @@ module.exports = {
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
+    alias: {
+      react: path.resolve(__dirname, '../../../node_modules/react'),
+    },
   },
   module: {
     rules: [

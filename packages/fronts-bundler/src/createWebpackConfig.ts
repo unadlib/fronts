@@ -7,6 +7,7 @@ const plugins = getPlugins();
 
 export const createWebpackConfig = (configuration: Configuration) => {
   const siteConfig = getSiteConfig();
+  // TODO: custom path with version
   if (!configuration.output?.path && siteConfig.version) {
     const relativePath = siteConfig.version
       ? `dist/${siteConfig.version}`
