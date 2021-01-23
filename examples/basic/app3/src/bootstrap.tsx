@@ -6,7 +6,7 @@ import App from './App';
 export default function render(element: HTMLElement | null) {
   ReactDOM.render(<App />, element);
   return () => {
-    ReactDOM.unmountComponentAtNode(element!)
+    ReactDOM.unmountComponentAtNode(element!);
   };
 }
 

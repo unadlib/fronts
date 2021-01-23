@@ -2,9 +2,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
 const path = require('path');
-const getPlugins = require('../../../packages/fronts-bundler').getPlugins;
+const { createWebpackConfig } = require('fronts-bundler');
 
-module.exports = {
+module.exports = createWebpackConfig({
   entry: './src/index',
   mode: 'development',
   devServer: {
@@ -33,9 +33,8 @@ module.exports = {
     ],
   },
   plugins: [
-    ...getPlugins(),
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
   ],
-};
+});

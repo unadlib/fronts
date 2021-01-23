@@ -1,10 +1,10 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
-const getPlugins = require('fronts-bundler').getPlugins;
 const path = require('path');
+const { createWebpackConfig } = require('fronts-bundler');
 
-module.exports = {
+module.exports = createWebpackConfig({
   entry: './src/index',
   mode: 'development',
   devServer: {
@@ -15,7 +15,7 @@ module.exports = {
     publicPath: 'auto',
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
       react: path.resolve(__dirname, '../../../node_modules/react'),
     },
@@ -33,9 +33,8 @@ module.exports = {
     ],
   },
   plugins: [
-    ...getPlugins(),
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
   ],
-};
+});

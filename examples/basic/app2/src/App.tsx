@@ -1,5 +1,5 @@
-import React, { FC } from "react";
-import ButtonContainer from "./ButtonContainer";
+import React, { FC } from 'react';
+import ButtonContainer from './ButtonContainer';
 
 const App: FC<{ version?: string }> = () => (
   <div>
