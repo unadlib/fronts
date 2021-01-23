@@ -14,11 +14,15 @@ export const getDepLink = (
 export const loadScript = (name: string, url: string) => {
   return new Promise((resolve, reject) => {
     const container = getContainer(name);
-    if (typeof container !== 'undefined') return;
+    if (typeof container !== 'undefined') {
+      // Script have already been loaded.
+      return resolve(null);
+    }
+    // TODO: resolve browser compatibility issues
     const element = document.createElement('script');
     element.src = url;
-    element.type = 'text/javascript';
     element.async = true;
+    element.type = 'text/javascript';
     element.onload = () => {
       resolve(null);
       document.head.removeChild(element);

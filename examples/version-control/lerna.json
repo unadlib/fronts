@@ -1,4 +1,4 @@
 {
-  "packages": ["app1", "app2", "app3"],
+  "packages": ["app1", "app2", "app3", "registry"],
   "version": "independent"
 }
