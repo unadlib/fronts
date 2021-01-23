@@ -23,12 +23,19 @@ export const getPlugins = () => {
     exports,
     dependencies,
     version,
+    registry,
     ...otherConfig
   } = siteConfig;
 
   if (typeof main !== 'string') {
     throw new Error(
       `The "main" field should be a string type in ${currentPath}`
+    );
+  }
+
+  if (typeof registry !== 'undefined' && typeof registry !== 'string') {
+    throw new Error(
+      `The "registry" field should be a string type in ${currentPath}`
     );
   }
 
@@ -62,6 +69,14 @@ export const getPlugins = () => {
     }
     config.remotes = Object.entries(dependencies).reduce(
       (previousValue, [dependency, dependencyConfig]) => {
+        if (typeof registry !== 'undefined') {
+          if (typeof dependencyConfig !== 'string') {
+            throw new Error(
+              `Type Error: ${dependency} value is ${dependencyConfig} in the "dependencies" field, and all properties of object "dependencies" should be a string type in ${currentPath}`
+            );
+          }
+          return previousValue;
+        }
         if (typeof dependencyConfig === 'string') {
           depURLs[dependency] = getUrl(dependencyConfig);
           return Object.assign(previousValue, {
@@ -104,7 +119,21 @@ export const getPlugins = () => {
   return [
     new DefinePlugin({
       'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}`),
-      'process.env.DEP_URLS': JSON.stringify(`${JSON.stringify(depURLs)}`),
+      ...(typeof registry !== 'undefined'
+        ? {
+            // Fronts dependencies package mapping
+            'process.env.FPM_MAP': JSON.stringify(
+              `${JSON.stringify(dependencies ?? {})}`
+            ),
+            // Fronts dependencies package manager registry url
+            'process.env.FPM_REG': JSON.stringify(registry),
+          }
+        : {
+            // Not using package management
+            'process.env.DEP_URLS': JSON.stringify(
+              `${JSON.stringify(depURLs)}`
+            ),
+          }),
     }),
     new container.ModuleFederationPlugin({
       ...config,

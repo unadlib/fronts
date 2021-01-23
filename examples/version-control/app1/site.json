@@ -1,0 +1,12 @@
+{
+  "name": "app1",
+  "version": "1.0.0",
+  "dependencies": {
+    "app2": "1.0.0"
+  },
+  "registry": "http://localhost:3000/dev.json",
+  "shared": {
+    "react": { "singleton": true },
+    "react-dom": { "singleton": true }
+  }
+}

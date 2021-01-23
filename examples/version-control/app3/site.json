@@ -1,0 +1,10 @@
+{
+  "name": "app3",
+  "version": "1.0.0",
+  "exports": ["./src/App", "./src/bootstrap"],
+  "registry": "http://localhost:3000/dev.json",
+  "shared": {
+    "react": { "singleton": true },
+    "react-dom": { "singleton": true }
+  }
+}

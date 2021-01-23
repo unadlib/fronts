@@ -58,4 +58,8 @@ export interface SiteConfig
    *
    */
   version?: string;
+  /**
+   *
+   */
+  registry?: string;
 }

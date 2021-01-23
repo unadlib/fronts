@@ -1,0 +1,11 @@
+{
+  "app1": {
+    "1.0.0": "http://localhost:3001/remoteEntry.js"
+  },
+  "app2": {
+    "1.0.0": "http://localhost:3002/remoteEntry.js"
+  },
+  "app3": {
+    "1.0.0": "http://localhost:3003/remoteEntry.js"
+  }
+}

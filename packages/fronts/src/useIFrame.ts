@@ -1,4 +1,5 @@
 export const useIFrame = (siteName: string) => {
+  // TODO: think about registry
   const urlsMap: Record<string, string | string[]> = JSON.parse(
     process.env.DEP_URLS!
   );

@@ -17,17 +17,23 @@ export const createWebpackConfig = (configuration: Configuration) => {
       path: resolve(__dirname, relativePath),
     };
   }
-  if (configuration.module?.rules && !process.env.SPA) {
-    // configuration.module?.rules.push({
-    //   test: /\.(t|j)sx?$/,
-    //   exclude: /node_modules/,
-    //   loader: 'string-replace-loader',
-    //   options: {
-    //     search: 'import\\s*\\(',
-    //     replace: "require('fronts').importApp(",
-    //     flags: 'g',
-    //   },
-    // });
+  if (
+    configuration.module?.rules &&
+    !process.env.SPA &&
+    typeof siteConfig.registry !== 'undefined'
+  ) {
+    configuration.module?.rules.push({
+      test: /\.(t|j)sx?$/,
+      exclude: /importApp/,
+      loader: 'string-replace-loader',
+      options: {
+        // TODO: use more stable syntax parsing replacement
+        // thank about external app when use register
+        search: "import\\s*\\('app",
+        replace: "require('fronts').importApp('app",
+        flags: 'g',
+      },
+    });
   }
   if (configuration.plugins) {
     configuration.plugins.push(...plugins);
