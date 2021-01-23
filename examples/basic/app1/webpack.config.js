@@ -10,7 +10,7 @@ module.exports = createWebpackConfig({
     port: 3001,
   },
   output: {
-    path: path.resolve(__dirname, 'dist/1.0.0'),
+    publicPath: 'auto',
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
