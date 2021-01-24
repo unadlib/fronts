@@ -1,7 +1,8 @@
 {
-  "name": "app1",
+  "name": "app2",
+  "exports": ["./src/App"],
   "dependencies": {
-    "app2": "http://localhost:3002/remoteEntry.js"
+    "app3": "http://localhost:3003/remoteEntry.js"
   },
   "shared": {
     "react": { "singleton": true },

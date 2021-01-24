@@ -1,7 +1,10 @@
 {
   "name": "app1",
   "dependencies": {
-    "app2": "http://localhost:3002/remoteEntry.js"
+    "app2": {
+      "host": "http://localhost:3002",
+      "main": "remoteEntry.js"
+    }
   },
   "shared": {
     "react": { "singleton": true },
