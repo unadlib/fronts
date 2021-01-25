@@ -1,3 +1,3 @@
 # fronts
 
-A progressive  micro frontends framework for for building Web applications.
+A progressive micro frontends framework for building Web applications.
