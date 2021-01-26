@@ -1,0 +1,8 @@
+{
+  "name": "app4",
+  "exports": ["./src/App", "./src/bootstrap"],
+  "shared": {
+    "react": { "singleton": true },
+    "react-dom": { "singleton": true }
+  }
+}
