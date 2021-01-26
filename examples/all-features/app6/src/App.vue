@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3>Main App</h3>
+    <h3>Nested Vue App6</h3>
     <Content />
     <Button />
   </div>

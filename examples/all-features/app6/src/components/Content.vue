@@ -5,7 +5,7 @@
 export default {
   data() {
     return {
-      title: "Remote Component in Action..",
+      title: "Remote Component",
     };
   },
 };
