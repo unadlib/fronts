@@ -5,7 +5,8 @@
       "host": "http://localhost:3002",
       "main": "remoteEntry.js"
     },
-    "app4": "http://localhost:3004/remoteEntry.js"
+    "app4": "http://localhost:3004/remoteEntry.js",
+    "app5": "http://localhost:3005/remoteEntry.js"
   },
   "shared": {
     "react": { "singleton": true },

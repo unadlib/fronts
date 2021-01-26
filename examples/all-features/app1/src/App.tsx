@@ -5,8 +5,8 @@ import Navigation from './Navigation';
 import HomePage from './HomePage';
 import { useIFrame, useApp } from 'fronts';
 import {
-  useIFrame as useReactIFrame,
-  useIFrame as useReactApp,
+  useIFrame as useIFrameWithReact,
+  useApp as useAppWithReact,
 } from 'fronts-react';
 
 const App2 = React.lazy(() => import('app2/src/App'));
@@ -30,11 +30,21 @@ const routes = [
   {
     path: '/app4',
     component: () => {
-      const App4 = useReactIFrame('app4');
+      const App4 = useIFrameWithReact('app4');
       return <App4 />;
     },
     exact: true,
   },
+  {
+  path: '/app5',
+  component: () => {
+    // Vue
+    // @ts-ignore
+    const App5 = useAppWithReact(() => import('app5/src/main'));
+    return <App5 />;
+  },
+  exact: true,
+},
   // {
   //   path: '/app6',
   //   component: () => <iframe src={useIFrame('app6')} />,

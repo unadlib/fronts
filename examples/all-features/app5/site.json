@@ -1,0 +1,7 @@
+{
+  "name": "app5",
+  "exports": ["./src/main"],
+  "dependencies": {
+    "app6": "http://localhost:3006/remoteEntry.js"
+  }
+}
