@@ -31,20 +31,25 @@ const routes = [
     path: '/app4',
     component: () => {
       const App4 = useIFrameWithReact('app4');
-      return <App4 />;
+      return (
+        <>
+          <App4 />
+          <iframe src={useIFrame('app4')} />
+        </>
+      );
     },
     exact: true,
   },
   {
-  path: '/app5',
-  component: () => {
-    // Vue
-    // @ts-ignore
-    const App5 = useAppWithReact(() => import('app5/src/main'));
-    return <App5 />;
+    path: '/app5',
+    component: () => {
+      // Vue
+      // @ts-ignore
+      const App5 = useAppWithReact(() => import('app5/src/main'));
+      return <App5 />;
+    },
+    exact: true,
   },
-  exact: true,
-},
   // {
   //   path: '/app6',
   //   component: () => <iframe src={useIFrame('app6')} />,
