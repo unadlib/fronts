@@ -28,9 +28,9 @@ export const createWebpackConfig = (configuration: Configuration) => {
       loader: 'string-replace-loader',
       options: {
         // TODO: use more stable syntax parsing replacement
-        // thank about external app when use register
-        search: "import\\s*\\('app",
-        replace: "require('fronts').importApp('app",
+        search: 'import\\s*\\(\\s*(\'|")([^(?!\\.)]+)(\'|")\\s*\\)',
+        replace: (...args: string[]) =>
+          `require('fronts').importApp('${args[2]}')`,
         flags: 'g',
       },
     });
