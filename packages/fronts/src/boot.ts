@@ -6,7 +6,7 @@ export const boot = (render: Render, element: NodeElement, name?: string) => {
   }
   if (typeof name !== 'undefined') {
     if (typeof name !== 'string') {
-      throw new Error(``);
+      throw new Error(`The current App name should be a string.`);
     } else {
       window.__FRONTS__DYNAMIC__MODULES__ =
         window.__FRONTS__DYNAMIC__MODULES__ ?? {};
@@ -16,6 +16,7 @@ export const boot = (render: Render, element: NodeElement, name?: string) => {
           try {
             fn();
           } catch (e) {
+            // handle error
             console.error(e);
           }
         }
