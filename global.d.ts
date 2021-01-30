@@ -4,4 +4,11 @@ declare const __webpack_share_scopes__: Record<string, string>;
 
 interface Window {
   __FRONTS__DYNAMIC__IMPORT__: boolean;
+  __FRONTS__DYNAMIC__MODULES__: Record<
+    string,
+    {
+      default: (target: HTMLElement | null) => () => void;
+    }
+  >;
+  __FRONTS__FETCH__MODULES__: Record<string, Set<() => void>>;
 }

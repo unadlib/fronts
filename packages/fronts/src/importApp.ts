@@ -11,6 +11,41 @@ export const getDepLink = (
   return versionsMap[version];
 };
 
+export const loadAppScript = (url: string, name: string) => {
+  return new Promise((resolve, reject) => {
+    const app = window.__FRONTS__DYNAMIC__MODULES__?.[name];
+    if (typeof app !== 'undefined') {
+      // Script have already been loaded.
+      return resolve(app);
+    }
+
+    const onLoadApp = () => {
+      const app = window.__FRONTS__DYNAMIC__MODULES__?.[name];
+      resolve(app);
+      window.__FRONTS__FETCH__MODULES__[name].delete(onLoadApp);
+    };
+    window.__FRONTS__FETCH__MODULES__ = window.__FRONTS__FETCH__MODULES__ ?? {};
+    window.__FRONTS__FETCH__MODULES__[name] =
+      window.__FRONTS__FETCH__MODULES__[name] ?? new Set();
+    window.__FRONTS__FETCH__MODULES__[name].add(onLoadApp);
+
+    // TODO: resolve browser compatibility issues
+    const element = document.createElement('script');
+    element.src = url;
+    element.async = true;
+    element.type = 'text/javascript';
+    element.onload = () => {
+      document.head.removeChild(element);
+    };
+    element.onerror = () => {
+      // TODO: retry load script from urls
+      document.head.removeChild(element);
+      reject(`Script Error: ${url}`);
+    };
+    document.head.appendChild(element);
+  });
+};
+
 export const loadScript = (name: string, url: string) => {
   return new Promise((resolve, reject) => {
     const container = getContainer(name);
