@@ -1,73 +1,25 @@
 import semver from 'semver';
+import { injectScript } from './injectScript';
 
-export const getContainer = (name: string) =>
-  (window as Record<string, any>)[name];
+const getContainer = (name: string) => (window as Record<string, any>)[name];
 
-export const getDepLink = (
-  versionsMap: Record<string, string>,
-  version: string
-) => {
+const getDepLink = (versionsMap: Record<string, string>, version: string) => {
   // TODO: use semver for version pick
   return versionsMap[version];
 };
 
-export const loadAppScript = (url: string, name: string) => {
-  return new Promise((resolve, reject) => {
-    const app = window.__FRONTS__DYNAMIC__MODULES__?.[name];
-    if (typeof app !== 'undefined') {
-      // Script have already been loaded.
-      return resolve(app);
-    }
-
-    const onLoadApp = () => {
-      const app = window.__FRONTS__DYNAMIC__MODULES__?.[name];
-      resolve(app);
-      window.__FRONTS__FETCH__MODULES__[name].delete(onLoadApp);
-    };
-    window.__FRONTS__FETCH__MODULES__ = window.__FRONTS__FETCH__MODULES__ ?? {};
-    window.__FRONTS__FETCH__MODULES__[name] =
-      window.__FRONTS__FETCH__MODULES__[name] ?? new Set();
-    window.__FRONTS__FETCH__MODULES__[name].add(onLoadApp);
-
-    // TODO: resolve browser compatibility issues
-    const element = document.createElement('script');
-    element.src = url;
-    element.async = true;
-    element.type = 'text/javascript';
-    element.onload = () => {
-      document.head.removeChild(element);
-    };
-    element.onerror = () => {
-      // TODO: retry load script from urls
-      document.head.removeChild(element);
-      reject(`Script Error: ${url}`);
-    };
-    document.head.appendChild(element);
-  });
-};
-
-export const loadScript = (name: string, url: string) => {
+const loadModuleScript = (name: string, url: string) => {
   return new Promise((resolve, reject) => {
     const container = getContainer(name);
     if (typeof container !== 'undefined') {
       // Script have already been loaded.
       return resolve(null);
     }
-    // TODO: resolve browser compatibility issues
-    const element = document.createElement('script');
-    element.src = url;
-    element.async = true;
-    element.type = 'text/javascript';
-    element.onload = () => {
-      resolve(null);
-      document.head.removeChild(element);
-    };
-    element.onerror = () => {
-      // TODO: retry load script from urls
-      document.head.removeChild(element);
-      reject(`Script Error: ${url}`);
-    };
-    document.head.appendChild(element);
+    injectScript({
+      url,
+      reject,
+      resolve,
+    });
   });
 };
 
@@ -90,14 +42,14 @@ export const importApp = async (path: string) => {
       const depInfo = frontsPackagesMap[name];
       const isExternalLink = /^(http|https):/.test(depInfo);
       if (isExternalLink) {
-        await loadScript(name, depInfo);
+        await loadModuleScript(name, depInfo);
       } else {
         // TODO: use cache
         const data: Record<string, Record<string, string>> = await fetch(
           `${process.env.FPM_REG}?scope=${name}`
         ).then((data) => data.json());
         const depLink = getDepLink(data[name], depInfo);
-        await loadScript(name, depLink);
+        await loadModuleScript(name, depLink);
       }
       const module = await getModule(name, modulePath);
       return module;

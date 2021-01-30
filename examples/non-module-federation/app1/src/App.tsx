@@ -1,6 +1,6 @@
 import React from 'react';
 import { HashRouter, Route, Switch } from 'react-router-dom';
-import { loadAppScript, useApp } from 'fronts-react';
+import { loadScript, useApp } from 'fronts-react';
 import Navigation from './Navigation';
 import HomePage from './HomePage';
 
@@ -13,12 +13,9 @@ const routes = [
   {
     path: '/about',
     component: () => {
-      // @ts-ignore
       const App2 = useApp(() =>
-        // @ts-ignore
-        loadAppScript('http://localhost:3002/bundle.js', 'app2')
+        loadScript('http://localhost:3002/bundle.js', 'app2')
       );
-
       return <App2 />;
     },
     exact: true,

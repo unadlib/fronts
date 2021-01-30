@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useApp, loadAppScript } from 'fronts-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useApp, loadScript } from 'fronts';
 
 const style = {
   padding: 12,
@@ -8,11 +8,16 @@ const style = {
 
 const ButtonContainer = () => {
   const [count, setCount] = useState(0);
-  // @ts-ignore
-  const App3 = useApp(() =>
-    // @ts-ignore
-    loadAppScript('http://localhost:3003/bundle.js', 'app3')
-  );
+
+  const ref = useRef(null);
+  useEffect(() => {
+    let callback: (() => void) | void;
+    useApp(() => loadScript('http://localhost:3003/bundle.js', 'app3'), ref.current).then((unmount) => {
+      callback = unmount;
+    });
+    return () => callback && callback();
+  }, []);
+
   return (
     <div style={style}>
       App 2 Container
@@ -21,7 +26,7 @@ const ButtonContainer = () => {
       </button>
       <br />
       <br />
-      <App3 />
+      <div ref={ref}></div>
     </div>
   );
 };

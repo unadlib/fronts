@@ -1,4 +1,4 @@
-export { boot, loadAppScript } from 'fronts';
+export { boot, loadScript } from 'fronts';
 
 export * from './useApp';
 export * from './interface';
