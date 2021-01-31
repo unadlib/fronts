@@ -10,10 +10,10 @@ A progressive micro frontends framework for building Web applications.
 - Lazy loading
 - Lifecycle
 - Decentralized Configuration
-- Quick Switch SPA & Micro frontends mode
-- Support Monorepo  & TypeScript
+- Quick Switch SPA & Micro Frontends
+- Support Monorepo & TypeScript
 - Version Control System
-- Canary release
+- Canary Release
 
 ### Mode
 
