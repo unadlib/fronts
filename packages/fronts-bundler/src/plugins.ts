@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import path from 'path';
-import { container, DefinePlugin } from 'webpack';
+import { container, DefinePlugin, BannerPlugin } from 'webpack';
 import { getSiteConfig } from './getSiteConfig';
 import { ModuleFederationPluginOptions, RemotesConfig } from './interface';
 import { getUrl } from './utils';
@@ -116,9 +116,26 @@ export const getPlugins = () => {
     );
   }
 
+  const metaData = {
+    dependencies:
+      (typeof registry !== 'undefined' ? dependencies : depURLs) ?? {},
+    ...(registry ? { registry } : {}),
+    ...(version ? { version } : {}),
+  };
+
   return [
+    new BannerPlugin({
+      banner: `
+        window.__FRONTS__ = window.__FRONTS__ ? window.__FRONTS__ : {};
+        if (!window.__FRONTS__['${siteConfig.name}']) window.__FRONTS__['${
+        siteConfig.name
+      }'] = ${JSON.stringify(metaData)};`,
+      include: `${config.filename}`,
+      raw: true,
+    }),
     new DefinePlugin({
       'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}`),
+      'process.env.FPM_DEPS': JSON.stringify(`${JSON.stringify(metaData)}`),
       ...(typeof registry !== 'undefined'
         ? {
             // Fronts dependencies package mapping

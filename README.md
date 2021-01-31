@@ -7,10 +7,10 @@ A progressive micro frontends framework for building Web applications.
 - Non-Module Federation
 - Cross Framework
 - Code Splitting
-- Lazy loading
+- Lazy Loading
 - Lifecycle
 - Decentralized Configuration
-- Quick Switch SPA & Micro Frontends
+- Quickly Switch Between SPA & Micro Frontends
 - Support Monorepo & TypeScript
 - Version Control System
 - Canary Release
