@@ -1,6 +1,5 @@
 {
   "name": "app5",
-  "private": true,
   "version": "1.0.0",
   "scripts": {
     "start": "webpack-cli serve",
