@@ -12,6 +12,7 @@ interface Window {
     }
   > & {
     __main__: string;
+    __entry__: string;
   };
   __FRONTS__DYNAMIC__IMPORT__: boolean;
   __FRONTS__DYNAMIC__MODULES__: Record<

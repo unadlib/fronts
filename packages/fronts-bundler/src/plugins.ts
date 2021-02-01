@@ -39,6 +39,7 @@ export const getPlugins = () => {
     );
   }
 
+  // TODO: exclude about `fronts` package from the `shared` field
   const config: ModuleFederationPluginOptions = {
     ...otherConfig,
     filename: main,

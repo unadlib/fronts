@@ -8,3 +8,4 @@ export * from './useIFrame';
 export * from './importApp';
 export * from './injectScript';
 export * from './loadScript';
+export * from './getAppName';
