@@ -55,11 +55,11 @@ export interface SiteConfig
    */
   dependencies?: Record<string, DependencyConfig | string>;
   /**
-   *
+   * Specify a version for the package.
    */
   version?: string;
   /**
-   *
+   * Specify a registry server to resolve packages by name and version.
    */
   registry?: string;
 }
