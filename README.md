@@ -34,3 +34,17 @@ A progressive micro frontends framework for building Web applications.
 ## Testing
 
 ## CLI
+
+## TODO
+
+- [ ] version control for static import
+- [ ] WebComponents
+- [ ] WebWorker
+- [ ] WebAssembly
+- [ ] SharedWorker
+- [ ] ServiceWorker
+- [ ] `useIFrame` about passing props
+- [ ] Error handling
+- [ ] Logger/Debugger
+- [ ] Global Event system
+- [ ] Building tools cli
