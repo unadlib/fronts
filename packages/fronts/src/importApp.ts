@@ -1,6 +1,8 @@
 import semver from 'semver';
 import { injectScript } from './injectScript';
 
+const storePrefix = '__fronts__';
+
 const getContainer = (name: string) => (window as Record<string, any>)[name];
 
 const getDepLink = (versionsMap: Record<string, string>, version: string) => {
@@ -41,10 +43,17 @@ export const importApp = async (path: string) => {
       const frontsPackagesMap = JSON.parse(process.env.FPM_MAP);
       const depInfo = frontsPackagesMap[name];
       const isExternalLink = /^(http|https):/.test(depInfo);
+      const cacheLink = window.localStorage.getItem(`${storePrefix}${name}`);
       if (isExternalLink) {
         await loadModuleScript(name, depInfo);
+      } else if (cacheLink) {
+        fetch(`${process.env.FPM_REG}?scope=${name}`).then(async (data) => {
+          const depLinks = await data.json();
+          const depLink = getDepLink(depLinks[name], depInfo);
+          window.localStorage.setItem(`${storePrefix}${name}`, depLink);
+        });
+        await loadModuleScript(name, cacheLink);
       } else {
-        // TODO: use cache
         const data: Record<string, Record<string, string>> = await fetch(
           `${process.env.FPM_REG}?scope=${name}`
         ).then((data) => data.json());
