@@ -1,4 +1,5 @@
 import semver from 'semver';
+import { getCacheLink, setCacheLink } from './cache';
 import { injectScript } from './injectScript';
 
 const storePrefix = '__fronts__';
@@ -35,13 +36,6 @@ export const getModule = async (name: string, module: string) => {
   return factory();
 };
 
-const setCacheLink = (storageKey: string, depLink: string) => {
-  window.localStorage.setItem(storageKey, depLink);
-};
-
-const getCacheLink = (storageKey: string) =>
-  window.localStorage.getItem(storageKey);
-
 export const importApp = async (path: string) => {
   const [name, ...paths] = path.split('/');
   const modulePath = `./${paths.join('/')}`;
@@ -51,7 +45,7 @@ export const importApp = async (path: string) => {
       const depInfo = frontsPackagesMap[name];
       const storageKey = `${storePrefix}${name}`;
       const isExternalLink = /^(http|https):/.test(depInfo);
-      const cacheLink = getCacheLink(storageKey);
+      const cacheLink = await getCacheLink(storageKey);
       if (isExternalLink) {
         await loadModuleScript(name, depInfo);
       } else if (cacheLink) {
