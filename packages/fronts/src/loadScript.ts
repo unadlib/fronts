@@ -1,6 +1,9 @@
 import { injectScript } from './injectScript';
 import { Render } from './interface';
 
+/**
+ * Loading script with non-module-federation module
+ */
 export const loadScript = (url: string, name: string) => {
   return new Promise<{
     default: Render;

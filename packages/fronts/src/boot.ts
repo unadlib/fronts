@@ -8,6 +8,7 @@ export const boot = (render: Render, element: NodeElement, name?: string) => {
     if (typeof name !== 'string') {
       throw new Error(`The current App name should be a string.`);
     } else {
+      // for non-module-federation
       window.__FRONTS__DYNAMIC__MODULES__ =
         window.__FRONTS__DYNAMIC__MODULES__ ?? {};
       window.__FRONTS__DYNAMIC__MODULES__[name] = { default: render };
