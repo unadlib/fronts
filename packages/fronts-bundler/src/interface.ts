@@ -1,4 +1,11 @@
-import { container } from 'webpack';
+import { container, Configuration } from 'webpack';
+
+export interface FrontsConfiguration extends Configuration {
+  /**
+   * Fronts site config path
+   */
+  configPath?: string;
+}
 
 export interface RemotesConfig {
   /**

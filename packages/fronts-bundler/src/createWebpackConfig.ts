@@ -1,12 +1,11 @@
-import { Configuration } from 'webpack';
 import { resolve } from 'path';
 import { getPlugins } from './plugins';
 import { getSiteConfig } from './getSiteConfig';
+import { FrontsConfiguration } from './interface';
 
-const plugins = getPlugins();
-
-export const createWebpackConfig = (configuration: Configuration) => {
-  const siteConfig = getSiteConfig();
+export const createWebpackConfig = (configuration: FrontsConfiguration) => {
+  const siteConfig = getSiteConfig(configuration.configPath);
+  const plugins = getPlugins(configuration.configPath);
   // TODO: custom path with version
   if (!configuration.output?.path && siteConfig.version) {
     const relativePath = siteConfig.version

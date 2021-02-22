@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import path from 'path';
 import { container, DefinePlugin, BannerPlugin } from 'webpack';
-import { getSiteConfig } from './getSiteConfig';
+import { getSiteConfig, DEFAULT_CONFIG_PATH } from './getSiteConfig';
 import { ModuleFederationPluginOptions, RemotesConfig } from './interface';
 import { getUrl } from './utils';
 
 const DEFAULT_DEPENDENCY_CONFIG_MAIN = 'remoteEntry.js';
 
-export const getPlugins = () => {
+export const getPlugins = (configPath = DEFAULT_CONFIG_PATH) => {
   if (process.env.SPA) return [];
   const depURLs: Record<string, string | string[]> = {};
-  const currentPath = path.resolve(process.cwd(), 'site.json');
+  const currentPath = path.resolve(process.cwd(), configPath);
   const siteConfig = getSiteConfig();
   if (typeof siteConfig.name !== 'string') {
     throw new Error(
