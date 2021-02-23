@@ -11,7 +11,7 @@ export const getPlugins = (configPath = DEFAULT_CONFIG_PATH) => {
   if (process.env.SPA) return [];
   const depURLs: Record<string, string | string[]> = {};
   const currentPath = path.resolve(process.cwd(), configPath);
-  const siteConfig = getSiteConfig();
+  const siteConfig = getSiteConfig(configPath);
   if (typeof siteConfig.name !== 'string') {
     throw new Error(
       `The "name" field should be a string type in ${currentPath}`

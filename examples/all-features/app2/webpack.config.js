@@ -37,4 +37,5 @@ module.exports = createWebpackConfig({
       template: './public/index.html',
     }),
   ],
+  configPath: 'site.dev.json',
 });
