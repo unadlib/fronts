@@ -22,6 +22,7 @@ export const useApp: <T extends { [k: string]: any } = { [k: string]: any }>(
             `The current App should define default exported rendering functions in the dependent "${process.env.APP_NAME}" App.`
           );
         }
+        // TODO: pass `props`
         return ModuleRef!.current!.default(ref.current);
       }, []);
       return <div ref={ref} {...props}></div>;

@@ -11,3 +11,12 @@ export type IFrameWrapper<T> = FunctionComponent<
     src?: string;
   } & T
 >;
+
+export interface UseWebComponentsOptions {
+  useShadowDOM: boolean;
+  shadowMode: 'open' | 'closed';
+}
+
+export interface WebComponentsOptions extends UseWebComponentsOptions {
+  node: HTMLElement | null;
+}

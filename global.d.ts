@@ -4,7 +4,7 @@ declare const __webpack_share_scopes__: Record<string, string>;
 
 interface Window {
   /**
-   * Fronts app's meta data 
+   * Fronts app's meta data
    */
   __FRONTS__: Record<
     string,
@@ -34,4 +34,10 @@ interface Window {
    * Handlers for loading script listener for non-module-federation
    */
   __FRONTS__FETCH__MODULES__: Record<string, Set<() => void>>;
+}
+
+declare namespace JSX {
+  interface IntrinsicElements {
+    'fronts-app': any;
+  }
 }

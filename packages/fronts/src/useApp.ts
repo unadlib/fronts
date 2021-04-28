@@ -16,6 +16,7 @@ export const useApp = (dynamicImport: DynamicImport, target: NodeElement) => {
         `The current App should define default exported rendering functions.`
       );
     }
+    // TODO: pass `props`
     return module.default(target);
   });
 };
