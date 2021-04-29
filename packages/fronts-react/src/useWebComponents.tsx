@@ -21,7 +21,6 @@ export const useWebComponents: <
   options?: UseWebComponentsOptions
 ) => AppWrapper<T> = (dynamicImport, options) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
-  (window as any).x = useState(0);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     loadApp(dynamicImport).then((module: any) => {
@@ -58,6 +57,10 @@ export const useWebComponents: <
                     this.appendChild(options.node);
                   }
                 });
+              }
+
+              disconnectedCallback() {
+                options.node = null;
               }
             }`)(webComponentsOptions)
           );

@@ -10,3 +10,15 @@ export interface CacheContainer {
   getItem(key: string): Promise<string | null> | string | null;
   setItem(key: string, value: string): Promise<void> | void;
 }
+
+export interface UseWebComponentsOptions {
+  useShadowDOM?: boolean;
+  shadowMode?: 'open' | 'closed';
+  target: NodeElement;
+}
+
+export interface WebComponentsOptions {
+  node: HTMLElement | null;
+  useShadowDOM: boolean;
+  shadowMode: 'open' | 'closed';
+}
