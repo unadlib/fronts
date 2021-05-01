@@ -9,6 +9,8 @@ import {
   useApp as useAppWithReact,
   useWebComponents as useWebComponentsWithReact,
 } from 'fronts-react';
+import { useRef } from 'react';
+import { useEffect } from 'react';
 
 const App2 = React.lazy(() => import('app2/src/App'));
 
@@ -32,10 +34,16 @@ const routes = [
     path: '/app4',
     component: () => {
       const App4 = useIFrameWithReact('app4');
+      const ref = useRef(null);
+      useEffect(() => {
+        useIFrame('app4', {
+          target: ref.current,
+        });
+      }, []);
       return (
         <>
+          <div ref={ref} />
           <App4 />
-          <iframe src={useIFrame('app4')} />
         </>
       );
     },
@@ -55,38 +63,17 @@ const routes = [
           useShadowDOM: true,
         }
       );
-      return <>
-        <h1>useAppWithReact example</h1>
-        <App5 />
-        <h1>useWebComponentsWithReact example</h1>
-        <App5UseWebComponent />
-      </>;
+      return (
+        <>
+          <h1>useAppWithReact example</h1>
+          <App5 />
+          <h1>useWebComponentsWithReact example</h1>
+          <App5UseWebComponent />
+        </>
+      );
     },
     exact: true,
   },
-  // {
-  //   path: '/app6',
-  //   component: () => <iframe src={useIFrame('app6')} />,
-  //   exact: true,
-  // },
-  // {
-  //   path: '/app4',
-  //   component: () => {
-  //     // Vue
-  //     const App4 = useReactApp(() => import('app4'));
-  //     return <App4 />;
-  //   },
-  //   exact: true,
-  // },
-  // {
-  //   path: '/app5',
-  //   component: () => {
-  //     // ng
-  //     const App5 = useReactApp(() => import('app5'));
-  //     return <App5 />;
-  //   },
-  //   exact: true,
-  // },
 ];
 
 const App = () => (

@@ -11,13 +11,33 @@ export interface CacheContainer {
   setItem(key: string, value: string): Promise<void> | void;
 }
 
-export interface WebComponentsOptions {
+export type UseApp = (
+  dynamicImport: DynamicImport,
+  options: {
+    target: NodeElement;
+  }
+) => Promise<void | (() => void)>;
+
+export type UseIFrame = (
+  siteName: string,
+  options: {
+    [K: string]: any; // TODO: fix type with iframe Attributes
+    target: NodeElement;
+  }
+) => void;
+
+export type UseWebComponents = (
+  dynamicImport: DynamicImport,
+  options: UseWebComponentsOptions
+) => Promise<void | (() => void)>;
+
+export interface UseWebComponentsOptions {
   useShadowDOM?: boolean;
   shadowMode?: 'open' | 'closed';
   target: NodeElement;
 }
 
 export type DefineCustomElementOptions = Pick<
-  WebComponentsOptions,
-  Exclude<keyof WebComponentsOptions, 'target'>
+  UseWebComponentsOptions,
+  Exclude<keyof UseWebComponentsOptions, 'target'>
 >;

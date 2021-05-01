@@ -27,7 +27,6 @@ export const createWebpackConfig = ({
   ) {
     configuration.module?.rules.push({
       test: /\.(t|j)sx?$/,
-      exclude: /importApp/,
       loader: 'string-replace-loader',
       options: {
         // TODO: use more stable syntax parsing replacement

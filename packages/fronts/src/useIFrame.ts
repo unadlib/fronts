@@ -1,4 +1,6 @@
-export const useIFrame = (siteName: string) => {
+import { UseIFrame } from './interface';
+
+export const getIFrameUrl = (siteName: string) => {
   // TODO: think about registry
   const urlsMap: Record<string, string | string[]> = JSON.parse(
     process.env.DEP_URLS!
@@ -13,4 +15,13 @@ export const useIFrame = (siteName: string) => {
     );
   }
   return url;
+};
+
+export const useIFrame: UseIFrame = (siteName, { target, ...options }) => {
+  const iframe = document.createElement('iframe');
+  iframe.src = getIFrameUrl(siteName);
+  for (const key in options) {
+    iframe.setAttribute(key, options[key]);
+  }
+  target?.appendChild(iframe);
 };

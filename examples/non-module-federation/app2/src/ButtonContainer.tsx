@@ -12,7 +12,9 @@ const ButtonContainer = () => {
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useApp(() => loadScript('http://localhost:3003/bundle.js', 'app3'), ref.current).then((unmount) => {
+    useApp(() => loadScript('http://localhost:3003/bundle.js', 'app3'), {
+      target: ref.current,
+    }).then((unmount) => {
       callback = unmount;
     });
     return () => callback && callback();

@@ -12,9 +12,11 @@ const ButtonContainer = () => {
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useApp(() => import('app3/src/bootstrap'), ref.current).then((unmount) => {
-      callback = unmount;
-    });
+    useApp(() => import('app3/src/bootstrap'), { target: ref.current }).then(
+      (unmount) => {
+        callback = unmount;
+      }
+    );
     return () => callback && callback();
   }, []);
 

@@ -1,4 +1,4 @@
-import { WebComponentsOptions } from 'fronts';
+import { UseWebComponentsOptions } from 'fronts';
 import { DynamicImport } from 'fronts';
 import { FunctionComponent, ReactElement } from 'react';
 
@@ -27,7 +27,7 @@ export type UseWebComponents = <
 >(
   dynamicImport: DynamicImport,
   options?: Pick<
-    WebComponentsOptions,
-    Exclude<keyof WebComponentsOptions, 'target'>
+    UseWebComponentsOptions,
+    Exclude<keyof UseWebComponentsOptions, 'target'>
   >
 ) => AppWrapper<T>;

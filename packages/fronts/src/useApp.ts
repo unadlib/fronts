@@ -1,15 +1,15 @@
-import { DynamicImport, NodeElement } from "./interface";
-import { loadApp } from "./loadApp";
+import { UseApp } from './interface';
+import { loadApp } from './loadApp';
 
 /**
  * Use app script from remote
  *
  * # Example
  * ```ts
- * useApp(() => import('app1'), targetNode).then((unmount) => {});
+ * useApp(() => import('app1'), { target }).then((unmount) => {});
  * ```
  */
-export const useApp = (dynamicImport: DynamicImport, target: NodeElement) => {
+export const useApp: UseApp = (dynamicImport, options) => {
   return loadApp(dynamicImport).then((module) => {
     if (typeof module.default !== 'function') {
       throw new Error(
@@ -17,6 +17,6 @@ export const useApp = (dynamicImport: DynamicImport, target: NodeElement) => {
       );
     }
     // TODO: pass `props`
-    return module.default(target);
+    return module.default(options.target);
   });
 };

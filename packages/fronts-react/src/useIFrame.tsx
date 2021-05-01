@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { useIFrame as useIFrameURL } from 'fronts';
+import { getIFrameUrl } from 'fronts';
 import { UseIFrame } from './interface';
 
 // TODO: pass `props`
@@ -13,7 +13,7 @@ export const useIFrame: UseIFrame = (siteName) => {
           );
         }
       }
-      const url = useIFrameURL(siteName);
+      const url = getIFrameUrl(siteName);
       return <iframe frameBorder="no" {...props} src={url} />;
     }),
     [siteName]

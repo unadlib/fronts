@@ -1,8 +1,4 @@
-import {
-  DynamicImport,
-  WebComponentsOptions,
-  DefineCustomElementOptions,
-} from './interface';
+import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
 
 export const defineCustomElement = (options: DefineCustomElementOptions) => {
@@ -33,10 +29,7 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
   return node;
 };
 
-export const useWebComponents = (
-  dynamicImport: DynamicImport,
-  options: WebComponentsOptions
-) => {
+export const useWebComponents: UseWebComponents = (dynamicImport, options) => {
   return loadApp(dynamicImport).then((module) => {
     if (typeof module.default !== 'function') {
       throw new Error(
