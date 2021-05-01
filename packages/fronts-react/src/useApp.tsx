@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { DynamicImport, loadApp, Render } from 'fronts';
-import { AppWrapper } from './interface';
+import { loadApp, Render } from 'fronts';
+import { AppWrapper, UseApp } from './interface';
 
-export const useApp: <T extends { [k: string]: any } = { [k: string]: any }>(
-  dynamicImport: DynamicImport
-) => AppWrapper<T> = (dynamicImport) => {
+export const useApp: UseApp = (dynamicImport) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {

@@ -1,11 +1,9 @@
-import React, { memo, useCallback, FunctionComponent } from 'react';
+import React, { memo, useCallback } from 'react';
 import { useIFrame as useIFrameURL } from 'fronts';
+import { UseIFrame } from './interface';
 
-export const useIFrame = <
-  T extends { [k: string]: any } = { [k: string]: any }
->(
-  siteName: string
-): FunctionComponent<T> => {
+// TODO: pass `props`
+export const useIFrame: UseIFrame = (siteName) => {
   const IFrame = useCallback(
     memo((props) => {
       if (__DEV__) {

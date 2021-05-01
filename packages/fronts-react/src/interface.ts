@@ -14,6 +14,14 @@ export type IFrameWrapper<T> = FunctionComponent<
   } & T
 >;
 
+export type UseApp = <T extends Record<string, any> = Record<string, any>>(
+  dynamicImport: DynamicImport
+) => AppWrapper<T>;
+
+export type UseIFrame = <T extends Record<string, any> = Record<string, any>>(
+  siteName: string
+) => FunctionComponent<T>;
+
 export type UseWebComponents = <
   T extends Record<string, any> = Record<string, any>
 >(
