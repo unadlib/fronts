@@ -52,9 +52,10 @@ const routes = [
   {
     path: '/app5',
     component: () => {
+      const ref = useRef(null);
       // Vue
       // @ts-ignore
-      const App5 = useAppWithReact(() => import('app5/src/main'));
+      const App5WithReact = useAppWithReact(() => import('app5/src/main'));
       const App5UseWebComponent = useWebComponentsWithReact(
         // @ts-ignore
         () => import('app5/src/main'),
@@ -63,10 +64,22 @@ const routes = [
           useShadowDOM: true,
         }
       );
+      useEffect(() => {
+        let callback: (() => void) | void;
+        // @ts-ignore
+        useApp(() => import('app5/src/main'), {
+          target: ref.current,
+        }).then((unmount) => {
+          callback = unmount;
+        });
+        return () => callback && callback();
+      }, []);
       return (
         <>
+          <h1>useApp example</h1>
+          <div ref={ref} />
           <h1>useAppWithReact example</h1>
-          <App5 />
+          <App5WithReact />
           <h1>useWebComponentsWithReact example</h1>
           <App5UseWebComponent />
         </>
