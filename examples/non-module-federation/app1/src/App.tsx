@@ -1,22 +1,44 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { HashRouter, Route, Switch } from 'react-router-dom';
-import { loadScript, useApp } from 'fronts-react';
+import { loadScript, useApp as useAppWithReact } from 'fronts-react';
+import { useApp } from 'fronts';
 import Navigation from './Navigation';
-import HomePage from './HomePage';
 
 const routes = [
   {
     path: '/',
-    component: HomePage,
+    component: () => {
+      const ref = useRef(null);
+      useEffect(() => {
+        let callback: (() => void) | void;
+        useApp(() => loadScript('http://localhost:3002/bundle.js', 'app2'), {
+          target: ref.current,
+        }).then((unmount) => {
+          callback = unmount;
+        });
+        return () => callback && callback();
+      }, []);
+      return (
+        <>
+          <h1>useApp Example</h1>
+          <div ref={ref} />
+        </>
+      );
+    },
     exact: true,
   },
   {
     path: '/about',
     component: () => {
-      const App2 = useApp(() =>
+      const App2 = useAppWithReact(() =>
         loadScript('http://localhost:3002/bundle.js', 'app2')
       );
-      return <App2 />;
+      return (
+        <div>
+          <h1>useAppWithReact Example</h1>
+          <App2 />
+        </div>
+      );
     },
     exact: true,
   },

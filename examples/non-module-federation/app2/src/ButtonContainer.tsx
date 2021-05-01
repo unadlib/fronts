@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useApp, loadScript } from 'fronts';
+import { useWebComponents, loadScript } from 'fronts';
+import { useWebComponents as useWebComponentsWithReact } from 'fronts-react';
 
 const style = {
   padding: 12,
@@ -12,13 +13,20 @@ const ButtonContainer = () => {
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useApp(() => loadScript('http://localhost:3003/bundle.js', 'app3'), {
-      target: ref.current,
-    }).then((unmount) => {
+    useWebComponents(
+      () => loadScript('http://localhost:3003/bundle.js', 'app3'),
+      {
+        target: ref.current,
+      }
+    ).then((unmount) => {
       callback = unmount;
     });
     return () => callback && callback();
   }, []);
+
+  const App3 = useWebComponentsWithReact(() =>
+    loadScript('http://localhost:3003/bundle.js', 'app3')
+  );
 
   return (
     <div style={style}>
@@ -28,7 +36,12 @@ const ButtonContainer = () => {
       </button>
       <br />
       <br />
+      <h1>useWebComponents example</h1>
       <div ref={ref}></div>
+      <br />
+      <br />
+      <h1>useWebComponentsWithReact example</h1>
+      <App3 />
     </div>
   );
 };
