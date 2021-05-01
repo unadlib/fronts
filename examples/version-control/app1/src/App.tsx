@@ -4,7 +4,7 @@ import { HashRouter, Route, Switch } from 'react-router-dom';
 import Navigation from './Navigation';
 import HomePage from './HomePage';
 
-const App2 = React.lazy(() => import('app2/src/App'));
+const App2 = React.lazy(() => import(`app2/src/App`));
 
 const routes = [
   {
