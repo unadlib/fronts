@@ -22,13 +22,6 @@ A progressive micro frontends framework for building Web applications.
 - iFrame
 - WebComponents
 
-### Runner
-
-- WebWorker
-- WebAssembly
-- SharedWorker
-- ServiceWorker
-
 ## Debugger/Logger
 
 ## Testing
@@ -38,11 +31,7 @@ A progressive micro frontends framework for building Web applications.
 ## TODO
 
 - [ ] version control for static import
-- [ ] WebComponents
-- [ ] WebWorker
-- [ ] WebAssembly
-- [ ] SharedWorker
-- [ ] ServiceWorker
+- [x] WebComponents
 - [ ] `useIFrame` about passing props
 - [ ] Error handling
 - [ ] Logger/Debugger
