@@ -25,8 +25,12 @@ export const useWebComponents: UseWebComponents = (
           );
         }
         const node = defineCustomElement(options);
-        // TODO: pass `props`
-        return ModuleRef!.current!.default(node);
+        let callback: void | (() => void);
+        Promise.resolve().then(() => {
+          // TODO: pass `props`
+          callback = ModuleRef!.current!.default(node);
+        });
+        return () => callback && callback();
       }, []);
       return <fronts-app />;
     }),

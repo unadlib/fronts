@@ -20,8 +20,12 @@ export const useApp: UseApp = (dynamicImport) => {
             `The current App should define default exported rendering functions in the dependent "${process.env.APP_NAME}" App.`
           );
         }
-        // TODO: pass `props`
-        return ModuleRef!.current!.default(ref.current);
+        let callback: void | (() => void);
+        Promise.resolve().then(() => {
+          // TODO: pass `props`
+          callback = ModuleRef!.current!.default(ref.current);
+        });
+        return () => callback && callback();
       }, []);
       return <div ref={ref} {...props}></div>;
     }),
