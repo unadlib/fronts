@@ -1,15 +1,41 @@
-import { DynamicImport, NodeElement, UseWebComponentsOptions, WebComponentsOptions } from './interface';
+import {
+  DynamicImport,
+  WebComponentsOptions,
+  DefineCustomElementOptions,
+} from './interface';
 import { loadApp } from './loadApp';
 
-const webComponentsOptions: WebComponentsOptions = {
-  node: null,
-  useShadowDOM: false,
-  shadowMode: 'open',
+export const defineCustomElement = (options: DefineCustomElementOptions) => {
+  if (!customElements.get('fronts-app')) {
+    customElements.define(
+      'fronts-app',
+      eval(`() => class Fronts extends HTMLElement {
+        constructor() {
+          super();
+          window.__FRONTS__RENDER_WEB_COMPONENT__ = function(options) {
+            var shadow = options.useShadowDOM && this.attachShadow({mode: options.shadowMode });
+            if (shadow) {
+              shadow.appendChild(options.node);
+            } else {
+              this.appendChild(options.node);
+            }
+          }.bind(this)
+        }
+      }`)()
+    );
+  }
+  const node = document.createElement('div');
+  window.__FRONTS__RENDER_WEB_COMPONENT__({
+    node,
+    shadowMode: options?.shadowMode ?? 'open',
+    useShadowDOM: options?.useShadowDOM ?? false,
+  });
+  return node;
 };
 
 export const useWebComponents = (
   dynamicImport: DynamicImport,
-  options: UseWebComponentsOptions
+  options: WebComponentsOptions
 ) => {
   return loadApp(dynamicImport).then((module) => {
     if (typeof module.default !== 'function') {
@@ -17,37 +43,13 @@ export const useWebComponents = (
         `The current App should define default exported rendering functions.`
       );
     }
-    Object.assign(webComponentsOptions, {
-      node: document.createElement('div'),
-      useShadowDOM: options.shadowMode ?? false,
-      shadowMode: options.shadowMode ?? 'open',
+    const customElement = document.createElement('fronts-app');
+    options.target?.appendChild(customElement);
+    const node = defineCustomElement({
+      shadowMode: options.shadowMode,
+      useShadowDOM: options.useShadowDOM,
     });
-    const node = document.createElement('fronts-app');
-    options.target?.appendChild(node);
-    if (!customElements.get('fronts-app')) {
-      customElements.define(
-        'fronts-app',
-        // use `setTimeout` for waiting React render the wrapper component
-        eval(`(options) => class Fronts extends HTMLElement {
-          constructor() {
-            super();
-            var shadow = options.useShadowDOM && this.attachShadow({mode: options.shadowMode });
-            setTimeout(() => {
-              if (shadow) {
-                shadow.appendChild(options.node);
-              } else {
-                this.appendChild(options.node);
-              }
-            });
-          }
-
-          disconnectedCallback() {
-            options.node = null;
-          }
-        }`)(webComponentsOptions)
-      );
-    }
     // TODO: pass `props`
-    return module.default(webComponentsOptions.node);
+    return module.default(node);
   });
 };

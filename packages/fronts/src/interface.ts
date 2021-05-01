@@ -11,14 +11,13 @@ export interface CacheContainer {
   setItem(key: string, value: string): Promise<void> | void;
 }
 
-export interface UseWebComponentsOptions {
+export interface WebComponentsOptions {
   useShadowDOM?: boolean;
   shadowMode?: 'open' | 'closed';
   target: NodeElement;
 }
 
-export interface WebComponentsOptions {
-  node: HTMLElement | null;
-  useShadowDOM: boolean;
-  shadowMode: 'open' | 'closed';
-}
+export type DefineCustomElementOptions = Pick<
+  WebComponentsOptions,
+  Exclude<keyof WebComponentsOptions, 'target'>
+>;

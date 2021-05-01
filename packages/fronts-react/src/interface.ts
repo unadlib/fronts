@@ -1,3 +1,5 @@
+import { WebComponentsOptions } from 'fronts';
+import { DynamicImport } from 'fronts';
 import { FunctionComponent, ReactElement } from 'react';
 
 export type AppWrapper<T> = FunctionComponent<
@@ -12,11 +14,12 @@ export type IFrameWrapper<T> = FunctionComponent<
   } & T
 >;
 
-export interface UseWebComponentsOptions {
-  useShadowDOM?: boolean;
-  shadowMode?: 'open' | 'closed';
-}
-
-export interface WebComponentsOptions extends UseWebComponentsOptions {
-  node: HTMLElement | null;
-}
+export type UseWebComponents = <
+  T extends Record<string, any> = Record<string, any>
+>(
+  dynamicImport: DynamicImport,
+  options?: Pick<
+    WebComponentsOptions,
+    Exclude<keyof WebComponentsOptions, 'target'>
+  >
+) => AppWrapper<T>;

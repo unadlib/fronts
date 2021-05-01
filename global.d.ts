@@ -34,6 +34,14 @@ interface Window {
    * Handlers for loading script listener for non-module-federation
    */
   __FRONTS__FETCH__MODULES__: Record<string, Set<() => void>>;
+  /**
+   * Render Fronts Web Components
+   */
+  __FRONTS__RENDER_WEB_COMPONENT__: (options: {
+    node: HTMLDivElement;
+    useShadowDOM: boolean;
+    shadowMode: 'open' | 'closed';
+  }) => void;
 }
 
 declare namespace JSX {
