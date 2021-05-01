@@ -7,6 +7,7 @@ import { useIFrame, useApp } from 'fronts';
 import {
   useIFrame as useIFrameWithReact,
   useApp as useAppWithReact,
+  useWebComponents as useWebComponentsWithReact,
 } from 'fronts-react';
 
 const App2 = React.lazy(() => import('app2/src/App'));
@@ -46,7 +47,20 @@ const routes = [
       // Vue
       // @ts-ignore
       const App5 = useAppWithReact(() => import('app5/src/main'));
-      return <App5 />;
+      const App5UseWebComponent = useWebComponentsWithReact(
+        // @ts-ignore
+        () => import('app5/src/main'),
+        {
+          shadowMode: 'closed',
+          useShadowDOM: true,
+        }
+      );
+      return <>
+        <h1>useAppWithReact example</h1>
+        <App5 />
+        <h1>useWebComponentsWithReact example</h1>
+        <App5UseWebComponent />
+      </>;
     },
     exact: true,
   },

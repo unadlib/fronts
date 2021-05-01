@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from 'fronts';
+import { useApp, useWebComponents } from 'fronts';
 
 const style = {
   padding: 12,
@@ -18,6 +18,19 @@ const ButtonContainer = () => {
     return () => callback && callback();
   }, []);
 
+  const ref1 = useRef(null);
+  useEffect(() => {
+    let callback: (() => void) | void;
+    useWebComponents(() => import('app3/src/bootstrap'), {
+      target: ref1.current,
+      shadowMode: 'open',
+      useShadowDOM: true,
+    }).then((unmount) => {
+      callback = unmount;
+    });
+    return () => callback && callback();
+  }, []);
+
   return (
     <div style={style}>
       App 2 Container
@@ -27,6 +40,10 @@ const ButtonContainer = () => {
       <br />
       <br />
       <div ref={ref}></div>
+      <br />
+      <br />
+      <h1>useWebComponents example</h1>
+      <div ref={ref1}></div>
     </div>
   );
 };

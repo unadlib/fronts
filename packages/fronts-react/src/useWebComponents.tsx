@@ -3,7 +3,7 @@ import { loadApp, Render, defineCustomElement } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
 // https://github.com/webcomponents/polyfills/tree/master/packages/webcomponentsjs#custom-elements-es5-adapterjs
-
+// TODO: fix event with `react-shadow-dom-retarget-events`
 export const useWebComponents: UseWebComponents = (
   dynamicImport,
   options = {}
