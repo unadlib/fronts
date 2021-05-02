@@ -32,7 +32,7 @@ export const useWebComponents: UseWebComponents = (
         });
         return () => callback && callback();
       }, []);
-      return <fronts-app />;
+      return <fronts-app {...props} />;
     }),
     [loaded]
   );

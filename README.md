@@ -4,7 +4,7 @@ A progressive micro frontends framework for building Web applications.
 
 ## Features
 
-- Non-Module Federation
+- Support Non-module-federation
 - Cross Framework
 - Code Splitting
 - Lazy Loading
@@ -18,22 +18,80 @@ A progressive micro frontends framework for building Web applications.
 ### Mode
 
 - Inline
+
+> It must be consistent with the framework used by its dependent micro frontends.
+
+For example,
+
+```tsx
+import { TodoList } from 'App1/src/List';
+
+const App = () => {
+  <>
+    <TodoList />
+  </>;
+};
+```
+
+> In this example, the `App` depends on the components of `App1`, and they are all based on React
+
 - Standalone
-- iFrame
+
+> It and its dependent micro frontends can be cross-framework.
+
+```tsx
+import { useApp } from 'fronts-react';
+
+const App = () => {
+  const App1WithVue = useApp(() => import('app1/src/main'));
+  return (
+    <>
+      <App1WithVue />
+    </>
+  );
+};
+```
+
+- iframe
+
+```tsx
+import { useIFrame } from 'fronts-react';
+
+const App = () => {
+  const App1 = useIFrame('app1');
+  return (
+    <>
+      <App1 />
+    </>
+  );
+};
+```
+
 - WebComponents
+
+```tsx
+import { useWebComponents } from 'fronts-react';
+
+const App = () => {
+  const App1 = useWebComponents(() => import('app1/src/main'));
+  return (
+    <>
+      <App1 />
+    </>
+  );
+};
+```
+
+## Running Type
+
+| Type                  |                                       description                                        |                                APIs |
+| :-------------------- | :--------------------------------------------------------------------------------------: | ----------------------------------: |
+| non-module-federation |                No `site.json` and enabled module-federation are required                 |            useApp, useWebComponents |
+| module-federation     |                        `site.json` and enabled module-federation                         |  useApp, useWebComponents,useIFrame |
+| version control       | `site.json`, enabled module-federation and set up registry server for package management | useApp, useWebComponents, useIFrame |
 
 ## Debugger/Logger
 
 ## Testing
 
 ## CLI
-
-## TODO
-
-- [ ] version control for static import
-- [x] WebComponents
-- [ ] `useIFrame` about passing props
-- [ ] Error handling
-- [ ] Logger/Debugger
-- [ ] Global Event system
-- [ ] Building tools cli
