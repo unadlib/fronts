@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import { getIFrameUrl } from 'fronts';
 import { UseIFrame } from './interface';
 
@@ -6,6 +6,7 @@ import { UseIFrame } from './interface';
 export const useIFrame: UseIFrame = (siteName) => {
   const IFrame = useCallback(
     memo((props) => {
+      const [url, setUrl] = useState('');
       if (__DEV__) {
         if (Object.hasOwnProperty.call(props, 'src')) {
           console.warn(
@@ -13,8 +14,12 @@ export const useIFrame: UseIFrame = (siteName) => {
           );
         }
       }
-      const url = getIFrameUrl(siteName);
-      return <iframe frameBorder="no" {...props} src={url} />;
+      useEffect(() => {
+        getIFrameUrl(siteName).then((url) => {
+          setUrl(url);
+        });
+      }, []);
+      return url ? <iframe frameBorder="no" {...props} src={url} /> : null;
     }),
     [siteName]
   );

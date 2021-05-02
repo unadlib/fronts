@@ -36,40 +36,51 @@ export const getModule = async (name: string, module: string) => {
   return factory();
 };
 
+export const getScriptLink = async (name: string) => {
+  if (typeof process.env.FPM_MAP !== 'string') {
+    throw new Error(``);
+  }
+  const frontsPackagesMap = JSON.parse(process.env.FPM_MAP);
+  const depInfo = frontsPackagesMap[name];
+  const storageKey = `${storePrefix}${name}`;
+  const isExternalLink = /^(http|https):/.test(depInfo);
+  const cacheLink = await getCacheLink(storageKey);
+  let scriptLink: string;
+  if (isExternalLink) {
+    scriptLink = depInfo;
+    // await loadModuleScript(name, depInfo);
+  } else if (cacheLink) {
+    fetch(`${process.env.FPM_REG}?scope=${name}`).then(async (data) => {
+      const depLinks = await data.json();
+      const depLink = getDepLink(depLinks[name], depInfo);
+      setCacheLink(storageKey, depLink);
+    });
+    scriptLink = cacheLink;
+    // await loadModuleScript(name, cacheLink);
+  } else {
+    const depLinks: Record<string, Record<string, string>> = await fetch(
+      `${process.env.FPM_REG}?scope=${name}`
+    ).then((data) => data.json());
+    const depLink = getDepLink(depLinks[name], depInfo);
+    setCacheLink(storageKey, depLink);
+    scriptLink = depLink;
+    // await loadModuleScript(name, depLink);
+  }
+  return scriptLink;
+};
+
 export const importApp = async (path: string) => {
   const [name, ...paths] = path.split('/');
   const modulePath = `./${paths.join('/')}`;
-  if (typeof process.env.FPM_MAP === 'string') {
-    try {
-      const frontsPackagesMap = JSON.parse(process.env.FPM_MAP);
-      const depInfo = frontsPackagesMap[name];
-      const storageKey = `${storePrefix}${name}`;
-      const isExternalLink = /^(http|https):/.test(depInfo);
-      const cacheLink = await getCacheLink(storageKey);
-      if (isExternalLink) {
-        await loadModuleScript(name, depInfo);
-      } else if (cacheLink) {
-        fetch(`${process.env.FPM_REG}?scope=${name}`).then(async (data) => {
-          const depLinks = await data.json();
-          const depLink = getDepLink(depLinks[name], depInfo);
-          setCacheLink(storageKey, depLink);
-        });
-        await loadModuleScript(name, cacheLink);
-      } else {
-        const depLinks: Record<string, Record<string, string>> = await fetch(
-          `${process.env.FPM_REG}?scope=${name}`
-        ).then((data) => data.json());
-        const depLink = getDepLink(depLinks[name], depInfo);
-        setCacheLink(storageKey, depLink);
-        await loadModuleScript(name, depLink);
-      }
-      const module = await getModule(name, modulePath);
-      return module;
-    } catch (e) {
-      console.error(
-        `Failed to import module ${modulePath} of application ${name} from registry ${process.env.FPM_REG}:`
-      );
-      throw e;
-    }
+  try {
+    const scriptLink = await getScriptLink(name);
+    await loadModuleScript(name, scriptLink);
+    const module = await getModule(name, modulePath);
+    return module;
+  } catch (e) {
+    console.error(
+      `Failed to import module ${modulePath} of application ${name} from registry ${process.env.FPM_REG}:`
+    );
+    throw e;
   }
 };

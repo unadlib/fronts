@@ -137,14 +137,14 @@ export const getPlugins = (configPath = DEFAULT_CONFIG_PATH) => {
     new DefinePlugin({
       'process.env.APP_NAME': JSON.stringify(`${siteConfig.name}`),
       'process.env.FPM_DEPS': JSON.stringify(`${JSON.stringify(metaData)}`),
+      // Fronts dependencies package manager registry url
+      'process.env.FPM_REG': JSON.stringify(registry),
       ...(typeof registry !== 'undefined'
         ? {
             // Fronts dependencies package mapping
             'process.env.FPM_MAP': JSON.stringify(
               `${JSON.stringify(dependencies ?? {})}`
             ),
-            // Fronts dependencies package manager registry url
-            'process.env.FPM_REG': JSON.stringify(registry),
           }
         : {
             // Not using package management

@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import App3 from 'app3/src/App';
-import { useApp as useAppWithReact, useWebComponents as useWebComponentsWithReact } from 'fronts-react';
-import { useApp, useWebComponents } from 'fronts';
+import {
+  useApp as useAppWithReact,
+  useWebComponents as useWebComponentsWithReact,
+  useIFrame as useIFrameWithReact,
+} from 'fronts-react';
+import { useApp, useWebComponents, useIFrame } from 'fronts';
 
 const style = {
   padding: 12,
@@ -35,7 +39,18 @@ const ButtonContainer = () => {
     return () => callback && callback();
   }, []);
 
-  const App3WebComponentWithReact = useWebComponentsWithReact(() => import('app3/src/bootstrap'));
+  const App3WebComponentWithReact = useWebComponentsWithReact(
+    () => import('app3/src/bootstrap')
+  );
+
+  const ref2 = useRef(null);
+  useEffect(() => {
+    useIFrame('app3', {
+      target: ref2.current,
+    });
+  }, []);
+
+  const App3UseIFrameWithReact = useIFrameWithReact('app3');
   return (
     <div style={style}>
       App 2 Container
@@ -62,6 +77,14 @@ const ButtonContainer = () => {
       <br />
       <h1>useWebComponentWithReact example</h1>
       <App3WebComponentWithReact />
+      <br />
+      <br />
+      <h1>useIFrame example</h1>
+      <div ref={ref2}></div>
+      <br />
+      <br />
+      <h1>useIFrameWithReact example</h1>
+      <App3UseIFrameWithReact />
     </div>
   );
 };
