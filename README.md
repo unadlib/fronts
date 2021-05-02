@@ -84,11 +84,11 @@ const App = () => {
 
 ## Running Type
 
-| Type                  |                                       description                                        |                                APIs |
-| :-------------------- | :--------------------------------------------------------------------------------------: | ----------------------------------: |
-| non-module-federation |                No `site.json` and enabled module-federation are required                 |            useApp, useWebComponents |
-| module-federation     |                        `site.json` and enabled module-federation                         |  useApp, useWebComponents,useIFrame |
-| version control       | `site.json`, enabled module-federation and set up registry server for package management | useApp, useWebComponents, useIFrame |
+| Type                  |         description          |                                APIs |
+| :-------------------- | :--------------------------: | ----------------------------------: |
+| non-module-federation |        No `site.json`        |            useApp, useWebComponents |
+| module-federation     |         `site.json`          |  useApp, useWebComponents,useIFrame |
+| version control       | `site.json`, registry server | useApp, useWebComponents, useIFrame |
 
 ## Debugger/Logger
 
