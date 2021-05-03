@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getAppName } from 'fronts';
+import { getMeta } from 'fronts';
 
 const style = {
   padding: 12,
@@ -11,7 +11,7 @@ const Button = () => {
   return (
     <button style={style} onClick={() => {
       setCount(count + 1);
-      console.log(getAppName(), window.__FRONTS__);
+      console.log(getMeta());
     }}>
       App 3 Button with count({count})
     </button>
