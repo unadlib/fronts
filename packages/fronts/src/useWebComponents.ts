@@ -1,6 +1,9 @@
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
 
+// https://github.com/webcomponents/polyfills/tree/master/packages/webcomponentsjs#custom-elements-es5-adapterjs
+window.__FRONTS_CUSTOM_ELEMENTS_INSTANCES__ = new Set();
+
 export const defineCustomElement = (options: DefineCustomElementOptions) => {
   if (!customElements.get('fronts-app')) {
     customElements.define(
@@ -8,24 +11,40 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
       eval(`() => class Fronts extends HTMLElement {
         constructor() {
           super();
-          window.__FRONTS__RENDER_WEB_COMPONENT__ = function(options) {
-            var shadow = options.useShadowDOM && this.attachShadow({mode: options.shadowMode });
-            if (shadow) {
-              shadow.appendChild(options.node);
-            } else {
-              this.appendChild(options.node);
-            }
-          }.bind(this)
+          window.__FRONTS_CUSTOM_ELEMENTS_INSTANCES__.add(this);
+        }
+
+        disconnectedCallback() {
+          window.__FRONTS_CUSTOM_ELEMENTS_INSTANCES__.delete(this);
         }
       }`)()
     );
   }
   const node = document.createElement('div');
-  window.__FRONTS__RENDER_WEB_COMPONENT__({
-    node,
-    shadowMode: options?.shadowMode ?? 'open',
-    useShadowDOM: options?.useShadowDOM ?? false,
-  });
+  const customElementInstances = window.__FRONTS_CUSTOM_ELEMENTS_INSTANCES__;
+  const customElementInstance = customElementInstances.values().next().value;
+  customElementInstances.delete(customElementInstance);
+  let injectedRoot: HTMLElement;
+  if (options.useShadowDOM) {
+    const shadow = customElementInstance.attachShadow({
+      mode: options.shadowMode,
+    });
+    shadow.appendChild(node);
+    injectedRoot = shadow;
+  } else {
+    customElementInstance.appendChild(node);
+    injectedRoot = customElementInstance;
+  }
+  if (options.name) {
+    const insertedStyleKey = `__${options.name}_inserted_style__`;
+    // collections from `style-loader` insert CSS element
+    const styles: HTMLElement[] | undefined = (window as any)[insertedStyleKey];
+    if (styles) {
+      styles.forEach((style) => {
+        injectedRoot.appendChild(style.cloneNode(true));
+      });
+    }
+  }
   return node;
 };
 

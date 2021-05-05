@@ -35,13 +35,9 @@ interface Window {
    */
   __FRONTS__FETCH__MODULES__: Record<string, Set<() => void>>;
   /**
-   * Render Fronts Web Components
+   *
    */
-  __FRONTS__RENDER_WEB_COMPONENT__: (options: {
-    node: HTMLDivElement;
-    useShadowDOM: boolean;
-    shadowMode: 'open' | 'closed';
-  }) => void;
+  __FRONTS_CUSTOM_ELEMENTS_INSTANCES__: Set<HTMLElement>;
 }
 
 declare namespace JSX {

@@ -35,6 +35,7 @@ export interface UseWebComponentsOptions {
   useShadowDOM?: boolean;
   shadowMode?: 'open' | 'closed';
   target: NodeElement;
+  name?: string;
 }
 
 export type DefineCustomElementOptions = Pick<
