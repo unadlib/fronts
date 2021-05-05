@@ -38,6 +38,7 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
   if (options.name) {
     const insertedStyleKey = `__${options.name}_inserted_style__`;
     // collections from `style-loader` insert CSS element
+    // If using a style dynamic solution, such as `styled-components`, and be sure to use `StyleSheetManager`.
     const styles: HTMLElement[] | undefined = (window as any)[insertedStyleKey];
     if (styles) {
       styles.forEach((style) => {
