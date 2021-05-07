@@ -37,7 +37,11 @@ interface Window {
   /**
    *
    */
-  __FRONTS_CUSTOM_ELEMENTS_INSTANCES__: Set<HTMLElement>;
+  __FRONTS_CUSTOM_ELEMENTS_INSTANCES__: Set<HTMLStyleElement>;
+  /**
+   * Inserted CSS element with style loader
+   */
+  _lastElementInsertedByStyleLoader: HTMLStyleElement;
 }
 
 declare namespace JSX {
