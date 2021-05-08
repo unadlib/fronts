@@ -4,7 +4,7 @@ export * from './loadApp';
 export * from './interface';
 export * from './boot';
 export * from './useApp';
-export * from './useIFrame';
+export * from './useIframe';
 export * from './useWebComponents';
 export * from './importApp';
 export * from './injectScript';

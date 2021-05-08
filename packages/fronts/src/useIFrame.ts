@@ -1,18 +1,17 @@
 import { getScriptLink } from './importApp';
-import { UseIFrame } from './interface';
+import { UseIframe } from './interface';
 
 /**
  *
  */
-export const getIFrameUrl = async (siteName: string) => {
+export const getIframeUrl = async (siteName: string) => {
   let hasVersionControl: boolean;
   try {
     hasVersionControl = !!process.env.FPM_REG;
   } catch (e) {
-    console.error(
-      `The current running mode is SPA, it does not contain any Micro Frontends mode, please use the native iFrame element API instead of 'useIFrame()'.`
+    throw new Error(
+      `The current running mode is SPA, it does not contain any Micro Frontends mode, please use the native iframe element API instead of 'useIframe()'.`
     );
-    throw e;
   }
   if (hasVersionControl) {
     const scriptLink = await getScriptLink(siteName);
@@ -33,11 +32,9 @@ export const getIFrameUrl = async (siteName: string) => {
   return url;
 };
 
-export const useIFrame: UseIFrame = async (
-  { target, name }
-) => {
+export const useIframe: UseIframe = async ({ target, name }) => {
   const iframe = document.createElement('iframe');
-  iframe.src = await getIFrameUrl(name);
+  iframe.src = await getIframeUrl(name);
   // iframe.setAttribute('frameBorder', 'no');
   // for (const key in options) {
   //   iframe.setAttribute(key, options[key]);

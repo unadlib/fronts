@@ -1,13 +1,13 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { getIFrameUrl } from 'fronts';
-import { UseIFrame } from './interface';
+import { getIframeUrl } from 'fronts';
+import { UseIframe } from './interface';
 
 // TODO: pass `props`
 /**
  *
  */
-export const useIFrame: UseIFrame = ({ name }) => {
-  const IFrame = useCallback(
+export const useIframe: UseIframe = ({ name }) => {
+  const Iframe = useCallback(
     memo((props) => {
       const [url, setUrl] = useState('');
       if (__DEV__) {
@@ -18,7 +18,7 @@ export const useIFrame: UseIFrame = ({ name }) => {
         }
       }
       useEffect(() => {
-        getIFrameUrl(name).then((url) => {
+        getIframeUrl(name).then((url) => {
           setUrl(url);
         });
       }, []);
@@ -26,5 +26,5 @@ export const useIFrame: UseIFrame = ({ name }) => {
     }),
     [name]
   );
-  return IFrame;
+  return Iframe;
 };

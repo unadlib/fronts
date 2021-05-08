@@ -1,5 +1,5 @@
 import { FunctionComponent, ReactElement } from 'react';
-import { UseIFrameOptions, UseWebComponentsOptions, UseAppOptions } from 'fronts';
+import { UseIframeOptions, UseWebComponentsOptions, UseAppOptions } from 'fronts';
 
 export type AppWrapper<T> = FunctionComponent<
   {
@@ -7,7 +7,7 @@ export type AppWrapper<T> = FunctionComponent<
   } & T
 >;
 
-export type IFrameWrapper<T> = FunctionComponent<
+export type IframeWrapper<T> = FunctionComponent<
   {
     src?: string;
   } & T
@@ -17,8 +17,8 @@ export type UseApp = <T extends Record<string, any> = Record<string, any>>(
   options: Pick<UseAppOptions, Exclude<keyof UseAppOptions, 'target'>>
 ) => AppWrapper<T>;
 
-export type UseIFrame = <T extends Record<string, any> = Record<string, any>>(
-  options: Pick<UseIFrameOptions, Exclude<keyof UseIFrameOptions, 'target'>>
+export type UseIframe = <T extends Record<string, any> = Record<string, any>>(
+  options: Pick<UseIframeOptions, Exclude<keyof UseIframeOptions, 'target'>>
 ) => FunctionComponent<T>;
 
 export type UseWebComponents = <

@@ -26,7 +26,7 @@ export interface UseAppOptions {
   loader: DynamicImport;
 }
 
-export interface UseIFrameOptions {
+export interface UseIframeOptions {
   /**
    *
    */
@@ -62,7 +62,7 @@ export interface UseWebComponentsOptions {
 
 export type UseApp = (options: UseAppOptions) => Promise<void | (() => void)>;
 
-export type UseIFrame = (options: UseIFrameOptions) => void; // TODO: fix type with iframe Attributes
+export type UseIframe = (options: UseIframeOptions) => void; // TODO: fix type with iframe Attributes
 
 export type UseWebComponents = (
   options: UseWebComponentsOptions
