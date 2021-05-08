@@ -3,9 +3,9 @@ import { HashRouter, Route, Switch } from 'react-router-dom';
 // import App2 from 'app2/src/App';
 import Navigation from './Navigation';
 import HomePage from './HomePage';
-import { useIFrame, useApp } from 'fronts';
+import { useIframe, useApp } from 'fronts';
 import {
-  useIFrame as useIFrameWithReact,
+  useIframe as useIframeWithReact,
   useApp as useAppWithReact,
   useWebComponents as useWebComponentsWithReact,
 } from 'fronts-react';
@@ -33,11 +33,12 @@ const routes = [
   {
     path: '/app4',
     component: () => {
-      const App4 = useIFrameWithReact('app4');
+      const App4 = useIframeWithReact({ name: 'app4' });
       const ref = useRef(null);
       useEffect(() => {
-        useIFrame('app4', {
-          target: ref.current,
+        useIframe({
+          name: 'app4',
+          target: ref.current!,
         });
       }, []);
       return (
@@ -54,21 +55,25 @@ const routes = [
     component: () => {
       const ref = useRef(null);
       // Vue
-      // @ts-ignore
-      const App5WithReact = useAppWithReact(() => import('app5/src/main'));
-      const App5UseWebComponent = useWebComponentsWithReact(
+      const App5WithReact = useAppWithReact({
+        name: 'app5',
         // @ts-ignore
-        () => import('app5/src/main'),
-        {
-          shadowMode: 'closed',
-          useShadowDOM: true,
-        }
-      );
+        loader: () => import('app5/src/main'),
+      });
+      const App5UseWebComponent = useWebComponentsWithReact({
+        name: 'app5',
+        // @ts-ignore
+        loader: () => import('app5/src/main'),
+        shadowMode: 'closed',
+        useShadowDOM: true,
+      });
       useEffect(() => {
         let callback: (() => void) | void;
-        // @ts-ignore
-        useApp(() => import('app5/src/main'), {
-          target: ref.current,
+        useApp({
+          name: 'app5',
+          // @ts-ignore
+          loader: () => import('app5/src/main'),
+          target: ref.current!,
         }).then((unmount) => {
           callback = unmount;
         });

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   useApp as useAppWithReact,
   useWebComponents as useWebComponentsWithReact,
-  useIFrame as useIFrameWithReact,
+  useIframe as useIframeWithReact,
 } from 'fronts-react';
-import { useApp, useWebComponents, useIFrame } from 'fronts';
+import { useApp, useWebComponents, useIframe } from 'fronts';
 
 const style = {
   padding: 12,
@@ -57,13 +57,13 @@ const ButtonContainer = () => {
 
   const ref2 = useRef(null);
   useEffect(() => {
-    useIFrame({
+    useIframe({
       name: 'app3',
       target: ref2.current!,
     });
   }, []);
 
-  const App3UseIFrameWithReact = useIFrameWithReact({ name: 'app3' });
+  const App3UseIframeWithReact = useIframeWithReact({ name: 'app3' });
   return (
     <div style={style}>
       App 2 Container
@@ -92,12 +92,12 @@ const ButtonContainer = () => {
       <App3WebComponentWithReact />
       <br />
       <br />
-      <h1>useIFrame example</h1>
+      <h1>useIframe example</h1>
       <div ref={ref2}></div>
       <br />
       <br />
-      <h1>useIFrameWithReact example</h1>
-      <App3UseIFrameWithReact />
+      <h1>useIframeWithReact example</h1>
+      <App3UseIframeWithReact />
     </div>
   );
 };

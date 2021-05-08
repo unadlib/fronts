@@ -12,19 +12,23 @@ const ButtonContainer = () => {
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useApp(() => import('app3/src/bootstrap'), { target: ref.current }).then(
-      (unmount) => {
-        callback = unmount;
-      }
-    );
+    useApp({
+      name: 'app3',
+      target: ref.current!,
+      loader: () => import('app3/src/bootstrap'),
+    }).then((unmount) => {
+      callback = unmount;
+    });
     return () => callback && callback();
   }, []);
 
   const ref1 = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useWebComponents(() => import('app3/src/bootstrap'), {
-      target: ref1.current,
+    useWebComponents({
+      name: 'app3',
+      loader: () => import('app3/src/bootstrap'),
+      target: ref1.current!,
       shadowMode: 'open',
       useShadowDOM: true,
     }).then((unmount) => {
