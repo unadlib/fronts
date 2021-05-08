@@ -1,3 +1,4 @@
+import { insertStyle } from './insertStyle';
 import { UseApp } from './interface';
 import { loadApp } from './loadApp';
 
@@ -16,7 +17,16 @@ export const useApp: UseApp = (dynamicImport, options) => {
         `The current App should define default exported rendering functions.`
       );
     }
+    const rootNode = document.createElement('div');
+    rootNode.setAttribute('data-fronts', options.name ?? 'undefined');
+    rootNode.setAttribute('data-time', Date.now().toString());
+    options.target?.appendChild(rootNode);
+    if (options.name) {
+      insertStyle(rootNode, options.name);
+    }
+    const renderNode = document.createElement('div');
+    rootNode.appendChild(renderNode);
     // TODO: pass `props`
-    return module.default(options.target);
+    return module.default(renderNode);
   });
 };

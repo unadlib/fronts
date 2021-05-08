@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { loadApp, Render } from 'fronts';
+import { insertStyle, loadApp, Render } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
 
-export const useApp: UseApp = (dynamicImport) => {
+export const useApp: UseApp = (dynamicImport, options) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
@@ -13,7 +13,8 @@ export const useApp: UseApp = (dynamicImport) => {
   }, []);
   const App: AppWrapper<any> = useCallback(
     memo((props) => {
-      const ref = useRef(null);
+      const rootRef = useRef<HTMLDivElement>(null);
+      const renderRef = useRef<HTMLDivElement>(null);
       useEffect(() => {
         if (typeof ModuleRef!.current!.default !== 'function') {
           throw new Error(
@@ -22,12 +23,24 @@ export const useApp: UseApp = (dynamicImport) => {
         }
         let callback: void | (() => void);
         Promise.resolve().then(() => {
+          if (rootRef.current && options?.name) {
+            insertStyle(rootRef.current, options.name);
+          }
           // TODO: pass `props`
-          callback = ModuleRef!.current!.default(ref.current);
+          callback = ModuleRef!.current!.default(renderRef.current);
         });
         return () => callback && callback();
       }, []);
-      return <div ref={ref} {...props}></div>;
+      return (
+        <div
+          ref={rootRef}
+          data-fronts={options?.name}
+          data-render={Date.now()}
+          {...props}
+        >
+          <div ref={renderRef}></div>
+        </div>
+      );
     }),
     [loaded]
   );

@@ -15,7 +15,10 @@ export type IFrameWrapper<T> = FunctionComponent<
 >;
 
 export type UseApp = <T extends Record<string, any> = Record<string, any>>(
-  dynamicImport: DynamicImport
+  dynamicImport: DynamicImport,
+  options?: {
+    name?: string;
+  }
 ) => AppWrapper<T>;
 
 export type UseIFrame = <T extends Record<string, any> = Record<string, any>>(

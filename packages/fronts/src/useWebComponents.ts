@@ -1,3 +1,4 @@
+import { insertStyle } from './insertStyle';
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
 
@@ -27,7 +28,7 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
   let injectedRoot: HTMLElement;
   if (options.useShadowDOM) {
     const shadow = customElementInstance.attachShadow({
-      mode: options.shadowMode,
+      mode: options.shadowMode ?? 'open',
     });
     shadow.appendChild(node);
     injectedRoot = shadow;
@@ -36,15 +37,7 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
     injectedRoot = customElementInstance;
   }
   if (options.name) {
-    const insertedStyleKey = `__${options.name}_inserted_style__`;
-    // collections from `style-loader` insert CSS element
-    // If using a style dynamic solution, such as `styled-components`, and be sure to use `StyleSheetManager`.
-    const styles: HTMLElement[] | undefined = (window as any)[insertedStyleKey];
-    if (styles) {
-      styles.forEach((style) => {
-        injectedRoot.appendChild(style.cloneNode(true));
-      });
-    }
+    insertStyle(injectedRoot, options.name);
   }
   return node;
 };
@@ -61,6 +54,7 @@ export const useWebComponents: UseWebComponents = (dynamicImport, options) => {
     const node = defineCustomElement({
       shadowMode: options.shadowMode,
       useShadowDOM: options.useShadowDOM,
+      name: options.name,
     });
     // TODO: pass `props`
     return module.default(node);

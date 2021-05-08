@@ -15,6 +15,7 @@ export type UseApp = (
   dynamicImport: DynamicImport,
   options: {
     target: NodeElement;
+    name?: string;
   }
 ) => Promise<void | (() => void)>;
 
