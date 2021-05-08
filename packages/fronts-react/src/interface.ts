@@ -1,6 +1,5 @@
-import { UseWebComponentsOptions } from 'fronts';
-import { DynamicImport } from 'fronts';
 import { FunctionComponent, ReactElement } from 'react';
+import { UseIFrameOptions, UseWebComponentsOptions, UseAppOptions } from 'fronts';
 
 export type AppWrapper<T> = FunctionComponent<
   {
@@ -15,21 +14,17 @@ export type IFrameWrapper<T> = FunctionComponent<
 >;
 
 export type UseApp = <T extends Record<string, any> = Record<string, any>>(
-  dynamicImport: DynamicImport,
-  options?: {
-    name?: string;
-  }
+  options: Pick<UseAppOptions, Exclude<keyof UseAppOptions, 'target'>>
 ) => AppWrapper<T>;
 
 export type UseIFrame = <T extends Record<string, any> = Record<string, any>>(
-  siteName: string
+  options: Pick<UseIFrameOptions, Exclude<keyof UseIFrameOptions, 'target'>>
 ) => FunctionComponent<T>;
 
 export type UseWebComponents = <
   T extends Record<string, any> = Record<string, any>
 >(
-  dynamicImport: DynamicImport,
-  options?: Pick<
+  options: Pick<
     UseWebComponentsOptions,
     Exclude<keyof UseWebComponentsOptions, 'target'>
   >

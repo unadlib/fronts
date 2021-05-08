@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { insertStyle, loadApp, Render } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
 
-export const useApp: UseApp = (dynamicImport, options) => {
+/**
+ *
+ */
+export const useApp: UseApp = (options) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    loadApp(dynamicImport).then((module: any) => {
+    loadApp(options.loader).then((module: any) => {
       setLoaded(true);
       ModuleRef.current = module;
     });
@@ -23,9 +26,7 @@ export const useApp: UseApp = (dynamicImport, options) => {
         }
         let callback: void | (() => void);
         Promise.resolve().then(() => {
-          if (rootRef.current && options?.name) {
-            insertStyle(rootRef.current, options.name);
-          }
+          insertStyle(rootRef.current!, options.name);
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(renderRef.current);
         });

@@ -36,26 +36,27 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
     customElementInstance.appendChild(node);
     injectedRoot = customElementInstance;
   }
-  if (options.name) {
-    insertStyle(injectedRoot, options.name);
-  }
-  return node;
+  return { node, injectedRoot };
 };
 
-export const useWebComponents: UseWebComponents = (dynamicImport, options) => {
-  return loadApp(dynamicImport).then((module) => {
+/**
+ *
+ */
+export const useWebComponents: UseWebComponents = (options) => {
+  return loadApp(options.loader).then((module) => {
     if (typeof module.default !== 'function') {
       throw new Error(
         `The current App should define default exported rendering functions.`
       );
     }
     const customElement = document.createElement('fronts-app');
-    options.target?.appendChild(customElement);
-    const node = defineCustomElement({
+    options.target.appendChild(customElement);
+    const { node, injectedRoot } = defineCustomElement({
       shadowMode: options.shadowMode,
       useShadowDOM: options.useShadowDOM,
       name: options.name,
     });
+    insertStyle(injectedRoot, options.name);
     // TODO: pass `props`
     return module.default(node);
   });

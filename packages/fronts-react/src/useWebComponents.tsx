@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { loadApp, Render, defineCustomElement } from 'fronts';
+import { loadApp, Render, defineCustomElement, insertStyle } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
 // TODO: fix event with `react-shadow-dom-retarget-events`
-export const useWebComponents: UseWebComponents = (
-  dynamicImport,
-  options = {}
-) => {
+/**
+ *
+ */
+export const useWebComponents: UseWebComponents = (options) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    loadApp(dynamicImport).then((module: any) => {
+    loadApp(options.loader).then((module: any) => {
       setLoaded(true);
       ModuleRef.current = module;
     });
@@ -23,9 +23,10 @@ export const useWebComponents: UseWebComponents = (
             `The current App should define default exported rendering functions in the dependent "${process.env.APP_NAME}" App.`
           );
         }
-        const node = defineCustomElement(options);
+        const { node, injectedRoot } = defineCustomElement(options);
         let callback: void | (() => void);
         Promise.resolve().then(() => {
+          insertStyle(injectedRoot, options.name);
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(node);
         });

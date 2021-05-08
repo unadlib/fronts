@@ -7,11 +7,11 @@ import { loadApp } from './loadApp';
  *
  * # Example
  * ```ts
- * useApp(() => import('app1'), { target }).then((unmount) => {});
+ * useApp({ target, loader: () => import('app1') }).then((unmount) => {});
  * ```
  */
-export const useApp: UseApp = (dynamicImport, options) => {
-  return loadApp(dynamicImport).then((module) => {
+export const useApp: UseApp = (options) => {
+  return loadApp(options.loader).then((module) => {
     if (typeof module.default !== 'function') {
       throw new Error(
         `The current App should define default exported rendering functions.`
@@ -20,10 +20,8 @@ export const useApp: UseApp = (dynamicImport, options) => {
     const rootNode = document.createElement('div');
     rootNode.setAttribute('data-fronts', options.name ?? 'undefined');
     rootNode.setAttribute('data-time', Date.now().toString());
-    options.target?.appendChild(rootNode);
-    if (options.name) {
-      insertStyle(rootNode, options.name);
-    }
+    options.target.appendChild(rootNode);
+    insertStyle(rootNode, options.name);
     const renderNode = document.createElement('div');
     rootNode.appendChild(renderNode);
     // TODO: pass `props`

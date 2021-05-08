@@ -11,35 +11,64 @@ export interface CacheContainer {
   setItem(key: string, value: string): Promise<void> | void;
 }
 
-export type UseApp = (
-  dynamicImport: DynamicImport,
-  options: {
-    target: NodeElement;
-    name?: string;
-  }
-) => Promise<void | (() => void)>;
+export interface UseAppOptions {
+  /**
+   *
+   */
+  name: string;
+  /**
+   *
+   */
+  target: HTMLElement;
+  /**
+   *
+   */
+  loader: DynamicImport;
+}
 
-export type UseIFrame = (
-  siteName: string,
-  options: {
-    [K: string]: any; // TODO: fix type with iframe Attributes
-    target: NodeElement;
-  }
-) => void;
+export interface UseIFrameOptions {
+  /**
+   *
+   */
+  name: string;
+  /**
+   *
+   */
+  target: HTMLElement;
+}
+
+export interface UseWebComponentsOptions {
+  /**
+   *
+   */
+  name: string;
+  /**
+   *
+   */
+  target: HTMLElement;
+  /**
+   *
+   */
+  useShadowDOM?: boolean;
+  /**
+   *
+   */
+  shadowMode?: 'open' | 'closed';
+  /**
+   *
+   */
+  loader: DynamicImport;
+}
+
+export type UseApp = (options: UseAppOptions) => Promise<void | (() => void)>;
+
+export type UseIFrame = (options: UseIFrameOptions) => void; // TODO: fix type with iframe Attributes
 
 export type UseWebComponents = (
-  dynamicImport: DynamicImport,
   options: UseWebComponentsOptions
 ) => Promise<void | (() => void)>;
 
-export interface UseWebComponentsOptions {
-  useShadowDOM?: boolean;
-  shadowMode?: 'open' | 'closed';
-  target: NodeElement;
-  name?: string;
-}
-
 export type DefineCustomElementOptions = Pick<
   UseWebComponentsOptions,
-  Exclude<keyof UseWebComponentsOptions, 'target'>
+  Exclude<keyof UseWebComponentsOptions, 'target' | 'loader'>
 >;

@@ -1,6 +1,9 @@
 import { getScriptLink } from './importApp';
 import { UseIFrame } from './interface';
 
+/**
+ *
+ */
 export const getIFrameUrl = async (siteName: string) => {
   let hasVersionControl: boolean;
   try {
@@ -31,14 +34,13 @@ export const getIFrameUrl = async (siteName: string) => {
 };
 
 export const useIFrame: UseIFrame = async (
-  siteName,
-  { target, ...options }
+  { target, name }
 ) => {
   const iframe = document.createElement('iframe');
-  iframe.src = await getIFrameUrl(siteName);
+  iframe.src = await getIFrameUrl(name);
   // iframe.setAttribute('frameBorder', 'no');
-  for (const key in options) {
-    iframe.setAttribute(key, options[key]);
-  }
+  // for (const key in options) {
+  //   iframe.setAttribute(key, options[key]);
+  // }
   target?.appendChild(iframe);
 };
