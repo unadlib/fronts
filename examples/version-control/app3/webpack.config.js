@@ -2,7 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ModuleFederationPlugin = require('webpack').container
   .ModuleFederationPlugin;
 const path = require('path');
-const { createWebpackConfig } = require('fronts-bundler');
+const { createWebpackConfig, insertStyle } = require('fronts-bundler');
 
 module.exports = createWebpackConfig({
   entry: './src/index',
@@ -29,6 +29,24 @@ module.exports = createWebpackConfig({
         options: {
           presets: ['@babel/preset-react', '@babel/preset-typescript'],
         },
+      },
+      {
+        test: /\.css$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'style-loader',
+            options: {
+              insert: insertStyle,
+            },
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+            },
+          },
+        ],
       },
     ],
   },

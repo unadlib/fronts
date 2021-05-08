@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import App3 from 'app3/src/App';
 import {
   useApp as useAppWithReact,
   useWebComponents as useWebComponentsWithReact,
@@ -12,45 +11,59 @@ const style = {
   backgroundColor: '#cccccc',
 };
 
+const App3 = React.lazy(() => import(`app3/src/App`));
+
 const ButtonContainer = () => {
   const [count, setCount] = useState(0);
 
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useApp(() => import('app3/src/bootstrap'), {
-      target: ref.current,
+    useApp({
+      name: 'app3',
+      loader: () => import('app3/src/bootstrap'),
+      target: ref.current!,
     }).then((unmount) => {
       callback = unmount;
     });
     return () => callback && callback();
   }, []);
 
-  const App3WithReact = useAppWithReact(() => import('app3/src/bootstrap'));
+  const App3WithReact = useAppWithReact({
+    name: 'app3',
+    loader: () => import('app3/src/bootstrap'),
+  });
 
   const ref1 = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useWebComponents(() => import('app3/src/bootstrap'), {
-      target: ref1.current,
+    useWebComponents({
+      name: 'app3',
+      target: ref1.current!,
+      useShadowDOM: true,
+      loader: () => import('app3/src/bootstrap'),
     }).then((unmount) => {
       callback = unmount;
     });
     return () => callback && callback();
   }, []);
 
-  const App3WebComponentWithReact = useWebComponentsWithReact(
-    () => import('app3/src/bootstrap')
-  );
+  const App3WebComponentWithReact = useWebComponentsWithReact({
+    name: 'app3',
+    useShadowDOM: true,
+    shadowMode: 'closed',
+    loader: () => import('app3/src/bootstrap'),
+  });
 
   const ref2 = useRef(null);
   useEffect(() => {
-    useIFrame('app3', {
-      target: ref2.current,
+    useIFrame({
+      name: 'app3',
+      target: ref2.current!,
     });
   }, []);
 
-  const App3UseIFrameWithReact = useIFrameWithReact('app3');
+  const App3UseIFrameWithReact = useIFrameWithReact({ name: 'app3' });
   return (
     <div style={style}>
       App 2 Container
