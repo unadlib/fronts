@@ -1,4 +1,4 @@
-import { insertStyle } from './insertStyle';
+import { injectStyle } from './injectStyle';
 import { UseApp } from './interface';
 import { loadApp } from './loadApp';
 import { unmount } from './unmount';
@@ -22,7 +22,7 @@ export const useApp: UseApp = (options) => {
     rootNode.setAttribute('data-fronts', options.name ?? 'undefined');
     rootNode.setAttribute('data-time', Date.now().toString());
     options.target.appendChild(rootNode);
-    insertStyle(rootNode, options.name);
+    injectStyle(rootNode, options.name);
     const renderNode = document.createElement('div');
     rootNode.appendChild(renderNode);
     // TODO: pass `props`

@@ -11,6 +11,6 @@ export * from './injectScript';
 export * from './loadScript';
 export * from './getAppName';
 export * from './cache';
-export * from './insertStyle';
+export * from './injectStyle';
 export * from './getMeta';
 export * from './unmount';

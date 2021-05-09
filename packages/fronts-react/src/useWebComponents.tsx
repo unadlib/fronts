@@ -3,7 +3,7 @@ import {
   loadApp,
   Render,
   defineCustomElement,
-  insertStyle,
+  injectStyle,
   unmount,
 } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
@@ -32,7 +32,7 @@ export const useWebComponents: UseWebComponents = (options) => {
         const { node, injectedRoot } = defineCustomElement(options);
         let callback: void | (() => void);
         Promise.resolve().then(() => {
-          insertStyle(injectedRoot, options.name);
+          injectStyle(injectedRoot, options.name);
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(node);
         });

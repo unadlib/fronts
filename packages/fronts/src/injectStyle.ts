@@ -1,4 +1,4 @@
-export const insertStyle = (target: HTMLElement, name: string) => {
+export const injectStyle = (target: HTMLElement, name: string) => {
   const key = `__${name}__`;
   (window as any)[key] ??= {};
   const appConfig: {

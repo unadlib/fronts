@@ -1,4 +1,4 @@
-import { insertStyle } from './insertStyle';
+import { injectStyle } from './injectStyle';
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
 import { unmount } from './unmount';
@@ -57,7 +57,7 @@ export const useWebComponents: UseWebComponents = (options) => {
       useShadowDOM: options.useShadowDOM,
       name: options.name,
     });
-    insertStyle(injectedRoot, options.name);
+    injectStyle(injectedRoot, options.name);
     // TODO: pass `props`
     const callback = module.default(node);
     return () => {

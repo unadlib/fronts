@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { insertStyle, loadApp, Render, unmount } from 'fronts';
+import { injectStyle, loadApp, Render, unmount } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
 
 /**
@@ -26,7 +26,7 @@ export const useApp: UseApp = (options) => {
         }
         let callback: void | (() => void);
         Promise.resolve().then(() => {
-          insertStyle(rootRef.current!, options.name);
+          injectStyle(rootRef.current!, options.name);
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(renderRef.current);
         });
