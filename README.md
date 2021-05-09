@@ -15,6 +15,7 @@ A progressive micro frontends framework for building Web applications, and it's 
 - **Multiple patterns** - Quick Switch as Micro Frontends or Internal Reference
 - **Monorepo & TypeScript**
 - **Version control**
+- **Zero hijacking**
 
 ## Running Type
 
