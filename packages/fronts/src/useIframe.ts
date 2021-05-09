@@ -32,9 +32,9 @@ export const getIframeUrl = async (siteName: string) => {
   return url;
 };
 
-export const useIframe: UseIframe = async ({ target, name }) => {
+export const useIframe: UseIframe = async ({ target, name, url }) => {
   const iframe = document.createElement('iframe');
-  iframe.src = await getIframeUrl(name);
+  iframe.src = url ?? (await getIframeUrl(name));
   // iframe.setAttribute('frameBorder', 'no');
   // for (const key in options) {
   //   iframe.setAttribute(key, options[key]);

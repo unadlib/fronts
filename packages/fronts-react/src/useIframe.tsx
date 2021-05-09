@@ -6,10 +6,10 @@ import { UseIframe } from './interface';
 /**
  *
  */
-export const useIframe: UseIframe = ({ name }) => {
+export const useIframe: UseIframe = ({ name, url = '' }) => {
   const Iframe = useCallback(
     memo((props) => {
-      const [url, setUrl] = useState('');
+      const [iframeUrl, setIframeUrl] = useState(url);
       if (__DEV__) {
         if (Object.hasOwnProperty.call(props, 'src')) {
           console.warn(
@@ -18,11 +18,14 @@ export const useIframe: UseIframe = ({ name }) => {
         }
       }
       useEffect(() => {
-        getIframeUrl(name).then((url) => {
-          setUrl(url);
-        });
+        !iframeUrl &&
+          getIframeUrl(name).then((url) => {
+            setIframeUrl(url);
+          });
       }, []);
-      return url ? <iframe frameBorder="no" {...props} src={url} /> : null;
+      return iframeUrl ? (
+        <iframe frameBorder="no" {...props} src={iframeUrl} />
+      ) : null;
     }),
     [name]
   );

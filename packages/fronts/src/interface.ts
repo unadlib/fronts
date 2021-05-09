@@ -37,6 +37,10 @@ export interface UseIframeOptions {
    *
    */
   target: HTMLElement;
+  /**
+   *
+   */
+  url?: string;
 }
 
 export interface UseWebComponentsOptions {
