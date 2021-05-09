@@ -3,7 +3,8 @@
   "workspaces": [
     "app1",
     "app2",
-    "app3"
+    "app3",
+    "app4"
   ],
   "scripts": {
     "start": "lerna run --parallel start",

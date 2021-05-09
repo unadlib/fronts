@@ -1,5 +1,6 @@
 import React from 'react';
 import { HashRouter, Route, Switch } from 'react-router-dom';
+import { useApp, loadScript } from 'fronts-react';
 // import App2 from 'app2/src/App';
 import Navigation from './Navigation';
 import HomePage from './HomePage';
@@ -24,9 +25,19 @@ const routes = [
   },
 ];
 
-const App = () => (
-  <HashRouter>
+
+
+
+const App = () => {
+  const App4 = useApp({
+    name: 'app4',
+    loader: loadScript('http://localhost:3004/bundle.js'),
+  });
+  return (
+    <HashRouter>
     <div>
+      <h1>App 4 with Non-Module-Federation</h1>
+      <App4 />
       <h1>App 1</h1>
       <Navigation />
       <Switch>
@@ -41,6 +52,7 @@ const App = () => (
       </Switch>
     </div>
   </HashRouter>
-);
+  )
+};
 
 export default App;
