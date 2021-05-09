@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-export const insertStyle = (element: HTMLStyleElement) => {
+export const insertStyle = (element: HTMLStyleElement | HTMLLinkElement) => {
   if (!window.__FRONTS__DYNAMIC__IMPORT__) {
     const parent = document.querySelector('head')!;
     const lastInsertedElement = window._lastElementInsertedByStyleLoader;
@@ -15,20 +15,47 @@ export const insertStyle = (element: HTMLStyleElement) => {
     return;
   }
 
-  const key = `__${process.env.APP_NAME}__`;
+  // Some plugins require that they be injected first, such as `mini-css-extract-plugin`/`extract-css-chunks-webpack-plugin`.
+  if (element.tagName === 'LINK') {
+    document.head.appendChild(element);
+  }
+
+  let key: string | undefined;
+  try {
+    key = `__${process.env.APP_NAME}__`;
+  } catch (e) {
+    if (element.tagName === 'LINK') {
+      const map = Object.values(window.__FRONTS__).reduce(
+        (map, meta) => Object.assign(map, meta.dependencies),
+        {} as Record<string, string>
+      );
+      for (const appName in map) {
+        if ((element as HTMLLinkElement).href.includes(map[appName])) {
+          key = `__${appName}__`;
+        }
+      }
+    }
+    if (!key) {
+      throw e;
+    }
+  }
   (window as any)[key] ??= {};
-  const appConfig: {
-    insertedStyleElements?: HTMLStyleElement[];
-    insertedStyleTargets?: HTMLElement[];
+  const insertedStyle: {
+    elements?: (HTMLStyleElement | HTMLLinkElement)[];
+    targets?: HTMLElement[];
   } = (window as any)[key];
-  appConfig.insertedStyleElements ??= [];
-  appConfig.insertedStyleTargets ??= [];
-  appConfig.insertedStyleElements.push(element);
-  appConfig.insertedStyleTargets.forEach((target) => {
+  insertedStyle.elements ??= [];
+  insertedStyle.targets ??= [];
+  insertedStyle.elements.push(element);
+  insertedStyle.targets.forEach((target) => {
     for (const item of Array.from(target.childNodes)) {
       if (
-        (item as HTMLElement).tagName === 'STYLE' &&
-        (item as HTMLStyleElement).innerText === element.innerText
+        ((element as HTMLStyleElement).tagName === 'STYLE' &&
+          (item as HTMLStyleElement).tagName === 'STYLE' &&
+          (item as HTMLStyleElement).innerText === element.innerText) ||
+        ((element as HTMLLinkElement).tagName === 'LINK' &&
+          (item as HTMLLinkElement).tagName === 'LINK' &&
+          (item as HTMLLinkElement).href === (element as HTMLLinkElement).href)
       ) {
         return;
       }

@@ -2,7 +2,9 @@ export type NodeElement = HTMLElement | null;
 
 export type Render = (target: NodeElement) => () => void;
 
-export type DynamicImport = (name: string) => Promise<{
+export type DynamicImport = (
+  name: string
+) => Promise<{
   default: Render;
 }>;
 
@@ -72,3 +74,14 @@ export type DefineCustomElementOptions = Pick<
   UseWebComponentsOptions,
   Exclude<keyof UseWebComponentsOptions, 'target' | 'loader'>
 >;
+
+export interface InsertedStyle {
+  /**
+   *
+   */
+  elements?: (HTMLStyleElement | HTMLLinkElement)[];
+  /**
+   *
+   */
+  targets?: HTMLElement[];
+}
