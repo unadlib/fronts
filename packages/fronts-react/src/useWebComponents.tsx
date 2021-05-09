@@ -10,7 +10,7 @@ export const useWebComponents: UseWebComponents = (options) => {
   const ModuleRef = useRef<{ default: Render } | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    loadApp(options.loader).then((module: any) => {
+    loadApp(options.loader, options.name).then((module: any) => {
       setLoaded(true);
       ModuleRef.current = module;
     });

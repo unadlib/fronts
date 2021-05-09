@@ -4,8 +4,8 @@ import { Render } from './interface';
 /**
  * Loading script with non-module-federation module
  */
-export const loadScript = (url: string, name: string) => {
-  return new Promise<{
+export const loadScript = (url: string) => (name: string) =>
+  new Promise<{
     default: Render;
   }>((resolve, reject) => {
     const app = window.__FRONTS__DYNAMIC__MODULES__?.[name];
@@ -29,4 +29,3 @@ export const loadScript = (url: string, name: string) => {
       reject,
     });
   });
-};

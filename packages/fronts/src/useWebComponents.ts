@@ -43,7 +43,7 @@ export const defineCustomElement = (options: DefineCustomElementOptions) => {
  *
  */
 export const useWebComponents: UseWebComponents = (options) => {
-  return loadApp(options.loader).then((module) => {
+  return loadApp(options.loader, options.name).then((module) => {
     if (typeof module.default !== 'function') {
       throw new Error(
         `The current App should define default exported rendering functions.`
