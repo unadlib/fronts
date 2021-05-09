@@ -1,6 +1,7 @@
 import { insertStyle } from './insertStyle';
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
+import { unmount } from './unmount';
 
 // https://github.com/webcomponents/polyfills/tree/master/packages/webcomponentsjs#custom-elements-es5-adapterjs
 window.__FRONTS_CUSTOM_ELEMENTS_INSTANCES__ = new Set();
@@ -58,6 +59,10 @@ export const useWebComponents: UseWebComponents = (options) => {
     });
     insertStyle(injectedRoot, options.name);
     // TODO: pass `props`
-    return module.default(node);
+    const callback = module.default(node);
+    return () => {
+      unmount(injectedRoot, options.name);
+      callback && callback();
+    };
   });
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { insertStyle, loadApp, Render } from 'fronts';
+import { insertStyle, loadApp, Render, unmount } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
 
 /**
@@ -30,7 +30,10 @@ export const useApp: UseApp = (options) => {
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(renderRef.current);
         });
-        return () => callback && callback();
+        return () => {
+          unmount(rootRef.current!, options.name);
+          callback && callback();
+        };
       }, []);
       return (
         <div

@@ -48,7 +48,6 @@ export const getScriptLink = async (name: string) => {
   let scriptLink: string;
   if (isExternalLink) {
     scriptLink = depInfo;
-    // await loadModuleScript(name, depInfo);
   } else if (cacheLink) {
     fetch(`${process.env.FPM_REG}?scope=${name}`).then(async (data) => {
       const depLinks = await data.json();
@@ -56,7 +55,6 @@ export const getScriptLink = async (name: string) => {
       setCacheLink(storageKey, depLink);
     });
     scriptLink = cacheLink;
-    // await loadModuleScript(name, cacheLink);
   } else {
     const depLinks: Record<string, Record<string, string>> = await fetch(
       `${process.env.FPM_REG}?scope=${name}`
@@ -64,7 +62,6 @@ export const getScriptLink = async (name: string) => {
     const depLink = getDepLink(depLinks[name], depInfo);
     setCacheLink(storageKey, depLink);
     scriptLink = depLink;
-    // await loadModuleScript(name, depLink);
   }
   return scriptLink;
 };

@@ -1,6 +1,7 @@
 import { insertStyle } from './insertStyle';
 import { UseApp } from './interface';
 import { loadApp } from './loadApp';
+import { unmount } from './unmount';
 
 /**
  * Use app script from remote
@@ -25,6 +26,10 @@ export const useApp: UseApp = (options) => {
     const renderNode = document.createElement('div');
     rootNode.appendChild(renderNode);
     // TODO: pass `props`
-    return module.default(renderNode);
+    const callback = module.default(renderNode);
+    return () => {
+      unmount(rootNode, options.name);
+      callback && callback();
+    };
   });
 };

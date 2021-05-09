@@ -13,4 +13,4 @@ export * from './getAppName';
 export * from './cache';
 export * from './insertStyle';
 export * from './getMeta';
-
+export * from './unmount';

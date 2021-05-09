@@ -14,7 +14,25 @@ export const insertStyle = (element: HTMLStyleElement) => {
     window._lastElementInsertedByStyleLoader = element;
     return;
   }
-  const insertedStyleKey = `__${process.env.APP_NAME}_inserted_style__`;
-  (window as any)[insertedStyleKey] = (window as any)[insertedStyleKey] ?? [];
-  (window as any)[insertedStyleKey].push(element);
+
+  const key = `__${process.env.APP_NAME}__`;
+  (window as any)[key] ??= {};
+  const appConfig: {
+    insertedStyleElements?: HTMLStyleElement[];
+    insertedStyleTargets?: HTMLElement[];
+  } = (window as any)[key];
+  appConfig.insertedStyleElements ??= [];
+  appConfig.insertedStyleTargets ??= [];
+  appConfig.insertedStyleElements.push(element);
+  appConfig.insertedStyleTargets.forEach((target) => {
+    for (const item of Array.from(target.childNodes)) {
+      if (
+        (item as HTMLElement).tagName === 'STYLE' &&
+        (item as HTMLStyleElement).innerText === element.innerText
+      ) {
+        return;
+      }
+    }
+    target.appendChild(element);
+  });
 };

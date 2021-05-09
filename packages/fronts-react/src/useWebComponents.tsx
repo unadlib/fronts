@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { loadApp, Render, defineCustomElement, insertStyle } from 'fronts';
+import {
+  loadApp,
+  Render,
+  defineCustomElement,
+  insertStyle,
+  unmount,
+} from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
 // TODO: fix event with `react-shadow-dom-retarget-events`
@@ -30,7 +36,10 @@ export const useWebComponents: UseWebComponents = (options) => {
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(node);
         });
-        return () => callback && callback();
+        return () => {
+          unmount(injectedRoot, options.name);
+          callback && callback();
+        };
       }, []);
       return <fronts-app {...props} />;
     }),
