@@ -27,10 +27,14 @@ You can use `npx create-react-app app1` and `npx create-react-app app2` to quick
 
 Assuming you've completed these steps, let's get started with a quick taste of the wonderful micro frontends development of Fronts.
 
-1. Installation in the projects
+1. Install `fronts-react` and `fronts-bundler` in the projects.
 
 ```shell
-yarn install fronts-react fronts-bundler
+# with NPM
+npm install fronts-react fronts-bundler
+
+# or with Yarn
+yarn add fronts-react fronts-bundler
 ```
 
 2. Set up `site.json` and `webpack.config.js` in the projects
