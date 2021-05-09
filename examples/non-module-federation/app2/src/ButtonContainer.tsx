@@ -13,20 +13,20 @@ const ButtonContainer = () => {
   const ref = useRef(null);
   useEffect(() => {
     let callback: (() => void) | void;
-    useWebComponents(
-      () => loadScript('http://localhost:3003/bundle.js', 'app3'),
-      {
-        target: ref.current,
-      }
-    ).then((unmount) => {
+    useWebComponents({
+      name: 'app3',
+      loader: loadScript('http://localhost:3003/bundle.js'),
+      target: ref.current!,
+    }).then((unmount) => {
       callback = unmount;
     });
     return () => callback && callback();
   }, []);
 
-  const App3 = useWebComponentsWithReact(() =>
-    loadScript('http://localhost:3003/bundle.js', 'app3')
-  );
+  const App3 = useWebComponentsWithReact({
+    name: 'app3',
+    loader: loadScript('http://localhost:3003/bundle.js'),
+  });
 
   return (
     <div style={style}>

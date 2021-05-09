@@ -11,8 +11,10 @@ const routes = [
       const ref = useRef(null);
       useEffect(() => {
         let callback: (() => void) | void;
-        useApp(() => loadScript('http://localhost:3002/bundle.js', 'app2'), {
-          target: ref.current,
+        useApp({
+          name: 'app2',
+          target: ref.current!,
+          loader: loadScript('http://localhost:3002/bundle.js'),
         }).then((unmount) => {
           callback = unmount;
         });
@@ -30,9 +32,10 @@ const routes = [
   {
     path: '/about',
     component: () => {
-      const App2 = useAppWithReact(() =>
-        loadScript('http://localhost:3002/bundle.js', 'app2')
-      );
+      const App2 = useAppWithReact({
+        name: 'app2',
+        loader: loadScript('http://localhost:3002/bundle.js'),
+      });
       return (
         <div>
           <h1>useAppWithReact Example</h1>
