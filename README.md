@@ -1,6 +1,6 @@
-# fronts
+# Fronts
 
-A progressive micro frontends framework for building Web applications, and it's based on the module federation of Webpack.
+`Fronts` is a progressive micro frontends framework for building Web applications, and it's based on the module federation of Webpack.
 
 ## Motivation
 
@@ -12,8 +12,8 @@ A progressive micro frontends framework for building Web applications, and it's 
 - **Decentralized configuration**
 - **Cross framework**
 - **Code splitting**
+- **Lazy loading**
 - **CSS isolation**
-- **Lazy Loading**
 - **Lifecycle**
 - **iFrame & Web Components**
 - **Multiple patterns** - Quick Switch as Micro Frontends or Internal Reference
@@ -23,7 +23,7 @@ A progressive micro frontends framework for building Web applications, and it's 
 
 ## Getting Started
 
-You can use `npx create-react-app app1` and `npx create-react-app app2` to quickly create `app1` and `app2` React projects and run `npm run eject` to get `webpack.config.js`, and upgrade `webpack` to version 5.0.
+> You can use `npx create-react-app app1` and `npx create-react-app app2` to quickly create `app1` and `app2` React projects and run `npm run eject` to get `webpack.config.js`, and upgrade `webpack` to version 5.0.
 
 Assuming you've completed these steps, let's get started with a quick taste of the wonderful micro frontends development of Fronts.
 
@@ -41,6 +41,8 @@ yarn add fronts-react fronts-bundler
 
 We define `app1` as a parent micro frontend and it depends on the `app2` micro frontend.
 
+`app1/site.json`:
+
 ```json
 {
   "name": "app1",
@@ -51,7 +53,9 @@ We define `app1` as a parent micro frontend and it depends on the `app2` micro f
 }
 ```
 
-`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `. /src/bootstrap`, this entry of `app2` end will be used by `app1`.
+`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `./src/index`, this entry of `app2` end will be used by `app1`.
+
+`app2/site.json`:
 
 ```json
 {
@@ -74,7 +78,7 @@ module.exports = module.exports = function (webpackEnv) {
 
 3. Use `useApp()` in `app1/src/App.js` to import `app2` micro frontend.
 
-```tsx
+```jsx
 import React from 'react';
 import { useApp } from 'fronts-react';
 
@@ -89,16 +93,16 @@ export const App = () => {
 
 4. Define the default exported bootstrap function in `app2/src/index.js` and use `boot()` to get it booted.
 
-```tsx
+```jsx
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { boot } from 'fronts-react';
 import App from './App';
 
-export default function render(element: HTMLElement | null) {
+export default function render(element) {
   ReactDOM.render(<App />, element);
   return () => {
-    ReactDOM.unmountComponentAtNode(element!);
+    ReactDOM.unmountComponentAtNode(element);
   };
 }
 
@@ -137,6 +141,8 @@ boot(render, document.getElementById('root'));
 ## Testing
 
 ## CLI
+
+## Version Control
 
 ## Tutorial
 
