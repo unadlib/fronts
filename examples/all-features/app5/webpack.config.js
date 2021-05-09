@@ -2,7 +2,7 @@ const path = require("path");
 const { VueLoaderPlugin } = require("vue-loader");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const { createWebpackConfig } = require('fronts-bundler');
+const { createWebpackConfig, insertStyle } = require('fronts-bundler');
 
 module.exports = (env = {}) => createWebpackConfig({
   mode: "development",
@@ -58,6 +58,7 @@ module.exports = (env = {}) => createWebpackConfig({
   plugins: [
     new MiniCssExtractPlugin({
       filename: "[name].css",
+      insert: insertStyle
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "./index.html"),
