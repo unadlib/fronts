@@ -1,6 +1,6 @@
 {
   "name": "fronts-bundler",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
