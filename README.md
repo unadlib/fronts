@@ -1,6 +1,10 @@
 # Fronts
 
-`Fronts` is a progressive micro frontends framework for building Web applications, and it's based on the module federation of Webpack.
+![Node CI](https://github.com/unadlib/fronts/workflows/Node%20CI/badge.svg)
+[![npm version](https://badge.fury.io/js/fronts.svg)](http://badge.fury.io/js/fronts)
+![license](https://img.shields.io/npm/l/fronts)
+
+`Fronts` is a progressive micro frontends framework for building Web applications, and it's based on the [module federation](https://webpack.js.org/concepts/module-federation/) of Webpack.
 
 ## Motivation
 
@@ -15,10 +19,10 @@
 - **CSS isolation** - Optional CSS isolation solution.
 - **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
 - **Web Components & iFrame** - Support for multiple frontend runtime containers.
-- **Multiple patterns** - Simple switching between `micro frontends` mode and `non-micro-frontends` mode.
+- **Multiple patterns** - It supports simple switching between build mode `micro-frontends` and `non-micro-frontends`.
 - **Monorepo & TypeScript** - Friendly support for Monorepo and TypeScript, which are mutually appropriate technology stack.
-- **Version control** - It is used for efficient and dynamic delivery applications such as canary release.
-- **Zero hijacking** - Fronts did not do any hijacking, maintaining originality and possible loss of performance and security.
+- **Version control** - It's used for efficient and dynamic delivery apps such as canary release.
+- **Zero hijacking** - Fronts didn't do any hijacking, maintaining originality and possible loss of performance and security.
 
 ## Getting Started
 
