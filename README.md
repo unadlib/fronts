@@ -8,22 +8,21 @@
 
 ## Features
 
-- **Non-module-federation**
-- **Decentralized configuration**
-- **Cross framework**
-- **Code splitting**
-- **Lazy loading**
-- **CSS isolation**
-- **Lifecycle**
-- **iFrame & Web Components**
-- **Multiple patterns** - Quick Switch as Micro Frontends or Internal Reference
-- **Monorepo & TypeScript**
-- **Version control**
-- **Zero hijacking**
+- **Non-module-federation** - Although Fronts is based on the concept of module federation, it also supports `non-module-federation` mode.
+- **Decentralized configuration** - Dependency management is done by configuring `site.json` for each Fronts app, support for nested micro frontends.
+- **Cross framework** - No framework or technology stack is restricted.
+- **Code splitting & lazy loading** - Support code splitting within the Fronts app as a module, it can be lazy loaded by other Fronts app as a dependent module.
+- **CSS isolation** - Optional CSS isolation solution.
+- **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
+- **Web Components & iFrame** - Support for multiple frontend runtime containers.
+- **Multiple patterns** - Simple switching between `micro frontends` mode and `non-micro-frontends` mode.
+- **Monorepo & TypeScript** - Friendly support for Monorepo and TypeScript, which are mutually appropriate technology stack.
+- **Version control** - It is used for efficient and dynamic delivery applications such as canary release.
+- **Zero hijacking** - Fronts did not do any hijacking, maintaining originality and possible loss of performance and security.
 
 ## Getting Started
 
-> You can use `npx create-react-app app1` and `npx create-react-app app2` to quickly create `app1` and `app2` React projects and run `npm run eject` to get `webpack.config.js`, and upgrade `webpack` to version 5.0.
+> Use `npx create-react-app app1` and `npx create-react-app app2` to quickly create `app1` and `app2` React projects and run `npm run eject` or `yarn run eject` to get `webpack.config.js`, and upgrade `Webpack` to version `5.0+`.
 
 Assuming you've completed these steps, let's get started with a quick taste of the wonderful micro frontends development of Fronts.
 
