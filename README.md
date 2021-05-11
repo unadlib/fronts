@@ -30,7 +30,7 @@ todo
 
 ## Getting Started
 
-> Use `npx create-react-app app1` and `npx create-react-app app2` to quickly create `app1` and `app2` React projects and run `npm run eject` or `yarn run eject` to get `webpack.config.js`, and upgrade `Webpack` to version `5.0+`.
+> You can follow this article(["React without create-react-app Webpack 5"](https://dev.to/rogeliosamuel621/react-without-create-react-app-webpack-5-1b1o)) to quickly create `app1` and `app2` React projects.
 
 Assuming you've completed these steps, let's get started with a quick taste of the wonderful micro frontends development of Fronts.
 
@@ -143,7 +143,7 @@ boot(render, document.getElementById('root'));
 
 ## Examples
 
-todo
+- [Simple Example](https://github.com/unadlib/fronts-example)
 
 ## Debugger/Logger
 
