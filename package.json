@@ -21,9 +21,14 @@
     "test": "yarn test:dev",
     "build": "NODE_ENV=production ts-node scripts/build.ts",
     "clean": "lerna exec rimraf ./dist ./build",
-    "commit": "yarn git-cz",
+    "commit": "cz",
     "update:version": "lerna version --amend --no-git-tag-version",
     "publish": "lerna exec --no-private --no-bail -- npm publish"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
   },
   "repository": {
     "type": "git",
