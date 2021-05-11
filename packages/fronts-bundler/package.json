@@ -16,10 +16,10 @@
   "license": "MIT",
   "peerDependencies": {
     "string-replace-loader": "^3.0.1",
-    "webpack": "^5.11.1"
+    "webpack": "^5.37.0"
   },
   "devDependencies": {
-    "webpack": "^5.11.1"
+    "webpack": "^5.37.0"
   },
   "dependencies": {
     "string-replace-loader": "^3.0.1"

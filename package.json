@@ -7,6 +7,15 @@
     "node": "10.x || 11.x || 12.x || 13.x || 14.x"
   },
   "scripts": {
+    "start": "yarn start:example:basic",
+    "install:example:basic": "cd examples/basic && yarn install",
+    "start:example:basic": "cd examples/basic && yarn start",
+    "install:example:non-module-federation": "cd examples/non-module-federation && yarn install",
+    "start:example:non-module-federation": "cd examples/non-module-federation && yarn start",
+    "install:example:all-features": "cd examples/all-features && yarn install",
+    "start:example:all-features": "cd examples/all-features && yarn start",
+    "install:example:version-control": "cd examples/version-control && yarn install",
+    "start:example:version-control": "cd examples/version-control && yarn inststartll",
     "test:prod": "NODE_ENV=production jest --config ./scripts/jest/prod.config.json",
     "test:dev": "NODE_ENV=development jest --config ./scripts/jest/dev.config.json",
     "test": "yarn test:dev",
@@ -55,6 +64,6 @@
     "ts-jest": "^26.4.4",
     "ts-node": "^9.1.1",
     "tslib": "^2.2.0",
-    "typescript": "^4.2.2"
+    "typescript": "^4.2.4"
   }
 }
