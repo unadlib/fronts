@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
+import { identifier } from './constants';
+
 export const insertStyle = (element: HTMLStyleElement | HTMLLinkElement) => {
   if (!window.__FRONTS__DYNAMIC__IMPORT__) {
     const parent = document.querySelector('head')!;
@@ -25,7 +27,7 @@ export const insertStyle = (element: HTMLStyleElement | HTMLLinkElement) => {
     key = `__${process.env.APP_NAME}__`;
   } catch (e) {
     if (element.tagName === 'LINK') {
-      const map = Object.values(window.__FRONTS__).reduce(
+      const map = Object.values(window[identifier]).reduce(
         (map, meta) => Object.assign(map, meta.dependencies),
         {} as Record<string, string>
       );

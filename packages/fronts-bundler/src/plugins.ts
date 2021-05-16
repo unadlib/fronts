@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { container, DefinePlugin, BannerPlugin } from 'webpack';
+import { identifier } from './constants';
 import { getSiteConfig } from './getSiteConfig';
 import { ModuleFederationPluginOptions, RemotesConfig } from './interface';
 import { getUrl } from './utils';
@@ -126,10 +127,12 @@ export const getPlugins = (currentPath: string) => {
   return [
     new BannerPlugin({
       banner: `
-        window.__FRONTS__ = window.__FRONTS__ ? window.__FRONTS__ : {};
-        if (!window.__FRONTS__['${siteConfig.name}']) window.__FRONTS__['${
+        window.${identifier} = window.${identifier} ? window.${identifier} : {};
+        if (!window.${identifier}['${
         siteConfig.name
-      }'] = ${JSON.stringify(metaData)};`,
+      }']) window.${identifier}['${siteConfig.name}'] = ${JSON.stringify(
+        metaData
+      )};`,
       include: `${config.filename}`,
       raw: true,
     }),

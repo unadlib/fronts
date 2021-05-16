@@ -1,8 +1,7 @@
 import semver from 'semver';
 import { getCacheLink, setCacheLink } from './cache';
+import { storePrefix } from './constants';
 import { injectScript } from './injectScript';
-
-const storePrefix = '__fronts__';
 
 const getContainer = (name: string) => (window as Record<string, any>)[name];
 
