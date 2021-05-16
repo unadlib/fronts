@@ -48,7 +48,9 @@ export const getScriptLink = async (name: string) => {
   if (isExternalLink) {
     scriptLink = depInfo;
   } else if (cacheLink) {
-    fetch(`${process.env.FPM_REG}?scope=${name}`).then(async (data) => {
+    fetch(
+      `${process.env.FPM_REG}?scope=${encodeURIComponent(`${name}@${depInfo}`)}`
+    ).then(async (data) => {
       const depLinks = await data.json();
       const depLink = getDepLink(depLinks[name], depInfo);
       setCacheLink(storageKey, depLink);
@@ -56,7 +58,7 @@ export const getScriptLink = async (name: string) => {
     scriptLink = cacheLink;
   } else {
     const depLinks: Record<string, Record<string, string>> = await fetch(
-      `${process.env.FPM_REG}?scope=${name}`
+      `${process.env.FPM_REG}?scope=${encodeURIComponent(`${name}@${depInfo}`)}`
     ).then((data) => data.json());
     const depLink = getDepLink(depLinks[name], depInfo);
     setCacheLink(storageKey, depLink);
