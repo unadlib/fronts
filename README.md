@@ -8,22 +8,24 @@
 
 ## Motivation
 
-todo
+Among the many micro frontends solutions, [single-spa](https://github.com/single-spa/single-spa) and [Module Federation](https://webpack.js.org/concepts/module-federation/) are the best of them.
 
-## Concepts
+[single-spa](https://github.com/single-spa/single-spa) is a micro frontends framework based on router configuration. The centralization of configuration brings a series of limitations, such as it is difficult to granulate nestable micro frontends, weak module granularity, module sharing, and so on.
 
-todo
+In 2019, Zack Jackson proposed and implemented Module Federation. Module Federation is a completely different concept from single-spa, and allows a JavaScript application to dynamically load code from another application. It completely solves the problem of code dependency sharing and runtime modularity. The idea is indeed "[A game-changer in JavaScript architecture](https://medium.com/swlh/webpack-5-module-federation-a-game-changer-to-javascript-architecture-bcdd30e02669)" as mentioned in Zack Jackson's article. And it's currently supported by Webpack, Next.js and Rollup.
+
+Although the Module Federation concept is so amazing, it has not yet gone further to provide a more complete and fully targeted micro frontends framework implementation, and this is what `Fronts` is trying to do.
 
 ## Features
 
 - **Non-module-federation** - Although Fronts is based on the concept of module federation, it also supports `non-module-federation` mode.
-- **Decentralized configuration** - Dependency management is done by configuring `site.json` for each Fronts app, support for nested micro frontends.
+- **Decentralized configuration** - Configure `site.json` for dependency management In each Fronts app, support for nested micro frontends.
 - **Cross framework** - No framework or technology stack is restricted.
 - **Code splitting & lazy loading** - Support code splitting within the Fronts app as a module, it can be lazy loaded by other Fronts app as a dependent module.
 - **CSS isolation** - Optional CSS isolation solution.
 - **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
 - **Web Components & iFrame** - Support for multiple frontend runtime containers.
-- **Multiple patterns** - Supports building `micro-frontends` app and `non-micro-frontends` app.
+- **Multiple patterns** - Support for building `micro-frontends` app and `non-micro-frontends` app.
 - **Monorepo & TypeScript** - Friendly support for Monorepo and TypeScript, which are mutually appropriate technology stack.
 - **Version control** - It's used for efficient and dynamic delivery apps such as canary release.
 - **Zero hijacking** - Fronts didn't do any hijacking, maintaining originality and possible loss of performance and security.
@@ -46,7 +48,7 @@ yarn add fronts-react fronts-bundler
 
 2. Set up `site.json` and `webpack.config.js` in the projects
 
-We define `app1` as a parent micro frontend and it depends on the `app2` micro frontend.
+We define `app1` as a parent micro frontend and it depends on `app2`.
 
 `app1/site.json`:
 
@@ -60,7 +62,7 @@ We define `app1` as a parent micro frontend and it depends on the `app2` micro f
 }
 ```
 
-`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `./src/bootstrap` as a micro frontend entry, this entry of `app2` end will be used by `app1`.
+`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `./src/bootstrap` as a micro frontends entry, this entry of `app2` end will be used by `app1`.
 
 `app2/site.json`:
 
@@ -80,7 +82,7 @@ const { createWebpackConfig } = require('fronts-bundler');
 module.exports = createWebpackConfig(originalWebpackConfig);
 ```
 
-3. Load `app1/src/App.jsx` with `useApp()` to import `app2` micro frontend.
+3. Load `app1/src/App.jsx` with `useApp()` to import `app2`.
 
 ```jsx
 import React from 'react';
@@ -115,11 +117,11 @@ boot(render, document.getElementById('root'));
 
 ## APIs
 
-| API                |      Isolation      | Description |
-| :----------------- | :-----------------: | ----------: |
-| `useApp`           | CSS(loose/optional) |             |
-| `useWebComponents` |         CSS         |             |
-| `useIframe`        |   CSS, JavaScript   |             |
+| API                  |      Isolation      |
+| :------------------- | :-----------------: |
+| `useApp()`           | CSS(loose/optional) |
+| `useWebComponents()` |         CSS         |
+| `useIframe()`        |   CSS, JavaScript   |
 
 ### Built-in packages
 
@@ -132,11 +134,11 @@ boot(render, document.getElementById('root'));
 
 ## Running Type
 
-| Type                  |                 Requirement                 | Description |
-| :-------------------- | :-----------------------------------------: | ----------: |
-| Non-Module-Federation |                      -                      |             |
-| Module Federation     |           Webpack<br />site.json            |             |
-| Version Control       | Webpack<br />site.json<br />Registry Server |             |
+| Type                  |                 Requirement                 |                                                                Description |
+| :-------------------- | :-----------------------------------------: | -------------------------------------------------------------------------: |
+| Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Support Monorepo❌<br/> Version Management❌ |
+| Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Support Monorepo✅<br/> Version Management❌ |
+| Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Support Monorepo✅<br/> Version Management✅ |
 
 ## Examples
 
@@ -159,6 +161,10 @@ todo
 todo
 
 ## Tutorial
+
+todo
+
+## Q&A
 
 todo
 
