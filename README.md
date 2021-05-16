@@ -10,7 +10,7 @@
 
 Among the many micro frontends solutions, [single-spa](https://github.com/single-spa/single-spa) and [Module Federation](https://webpack.js.org/concepts/module-federation/) are the best of them.
 
-[single-spa](https://github.com/single-spa/single-spa) is a micro frontends framework based on router configuration. The centralization of configuration brings a series of limitations, such as it is difficult to granulate nestable micro frontends, weak module granularity, module sharing, and so on.
+[single-spa](https://github.com/single-spa/single-spa) is a micro frontends framework based on router configuration. The centralization of configuration brings some limitations, such as it is difficult to granulate nestable micro frontends, module granularity control, module sharing, and so on.
 
 In 2019, Zack Jackson proposed and implemented Module Federation. Module Federation is a completely different concept from single-spa, and allows a JavaScript application to dynamically load code from another application. It completely solves the problem of code dependency sharing and runtime modularity. The idea is indeed "[A game-changer in JavaScript architecture](https://medium.com/swlh/webpack-5-module-federation-a-game-changer-to-javascript-architecture-bcdd30e02669)" as mentioned in Zack Jackson's article. And it's currently supported by Webpack, Next.js and Rollup.
 
@@ -24,7 +24,7 @@ Although the Module Federation concept is so amazing, it has not yet gone furthe
 - **Code splitting & lazy loading** - Support code splitting within the Fronts app as a module, it can be lazy loaded by other Fronts app as a dependent module.
 - **CSS isolation** - Optional CSS isolation solution.
 - **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
-- **Web Components & iFrame** - Support for multiple frontend runtime containers.
+- **Web Components & iFrame** - Support for multiple frontend containers.
 - **Multiple patterns** - Support for building `micro-frontends` app and `non-micro-frontends` app.
 - **Monorepo & TypeScript** - Friendly support for Monorepo and TypeScript, which are mutually appropriate technology stack.
 - **Version control** - It's used for efficient and dynamic delivery apps such as canary release.
