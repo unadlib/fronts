@@ -125,7 +125,7 @@ boot(render, document.getElementById('root'));
 
 ### Built-in packages
 
-| Packages       | Support Framework |         status |
+| Packages       | Support Framework |         Status |
 | :------------- | :---------------: | -------------: |
 | `fronts`       |   Any Framework   |   Completed ✅ |
 | `fronts-react` |       React       |   Completed ✅ |
@@ -134,11 +134,11 @@ boot(render, document.getElementById('root'));
 
 ## Running Type
 
-| Type                  |                 Requirement                 |                                                                Description |
-| :-------------------- | :-----------------------------------------: | -------------------------------------------------------------------------: |
-| Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Support Monorepo❌<br/> Version Management❌ |
-| Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Support Monorepo✅<br/> Version Management❌ |
-| Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Support Monorepo✅<br/> Version Management✅ |
+| Type                  |                 Requirement                 |                                                            Support |
+| :-------------------- | :-----------------------------------------: | -----------------------------------------------------------------: |
+| Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Monorepo❌<br/> Version Management❌ |
+| Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Monorepo✅<br/> Version Management❌ |
+| Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Monorepo✅<br/> Version Management✅ |
 
 ## Examples
 
@@ -146,7 +146,44 @@ boot(render, document.getElementById('root'));
 
 ## Debugger/Logger
 
-todo
+Use `getMeta()`, it helps you to get the dependency mapping information.
+
+```js
+import { getMeta } from 'fronts';
+
+console.log(getMeta());
+
+// {
+//   "name": "app3",
+//   "meta": {
+//       "__main__": "app1",
+//       "__entry__": "http://localhost:3001/#/app2",
+//       "app2": {
+//           "dependencies": {
+//               "app3": "http://localhost:3003"
+//           }
+//       },
+//       "app5": {
+//           "dependencies": {
+//               "app6": "http://localhost:3006"
+//           }
+//       },
+//       "app3": {
+//           "dependencies": {}
+//       },
+//       "app6": {
+//           "dependencies": {}
+//       },
+//       "app1": {
+//           "dependencies": {
+//               "app2": "http://localhost:3002",
+//               "app4": "http://localhost:3004",
+//               "app5": "http://localhost:3005"
+//           }
+//       }
+//   }
+// }
+```
 
 ## Testing
 
@@ -158,7 +195,29 @@ todo
 
 ## Version Control
 
-todo
+Set up the registry server URL in the `registry` field.
+
+```diff
+{
+  "name": "app1",
+  "exports": [],
++ "registry": "http://localhost:3000/dev.json",
+  "dependencies": {
+-    "app2": "http://localhost:3002/remoteEntry.js"
++    "app2": "1.0.0"
+  }
+}
+```
+
+Start the registry server and make sure that `http://localhost:3000/dev.json?scope=app2%401.0.0` request gets a response data with the version specification.
+
+```json
+{
+  "app2": {
+    "1.0.0": "http://localhost:3002/remoteEntry.js"
+  }
+}
+```
 
 ## Tutorial
 
@@ -166,7 +225,12 @@ todo
 
 ## Q&A
 
-todo
+Q: Can Non-Module-Federation, Module Federation and Version Control be compatible with each other?
+A: Yes
+
+Q: How to use SPA development mode in micro frontends codebase?
+A: Use `SPA=true yarn start` instead of `yarn start`, make sure the current codebase is Monorepo and Module Federation or Version Control is enabled.
+
 
 ## License
 
