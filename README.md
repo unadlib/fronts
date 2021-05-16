@@ -23,7 +23,7 @@ todo
 - **CSS isolation** - Optional CSS isolation solution.
 - **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
 - **Web Components & iFrame** - Support for multiple frontend runtime containers.
-- **Multiple patterns** - It supports simple switching between build mode `micro-frontends` and `non-micro-frontends`.
+- **Multiple patterns** - Supports building `micro-frontends` app and `non-micro-frontends` app.
 - **Monorepo & TypeScript** - Friendly support for Monorepo and TypeScript, which are mutually appropriate technology stack.
 - **Version control** - It's used for efficient and dynamic delivery apps such as canary release.
 - **Zero hijacking** - Fronts didn't do any hijacking, maintaining originality and possible loss of performance and security.
@@ -60,14 +60,14 @@ We define `app1` as a parent micro frontend and it depends on the `app2` micro f
 }
 ```
 
-`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `./src/index`, this entry of `app2` end will be used by `app1`.
+`app2` doesn't have any dependencies, it acts as a micro frontend and we define it to export `./src/bootstrap` as a micro frontend entry, this entry of `app2` end will be used by `app1`.
 
 `app2/site.json`:
 
 ```json
 {
   "name": "app2",
-  "exports": ["./src/index"],
+  "exports": ["./src/bootstrap"],
   "dependencies": {}
 }
 ```
@@ -77,13 +77,10 @@ Wrap the Webpack config with `createWebpackConfig()` in `config/webpack.config.j
 ```js
 const { createWebpackConfig } = require('fronts-bundler');
 
-module.exports = module.exports = function (webpackEnv) {
-  // ...template webpack config code from `create-react-app`
-  return createWebpackConfig(originalWebpackConfig);
-};
+module.exports = createWebpackConfig(originalWebpackConfig);
 ```
 
-3. Use `useApp()` in `app1/src/App.js` to import `app2` micro frontend.
+3. Load `app1/src/App.jsx` with `useApp()` to import `app2` micro frontend.
 
 ```jsx
 import React from 'react';
@@ -92,13 +89,13 @@ import { useApp } from 'fronts-react';
 export const App = () => {
   const App2 = useApp({
     name: 'app2',
-    loader: () => import('app2/src/index'),
+    loader: () => import('app2/src/bootstrap'),
   });
   return <App2 />;
 };
 ```
 
-4. Define the default exported bootstrap function in `app2/src/index.js` and use `boot()` to get it booted.
+4. Define the default exported bootstrap function in `app2/src/bootstrap.jsx` and use `boot()` to get it booted.
 
 ```jsx
 import React from 'react';
