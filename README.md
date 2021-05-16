@@ -226,9 +226,11 @@ todo
 ## Q&A
 
 Q: Can Non-Module-Federation, Module Federation and Version Control be compatible with each other?
+
 A: Yes
 
 Q: How to use SPA development mode in micro frontends codebase?
+
 A: Use `SPA=true yarn start` instead of `yarn start`, make sure the current codebase is Monorepo and Module Federation or Version Control is enabled.
 
 
