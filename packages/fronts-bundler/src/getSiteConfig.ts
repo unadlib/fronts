@@ -1,11 +1,15 @@
-import path from 'path';
 import { SiteConfig } from './interface';
 
-export const DEFAULT_CONFIG_PATH = 'site.json';
-
-export const getSiteConfig = (configPath = DEFAULT_CONFIG_PATH) => {
-  const currentPath = path.resolve(process.cwd(), configPath);
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const siteConfig: SiteConfig = require(currentPath);
+export const getSiteConfig = (currentPath: string) => {
+  let siteConfig: SiteConfig;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    siteConfig = require(currentPath);
+  } catch (e) {
+    console.error(
+      `Failed to read the site config file. Please check ${currentPath}.`
+    );
+    throw e;
+  }
   return siteConfig;
 };
