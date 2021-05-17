@@ -14,3 +14,4 @@ export * from './cache';
 export * from './injectStyle';
 export * from './getMeta';
 export * from './unmount';
+export * from './retargetEvents';

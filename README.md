@@ -12,7 +12,7 @@ Among the many micro frontends solutions, [single-spa](https://github.com/single
 
 [single-spa](https://github.com/single-spa/single-spa) is a micro frontends framework based on router configuration. The centralization of configuration brings some limitations, such as it is difficult to granulate nestable micro frontends, module granularity control, module sharing, and so on.
 
-In 2019, Zack Jackson proposed and implemented Module Federation. Module Federation is a completely different concept from single-spa, and allows a JavaScript application to dynamically load code from another application. It completely solves the problem of code dependency sharing and runtime modularity. The idea is true "[A game-changer in JavaScript architecture](https://medium.com/swlh/webpack-5-module-federation-a-game-changer-to-javascript-architecture-bcdd30e02669)" as mentioned in Zack Jackson's article. And it's currently supported by Webpack, Next.js, and Rollup.
+In 2019, Zack Jackson proposed and implemented Module Federation. Module Federation is a completely different concept from single-spa, and allows a JavaScript application to dynamically load code from another application. It completely solves the problem of code dependency sharing and runtime modularity. The idea is true - "[A game-changer in JavaScript architecture](https://medium.com/swlh/webpack-5-module-federation-a-game-changer-to-javascript-architecture-bcdd30e02669)" as mentioned in Zack Jackson's article. And it's currently supported by Webpack, Next.js, and Rollup.
 
 Although the Module Federation concept is so amazing, it has not yet gone further to provide a more complete and fully targeted micro frontends framework implementation, and this is what `Fronts` is trying to do.
 
@@ -20,7 +20,7 @@ Although the Module Federation concept is so amazing, it has not yet gone furthe
 
 - **Non-module-federation** - Although Fronts is based on the concept of module federation, it also supports `non-module-federation` mode.
 - **Decentralized configuration** - Configure `site.json` for dependency management In each Fronts app, support for nested micro frontends.
-- **Cross framework** - No framework or technology stack is restricted.
+- **Cross frameworks** - No framework or technology stack is restricted.
 - **Code splitting & lazy loading** - Support code splitting within the Fronts app as a module, it can be lazy loaded by other Fronts app as a dependent module.
 - **CSS isolation** - Optional CSS isolation solution.
 - **Lifecycle** - Fronts provide concise lifecycle for Fronts app entry.
@@ -138,9 +138,9 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 
 | Type                  |                 Requirement                 |                                                            Support |
 | :-------------------- | :-----------------------------------------: | -----------------------------------------------------------------: |
-| Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Monorepo❌<br/> Version Management❌ |
-| Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Monorepo✅<br/> Version Management❌ |
-| Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Monorepo✅<br/> Version Management✅ |
+| Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Monorepo ❌<br/> Version Management ❌ |
+| Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ❌ |
+| Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ✅ |
 
 ## Examples
 

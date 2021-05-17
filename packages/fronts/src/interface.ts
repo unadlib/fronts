@@ -64,6 +64,10 @@ export interface UseWebComponentsOptions {
    *
    */
   loader: DynamicImport;
+  /**
+   *
+   */
+   retargetEvent?: boolean;
 }
 
 export type UseApp = (options: UseAppOptions) => Promise<void | (() => void)>;

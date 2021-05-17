@@ -1,6 +1,7 @@
 import { injectStyle } from './injectStyle';
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
+import { retargetEvents } from './retargetEvents';
 import { unmount } from './unmount';
 
 // https://github.com/webcomponents/polyfills/tree/master/packages/webcomponentsjs#custom-elements-es5-adapterjs
@@ -60,6 +61,9 @@ export const useWebComponents: UseWebComponents = (options) => {
     injectStyle(injectedRoot, options.name);
     // TODO: pass `props`
     const callback = module.default(node);
+    if (options.retargetEvent) {
+      retargetEvents(injectedRoot);
+    }
     return () => {
       unmount(injectedRoot, options.name);
       callback && callback();

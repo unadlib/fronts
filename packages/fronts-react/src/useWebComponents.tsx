@@ -5,6 +5,7 @@ import {
   defineCustomElement,
   injectStyle,
   unmount,
+  retargetEvents,
 } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
@@ -35,6 +36,9 @@ export const useWebComponents: UseWebComponents = (options) => {
           injectStyle(injectedRoot, options.name);
           // TODO: pass `props`
           callback = ModuleRef!.current!.default(node);
+          if (options.retargetEvent) {
+            retargetEvents(injectedRoot);
+          }
         });
         return () => {
           unmount(injectedRoot, options.name);
