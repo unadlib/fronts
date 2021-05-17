@@ -41,6 +41,7 @@ const ButtonContainer = () => {
       name: 'app3',
       target: ref1.current!,
       useShadowDOM: true,
+      retargetEvent: true,
       loader: () => import('app3/src/bootstrap'),
     }).then((unmount) => {
       callback = unmount;
@@ -51,6 +52,7 @@ const ButtonContainer = () => {
   const App3WebComponentWithReact = useWebComponentsWithReact({
     name: 'app3',
     useShadowDOM: true,
+    retargetEvent: true,
     shadowMode: 'closed',
     loader: () => import('app3/src/bootstrap'),
   });
