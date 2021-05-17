@@ -1,16 +1,15 @@
 /* eslint-disable no-console */
 import path from 'path';
-import { compile } from './typescript';
+import { array } from 'yargs';
+import { compile, compileProject, Generate } from './typescript';
 import { generateBundledModules } from './rollup';
-import { buildTypes as buildTypesObject } from './workspaces';
+import { buildTypes as buildTypesObject, handleWorkspaces } from './workspaces';
 
 process.chdir(path.resolve(__dirname, '..'));
 
-console.log(`\nBuilding...\n`);
-/**
- * sub-project set { "build": ['es', 'cjs', 'umd'] } for config about build types.
- */
-compile(async ({ currentPath, name, packageJson }) => {
+const projects = array('p').argv.p;
+
+const generate: Generate = async ({ currentPath, name, packageJson }) => {
   const banner = packageJson.bin ? '#!/usr/bin/env node' : undefined;
   const { build: buildTypes = ['es', 'cjs', 'umd'] } = packageJson;
   for (const buildType of buildTypes) {
@@ -25,4 +24,17 @@ compile(async ({ currentPath, name, packageJson }) => {
       banner,
     });
   }
-});
+};
+
+/**
+ * sub-project set { "build": ['es', 'cjs', 'umd'] } for config about build types.
+ */
+
+if (projects && projects.length > 0) {
+  compile(projects, generate);
+} else {
+  handleWorkspaces(async (packageParentDir, packageChildDir) => {
+    const packageChildPath = path.resolve(packageParentDir, packageChildDir);
+    await compileProject(generate, packageChildPath);
+  });
+}

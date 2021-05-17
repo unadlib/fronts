@@ -1,12 +1,8 @@
-import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs-extra';
 import ts from 'typescript';
 import chalk from 'chalk';
-import { array } from 'yargs';
-import { handleWorkspaces, Package } from './workspaces';
-
-const projects = array('p').argv.p;
+import { Package } from './workspaces';
 
 type CompileOption = {
   currentPath: string;
@@ -72,13 +68,17 @@ const getCamelCase = (name: string) => {
   return name.replace(/-(\w)/g, (_, str) => str.toUpperCase());
 };
 
-type Generate = (option: {
+export type Generate = (option: {
   currentPath: string;
   name: string;
   packageJson: Package;
 }) => Promise<void>;
 
-const compileProject = async (generate: Generate, packageChildPath: string) => {
+export const compileProject = async (
+  generate: Generate,
+  packageChildPath: string
+) => {
+  console.log(packageChildPath, `\nBuilding...\n`, );
   const packageJsonPath = path.resolve(packageChildPath, 'package.json');
   try {
     const packageJson: Package = fs.readJSONSync(packageJsonPath);
@@ -100,21 +100,17 @@ const compileProject = async (generate: Generate, packageChildPath: string) => {
   }
 };
 
-const compile = async (generate: Generate) => {
+const compile = async (
+  projects: (string | number)[] | undefined,
+  generate: Generate
+) => {
   if (Array.isArray(projects) && projects.length > 0) {
     for (const project of projects) {
       if (typeof project === 'string') {
         await compileProject(generate, path.resolve(project));
       }
     }
-    return;
   }
-  await handleWorkspaces(async (packageParentDir, packageChildDir) => {
-    const packageChildPath = path.resolve(packageParentDir, packageChildDir);
-    const project = packageChildPath.replace(`${process.cwd()}/`, '');
-    spawn('yarn', ['build', '-p', project], { stdio: 'inherit' });
-    await compileProject(generate, packageChildPath);
-  });
 };
 
 export { compileTypeScript, compile };
