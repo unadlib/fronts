@@ -125,7 +125,7 @@ boot(render, document.getElementById('root'));
 
 ### Built-in packages
 
-In modern front-end projects, it is not common to have requirements that cross multiple frameworks, but more common to have micro frontends architecture with one or two frameworks. So when the micro frontends modules are all in the same framework, Fronts recommends using Fronts built-in packages for that framework, such as `fronts-react`, `fronts-vue` and `fronts-ng`, otherwise please use `front`.
+The most popular frontend frameworks are React, Vue and Angular. When the micro frontends uses one of these frameworks, it is recommended to use Fronts built-in package for this framework, such as `fronts-react`, `fronts-vue` and `fronts-ng`, otherwise please use `front`.
 
 | Packages       | Support Framework |         Status |
 | :------------- | :---------------: | -------------: |
