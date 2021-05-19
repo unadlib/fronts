@@ -5,6 +5,7 @@
     "__DEV__": true
   },
   "testPathIgnorePatterns": [
-    "examples"
+    "examples",
+    "website"
   ]
 }
