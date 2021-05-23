@@ -2,8 +2,8 @@ import { InsertedStyle } from './interface';
 
 export const injectStyle = (target: HTMLElement, name: string) => {
   const key = `__${name}__`;
-  (window as any)[key] ??= {};
-  const insertedStyle: InsertedStyle = (window as any)[key];
+  (window as Record<string, any>)[key] ??= {};
+  const insertedStyle: InsertedStyle = (window as Record<string, any>)[key];
   insertedStyle.elements ??= [];
   insertedStyle.targets ??= [];
   // collections from `style-loader` insert CSS element
@@ -18,7 +18,7 @@ export const injectStyle = (target: HTMLElement, name: string) => {
         // Remove some of the styles injected in advance, such as `mini-css-extract-plugin`/`extract-css-chunks-webpack-plugin`.
         document.head.removeChild(style);
       } catch (e) {
-        //
+        console.warn(e);
       }
     }
 

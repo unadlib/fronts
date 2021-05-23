@@ -1,2 +1,2 @@
 export const identifier = '__FRONTS__';
-export const storePrefix = '__fronts__';
+export const storePrefix = 'fronts:';

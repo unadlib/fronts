@@ -1,14 +1,9 @@
-import semver from 'semver';
 import { getCacheLink, setCacheLink } from './cache';
 import { storePrefix } from './constants';
 import { injectScript } from './injectScript';
+import { RegistryResponse } from './interface';
 
 const getContainer = (name: string) => (window as Record<string, any>)[name];
-
-const getDepLink = (versionsMap: Record<string, string>, version: string) => {
-  // TODO: use semver for version pick
-  return versionsMap[version];
-};
 
 const loadModuleScript = (name: string, url: string) => {
   return new Promise((resolve, reject) => {
@@ -37,7 +32,7 @@ export const getModule = async (name: string, module: string) => {
 
 export const getScriptLink = async (name: string) => {
   if (typeof process.env.FPM_MAP !== 'string') {
-    throw new Error(``);
+    throw new Error(`The data about Fronts app dependencies does not exist.`);
   }
   const frontsPackagesMap = JSON.parse(process.env.FPM_MAP);
   const depInfo = frontsPackagesMap[name];
@@ -47,22 +42,25 @@ export const getScriptLink = async (name: string) => {
   let scriptLink: string;
   if (isExternalLink) {
     scriptLink = depInfo;
-  } else if (cacheLink) {
-    fetch(
-      `${process.env.FPM_REG}?scope=${encodeURIComponent(`${name}@${depInfo}`)}`
-    ).then(async (data) => {
-      const depLinks = await data.json();
-      const depLink = getDepLink(depLinks[name], depInfo);
-      setCacheLink(storageKey, depLink);
-    });
-    scriptLink = cacheLink;
   } else {
-    const depLinks: Record<string, Record<string, string>> = await fetch(
+    // todo: uuid
+    const fetchPromise: Promise<RegistryResponse> = fetch(
       `${process.env.FPM_REG}?scope=${encodeURIComponent(`${name}@${depInfo}`)}`
-    ).then((data) => data.json());
-    const depLink = getDepLink(depLinks[name], depInfo);
-    setCacheLink(storageKey, depLink);
-    scriptLink = depLink;
+    )
+      .then((data) => data.json())
+      .catch(() => {
+        //
+      });
+    if (cacheLink) {
+      fetchPromise.then((depLinks) => {
+        setCacheLink(storageKey, depLinks[name]);
+      });
+      scriptLink = cacheLink;
+    } else {
+      const depLinks = await fetchPromise;
+      setCacheLink(storageKey, depLinks[name]);
+      scriptLink = depLinks[name];
+    }
   }
   return scriptLink;
 };

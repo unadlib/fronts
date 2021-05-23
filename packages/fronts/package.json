@@ -10,11 +10,5 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "unadlib",
-  "license": "MIT",
-  "dependencies": {
-    "semver": "^7.3.4"
-  },
-  "devDependencies": {
-    "@types/semver": "^7.3.4"
-  }
+  "license": "MIT"
 }

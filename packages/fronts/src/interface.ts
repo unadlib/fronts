@@ -8,6 +8,8 @@ export type DynamicImport = (
   default: Render;
 }>;
 
+export type RegistryResponse = Record<string, string>;
+
 export interface CacheContainer {
   getItem(key: string): Promise<string | null> | string | null;
   setItem(key: string, value: string): Promise<void> | void;

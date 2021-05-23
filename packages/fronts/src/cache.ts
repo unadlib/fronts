@@ -17,6 +17,7 @@ export const setCacheContainer = (cacheContainer: CacheContainer) => {
 };
 
 export const setCacheLink = (storageKey: string, depLink: string) => {
+  // todo: check and fallback
   storage.setItem(storageKey, depLink);
 };
 
