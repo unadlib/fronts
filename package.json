@@ -24,7 +24,7 @@
     "commit": "cz",
     "update:version": "lerna version --amend --no-git-tag-version",
     "publish": "lerna exec --no-private --no-bail -- npm publish",
-    "publish:docs": "cd website && GIT_USER=unadlib USE_SSH=true yarn run deploy"
+    "deploy:website": "cd website && GIT_USER=unadlib USE_SSH=true yarn run deploy"
   },
   "config": {
     "commitizen": {
