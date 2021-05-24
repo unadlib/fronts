@@ -215,9 +215,7 @@ Start the registry server and make sure that `http://localhost:3000/dev.json?sco
 
 ```json
 {
-  "app2": {
-    "1.0.0": "http://localhost:3002/remoteEntry.js"
-  }
+  "app2": "http://localhost:3002/remoteEntry.js"
 }
 ```
 

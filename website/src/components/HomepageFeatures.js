@@ -8,28 +8,25 @@ const FeatureList = [
     Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Quickly build decentralized micro frontends architecture, define a micro frontend by setting <code>site.json</code>, similar to <code>package.json</code> of NPM.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Progressive',
     Svg: require('../../static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        It supports non-module-federation and allows gradual upgrade to support module federation and enable version control system.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Concise',
     Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Provide clean API and support more micro frontends combination capability and provide re-architecture possibilities.
       </>
     ),
   },

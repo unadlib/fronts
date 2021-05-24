@@ -1,7 +1,7 @@
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
+  title: 'Fronts',
+  tagline: 'A progressive micro frontends framework for building Web applications',
   url: 'https://unadlib.github.io',
   baseUrl: '/fronts/',
   onBrokenLinks: 'throw',
@@ -11,9 +11,9 @@ module.exports = {
   projectName: 'fronts', // Usually your repo name.
   themeConfig: {
     navbar: {
-      title: 'My Site',
+      title: 'Fronts',
       logo: {
-        alt: 'My Site Logo',
+        alt: 'A progressive micro frontends framework for building Web applications',
         src: 'img/logo.svg',
       },
       items: [
@@ -48,16 +48,16 @@ module.exports = {
           items: [
             {
               label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              href: 'https://stackoverflow.com/questions/tagged/fronts',
             },
             {
               label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              href: 'https://discordapp.com/invite/fronts',
             },
-            {
-              label: 'Twitter',
-              href: 'https://twitter.com/docusaurus',
-            },
+            // {
+            //   label: 'Twitter',
+            //   href: 'https://twitter.com/fronts',
+            // },
           ],
         },
         {
@@ -69,12 +69,12 @@ module.exports = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/unadlib/fronts',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Fronts Project, Inc. Built with Docusaurus.`,
     },
   },
   presets: [
