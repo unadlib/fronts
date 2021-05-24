@@ -8,7 +8,7 @@ const FeatureList = [
     Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Quickly build decentralized micro frontends architecture, define a micro frontend by setting <code>site.json</code>, similar to <code>package.json</code> of NPM.
+        Quickly build decentralized micro frontends projects, define a micro frontend by setting <code>site.json</code>, similar to <code>package.json</code> of NPM.
       </>
     ),
   },
