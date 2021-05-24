@@ -22,7 +22,7 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Concise',
+    title: 'Concise & Diversity',
     Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
