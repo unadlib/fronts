@@ -192,9 +192,10 @@ console.log(getMeta());
 `fronts-test` provides an runner for function step, and any micro frontends IT and E2E can use it for reusable testing. It also provides other APIs, such as `useContext()`, beforeHook and afterHook in `createRunner()`.
 
 ```ts
-import { run } from 'fronts-test';
+import { run, useContext } from 'fronts-test';
 
 const addTodo = (todoText) => {
+  const { page } = useContext();
   await page.type('#text', todoText);
   await page.click('#add');
 }
