@@ -13,10 +13,18 @@ export const createRunner = ({
     func: T,
     ...args: Parameters<T>
   ): Promise<ReturnType<T>> => {
-    before?.(func, args);
+    try {
+      await before?.(func, args);
+    } catch (e) {
+      console.error(e);
+    }
     // eslint-disable-next-line prefer-spread
     const result = await func.apply(null, args);
-    after?.(func, args, result);
+    try {
+      await after?.(func, args, result);
+    } catch (e) {
+      console.error(e);
+    }
     return result;
   };
 };
