@@ -12,6 +12,6 @@
   "author": "unadlib",
   "license": "MIT",
   "dependencies": {
-    "data-transport": "^2.0.1"
+    "data-transport": "^2.0.2"
   }
 }
