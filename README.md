@@ -84,22 +84,7 @@ const { createWebpackConfig } = require('fronts-bundler');
 module.exports = createWebpackConfig(originalWebpackConfig);
 ```
 
-3. Load `app1/src/App.jsx` with `useApp()` to import `app2`.
-
-```jsx
-import React from 'react';
-import { useApp } from 'fronts-react';
-
-export const App = () => {
-  const App2 = useApp({
-    name: 'app2',
-    loader: () => import('app2/src/bootstrap'),
-  });
-  return <App2 />;
-};
-```
-
-4. Define the default exported bootstrap function in `app2/src/bootstrap.jsx` and use `boot()` to get it booted.
+3. Define the default exported bootstrap function in `app2/src/bootstrap.jsx` and use `boot()` to get it booted.
 
 ```jsx
 import React from 'react';
@@ -116,6 +101,25 @@ export default function render(element) {
 
 boot(render, document.getElementById('root'));
 ```
+
+4. Load `app1/src/App.jsx` with `useApp()` to import `app2`.
+
+```jsx
+import React from 'react';
+import { useApp } from 'fronts-react';
+
+export const App = () => {
+  const App2 = useApp({
+    name: 'app2',
+    loader: () => import('app2/src/bootstrap'),
+  });
+  return <App2 />;
+};
+```
+
+## Examples
+
+- [Simple Example](https://github.com/unadlib/fronts-example)
 
 ## APIs
 
@@ -143,10 +147,6 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 | Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Monorepo ❌<br/> Version Management ❌ |
 | Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ❌ |
 | Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ✅ |
-
-## Examples
-
-- [Simple Example](https://github.com/unadlib/fronts-example)
 
 ## Debugger/Logger
 
