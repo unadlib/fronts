@@ -1,0 +1,1 @@
+(self.webpackChunkwebsite=self.webpackChunkwebsite||[]).push([[681],{6910:function(s){"use strict";s.exports=JSON.parse('{"fronts":{"allTagsPath":"/fronts/blog/tags","slug":"fronts","name":"fronts","count":1,"permalink":"/fronts/blog/tags/fronts"}}')}}]);
