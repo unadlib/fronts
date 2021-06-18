@@ -1,4 +1,6 @@
-# Fronts
+<a href="https://fronts.js.org/" target="_blank"><img src="https://raw.githubusercontent.com/unadlib/fronts/master/logo.svg" height="120" alt="Fronts Logo" /></a>
+
+---
 
 ![Node CI](https://github.com/unadlib/fronts/workflows/Node%20CI/badge.svg)
 [![npm version](https://badge.fury.io/js/fronts.svg)](http://badge.fury.io/js/fronts)
@@ -19,7 +21,7 @@ Although the Module Federation concept is so amazing, it has not yet gone furthe
 ## Features
 
 - **Non-module-federation** - Although Fronts is based on the concept of module federation, it also supports `non-module-federation` mode.
-- **Decentralized configuration** - Configure `site.json` for dependency management In each Fronts app, support for nested micro frontends.
+- **Decentralized configuration** - Configure `site.json` for dependency management in each Fronts app, support for nested micro frontends.
 - **Cross frameworks** - No framework or technology stack is restricted.
 - **Code splitting & lazy loading** - Support code splitting within the Fronts app as a module, it can be lazy loaded by other Fronts app as a dependent module.
 - **CSS isolation** - Optional CSS isolation solution.
