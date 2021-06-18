@@ -196,8 +196,8 @@ import { run, useContext } from 'fronts-test';
 
 const addTodo = (todoText) => {
   const { page } = useContext();
-  await page.type('#text', todoText);
-  await page.click('#add');
+  await page.type('.text', todoText);
+  await page.click('.add');
 }
 
 const entry = () => {

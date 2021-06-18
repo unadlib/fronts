@@ -1,5 +1,7 @@
 import './injectDependencies';
 
+export { transport } from 'fronts-transport';
+
 export * from './loadApp';
 export * from './interface';
 export * from './boot';

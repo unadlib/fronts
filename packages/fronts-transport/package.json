@@ -1,5 +1,5 @@
 {
-  "name": "fronts",
+  "name": "fronts-transport",
   "version": "0.0.2",
   "description": "",
   "main": "dist/index.cjs.js",
@@ -9,12 +9,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "peerDependencies": {
-    "data-transport": "^2.0.0"
-  },
-  "dependencies": {
-    "fronts-transport": "^0.0.2"
-  },
   "author": "unadlib",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "data-transport": "^2.0.0"
+  }
 }

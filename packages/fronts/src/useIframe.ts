@@ -35,6 +35,8 @@ export const getIframeUrl = async (siteName: string) => {
 export const useIframe: UseIframe = async ({ target, name, url }) => {
   const iframe = document.createElement('iframe');
   iframe.src = url ?? (await getIframeUrl(name));
+  const uid = Math.random().toString(36).slice(2, -1);
+  iframe.setAttribute('data-fronts', uid);
   // iframe.setAttribute('frameBorder', 'no');
   // for (const key in options) {
   //   iframe.setAttribute(key, options[key]);

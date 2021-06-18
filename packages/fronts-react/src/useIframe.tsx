@@ -23,8 +23,9 @@ export const useIframe: UseIframe = ({ name, url = '' }) => {
             setIframeUrl(url);
           });
       }, []);
+      const uid = Math.random().toString(36).slice(2, -1);
       return iframeUrl ? (
-        <iframe frameBorder="no" {...props} src={iframeUrl} />
+        <iframe frameBorder="no" {...props} src={iframeUrl} data-fronts={uid} />
       ) : null;
     }),
     [name]
