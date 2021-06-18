@@ -2,8 +2,8 @@
 module.exports = {
   title: 'Fronts',
   tagline: 'A progressive micro frontends framework for building Web applications',
-  url: 'https://unadlib.github.io',
-  baseUrl: '/fronts/',
+  url: 'https://fronts.js.org/',
+  baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
