@@ -2,14 +2,14 @@
 <rss version="2.0">
     <channel>
         <title>Fronts Blog</title>
-        <link>https://unadlib.github.io/blog</link>
+        <link>https://fronts.js.org/blog</link>
         <description>Fronts Blog</description>
         <lastBuildDate>Fri, 18 Jun 2021 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <item>
             <title><![CDATA[Welcome]]></title>
-            <link>https://unadlib.github.io/fronts/blog/welcome</link>
+            <link>https://fronts.js.org/blog/welcome</link>
             <guid>welcome</guid>
             <pubDate>Fri, 18 Jun 2021 00:00:00 GMT</pubDate>
             <description><![CDATA[todo]]></description>
