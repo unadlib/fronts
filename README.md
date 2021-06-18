@@ -1,4 +1,4 @@
-<a href="https://fronts.js.org/" target="_blank"><img src="https://raw.githubusercontent.com/unadlib/fronts/master/logo.svg" height="120" alt="Fronts Logo" /></a>
+<a href="https://fronts.js.org/" target="_blank"><img src="https://raw.githubusercontent.com/unadlib/fronts/master/website/static/img/logo.svg" height="96" alt="Fronts Logo" /></a>
 
 ---
 
@@ -138,8 +138,8 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 
 ## Running Type
 
-| Type                  |                 Requirement                 |                                                            Support |
-| :-------------------- | :-----------------------------------------: | -----------------------------------------------------------------: |
+| Type                  |                 Requirement                 |                                                              Support |
+| :-------------------- | :-----------------------------------------: | -------------------------------------------------------------------: |
 | Non-Module-Federation |                      -                      | Dependency Management ❌<br/> Monorepo ❌<br/> Version Management ❌ |
 | Module Federation     |           Webpack<br />site.json            | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ❌ |
 | Version Control       | Webpack<br />site.json<br />Registry Server | Dependency Management ✅<br/> Monorepo ✅<br/> Version Management ✅ |
@@ -200,11 +200,11 @@ const addTodo = (todoText) => {
   const { page } = useContext();
   await page.type('.text', todoText);
   await page.click('.add');
-}
+};
 
 const entry = () => {
   await run(addTodo, 'Use Fronts');
-}
+};
 ```
 
 ## CLI
@@ -248,7 +248,6 @@ A: Yes
 Q: How to use SPA development mode in micro frontends codebase?
 
 A: Use `SPA=true yarn start` instead of `yarn start`, make sure the current codebase is Monorepo and Module Federation or Version Control is enabled.
-
 
 ## License
 
