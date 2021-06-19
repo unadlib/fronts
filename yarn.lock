@@ -3005,10 +3005,10 @@ dashdash@^1.12.0:
   dependencies:
     assert-plus "^1.0.0"
 
-data-transport@^2.0.2:
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/data-transport/-/data-transport-2.0.2.tgz#721f71c1003c541d069e4c61622ad9bba6ec62a1"
-  integrity sha512-jxvcwqZq6bRvPTvO6IGx7S+bfFwnTahdkfemv5B0jLzhUearPoUbMdk1WiHVD3o2wmwW1s7njb5gcAgNP2eM2A==
+data-transport@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/data-transport/-/data-transport-2.1.0.tgz#07ec81bc95c4a9eb8114dc6e3893d19bf275c6c2"
+  integrity sha512-UZePHfROZe2JwQVn2U1U6dJtwQyDVeM7pazoDfZM+tur5e8THsIDibbMusyx0iCaFbf3Nlur252PVhjmnnHRqQ==
   dependencies:
     uuid "^8.3.0"
 

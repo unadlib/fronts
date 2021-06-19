@@ -2,7 +2,7 @@
 import { ListenerOptions, Transport, TransportOptions } from 'data-transport';
 import { postMessageToFrames } from './postMessage';
 
-interface EventTransportOptions extends Partial<TransportOptions> {
+interface GlobalTransportOptions extends Partial<TransportOptions> {
   /**
    * Specify what the origin of targetWindow must be for the event to be dispatched,
    * by default, it's the literal string "*" (indicating no preference).
@@ -10,7 +10,7 @@ interface EventTransportOptions extends Partial<TransportOptions> {
   targetOrigin?: string;
 }
 
-export class GlobalTransport<T = any> extends Transport<T> {
+export class GlobalTransport<T = any, P = any> extends Transport<T, P> {
   constructor({
     targetOrigin = '*',
     listener = (callback) => {
@@ -29,7 +29,7 @@ export class GlobalTransport<T = any> extends Transport<T> {
     },
     checkListen = false,
     ...options
-  }: EventTransportOptions) {
+  }: GlobalTransportOptions) {
     super({
       ...options,
       checkListen,
