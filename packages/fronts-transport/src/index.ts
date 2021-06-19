@@ -1,3 +1,3 @@
 export * from 'data-transport';
 
-export * from './messageTransport';
+export * from './globalTransport';

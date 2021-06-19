@@ -1,6 +1,6 @@
 import './injectDependencies';
 
-export { transport } from 'fronts-transport';
+export { globalTransport, GlobalTransport } from 'fronts-transport';
 
 export * from './loadApp';
 export * from './interface';
