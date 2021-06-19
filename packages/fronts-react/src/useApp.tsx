@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
-import { injectStyle, loadApp, Render, unmount } from 'fronts';
+import { getUid, injectStyle, loadApp, Render, unmount } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
 
 /**
@@ -38,13 +38,9 @@ export const useApp: UseApp = (options) => {
           callback && callback();
         };
       }, []);
+      const uid = getUid(options.name);
       return (
-        <div
-          ref={rootRef}
-          data-fronts={options?.name}
-          data-render={Date.now()}
-          {...options.attrs}
-        >
+        <div ref={rootRef} data-fronts={uid} {...options.attrs}>
           <div ref={renderRef}></div>
         </div>
       );

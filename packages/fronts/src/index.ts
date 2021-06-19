@@ -17,3 +17,4 @@ export * from './injectStyle';
 export * from './getMeta';
 export * from './unmount';
 export * from './retargetEvents';
+export * from './getUid';

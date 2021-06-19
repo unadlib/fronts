@@ -1,3 +1,4 @@
+import { getUid } from './getUid';
 import { injectStyle } from './injectStyle';
 import { DefineCustomElementOptions, UseWebComponents } from './interface';
 import { loadApp } from './loadApp';
@@ -52,6 +53,8 @@ export const useWebComponents: UseWebComponents = (options) => {
       );
     }
     const customElement = document.createElement('fronts-app');
+    const uid = getUid(options.name);
+    customElement.setAttribute('data-fronts', uid);
     options.target.appendChild(customElement);
     const { node, injectedRoot } = defineCustomElement({
       shadowMode: options.shadowMode,

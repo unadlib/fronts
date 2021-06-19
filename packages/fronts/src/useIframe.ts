@@ -1,3 +1,4 @@
+import { getUid } from './getUid';
 import { getScriptLink } from './importApp';
 import { UseIframe } from './interface';
 
@@ -35,7 +36,7 @@ export const getIframeUrl = async (siteName: string) => {
 export const useIframe: UseIframe = async ({ target, name, url, attrs }) => {
   const iframe = document.createElement('iframe');
   iframe.src = url ?? (await getIframeUrl(name));
-  const uid = Math.random().toString(36).slice(2, -1);
+  const uid = getUid(name);
   iframe.setAttribute('frameBorder', 'no');
   const attributes: Record<string, any> = attrs ?? {};
   for (const key in attributes) {

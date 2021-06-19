@@ -1,6 +1,6 @@
 {
   "name": "fronts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "dist/index.cjs.js",
   "unpkg": "dist/index.umd.js",
@@ -13,7 +13,7 @@
     "data-transport": "^2.0.1"
   },
   "dependencies": {
-    "fronts-transport": "^0.1.0"
+    "fronts-transport": "^0.1.1"
   },
   "author": "unadlib",
   "license": "MIT"

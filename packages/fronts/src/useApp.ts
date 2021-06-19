@@ -1,3 +1,4 @@
+import { getUid } from './getUid';
 import { injectStyle } from './injectStyle';
 import { UseApp } from './interface';
 import { loadApp } from './loadApp';
@@ -19,8 +20,8 @@ export const useApp: UseApp = (options) => {
       );
     }
     const rootNode = document.createElement('div');
-    rootNode.setAttribute('data-fronts', options.name ?? 'undefined');
-    rootNode.setAttribute('data-time', Date.now().toString());
+    const uid = getUid(options.name);
+    rootNode.setAttribute('data-fronts', uid);
     const attributes: Record<string, any> = options.attrs ?? {};
     for (const key in attributes) {
       rootNode.setAttribute(key, attributes[key]);

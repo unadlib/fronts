@@ -1,6 +1,6 @@
 {
   "name": "fronts-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "dist/index.cjs.js",
   "unpkg": "dist/index.umd.js",
@@ -16,7 +16,7 @@
     "react": "^16.13.0"
   },
   "dependencies": {
-    "fronts": "^0.1.0"
+    "fronts": "^0.1.1"
   },
   "devDependencies": {
     "@types/react": "^16.13.0",

@@ -7,6 +7,7 @@ import {
   injectStyle,
   unmount,
   retargetEvents,
+  getUid,
 } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
@@ -48,7 +49,8 @@ export const useWebComponents: UseWebComponents = (options) => {
           callback && callback();
         };
       }, []);
-      return <fronts-app />;
+      const uid = getUid(options.name);
+      return <fronts-app data-fronts={uid} />;
     }),
     [loaded]
   );
