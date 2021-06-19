@@ -10,7 +10,7 @@
 - [ ] Support static `import` for version control
 - [ ] Error handling/Fallback
 - [ ] Logger/Debugger/Testing tools
-- [ ] Global event system
+- [x] Global event system
 - [ ] Implement registry server with `semver` for version control
 - [ ] Implement `fronts-ng`
 - [ ] Support HTML as Entry

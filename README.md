@@ -216,6 +216,8 @@ todo
 
 Set up the registry server URL in the `registry` field.
 
+> It supports dynamic `import()`, and it does not support static import.
+
 ```diff
 {
   "name": "app1",
@@ -248,7 +250,7 @@ A: Yes
 
 Q: How to use SPA development mode in micro frontends codebase?
 
-A: Use `SPA=true yarn start` instead of `yarn start`, make sure the current codebase is Monorepo and Module Federation or Version Control is enabled.
+A: Use `SPA=true yarn start` instead of `yarn start`, make sure the current codebase is Monorepo and module federation or version control is enabled, and it just works with `useApp()` and `useWebComponent()`.
 
 ## License
 
