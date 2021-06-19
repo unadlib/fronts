@@ -26,6 +26,7 @@ const ButtonContainer = () => {
   useEffect(() => {
     let callback: (() => void) | void;
     useWebComponents({
+      retargetEvent: true,
       name: 'app3',
       loader: () => import('app3/src/bootstrap'),
       target: ref1.current!,
