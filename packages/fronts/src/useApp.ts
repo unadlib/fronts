@@ -21,12 +21,15 @@ export const useApp: UseApp = (options) => {
     const rootNode = document.createElement('div');
     rootNode.setAttribute('data-fronts', options.name ?? 'undefined');
     rootNode.setAttribute('data-time', Date.now().toString());
+    const attributes: Record<string, any> = options.attrs ?? {};
+    for (const key in attributes) {
+      rootNode.setAttribute(key, attributes[key]);
+    }
     options.target.appendChild(rootNode);
     injectStyle(rootNode, options.name);
     const renderNode = document.createElement('div');
     rootNode.appendChild(renderNode);
-    // TODO: pass `props`
-    const callback = module.default(renderNode);
+    const callback = module.default(renderNode, options.props ?? {});
     return () => {
       unmount(rootNode, options.name);
       callback && callback();

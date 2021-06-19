@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import {
   loadApp,
@@ -9,7 +10,6 @@ import {
 } from 'fronts';
 import { AppWrapper, UseWebComponents } from './interface';
 
-// TODO: fix event with `react-shadow-dom-retarget-events`
 /**
  *
  */
@@ -22,8 +22,8 @@ export const useWebComponents: UseWebComponents = (options) => {
       ModuleRef.current = module;
     });
   }, []);
-  const App: AppWrapper<any> = useCallback(
-    memo((props) => {
+  const App: AppWrapper<{}> = useCallback(
+    memo(() => {
       useEffect(() => {
         if (typeof ModuleRef!.current!.default !== 'function') {
           throw new Error(
@@ -34,8 +34,11 @@ export const useWebComponents: UseWebComponents = (options) => {
         let callback: void | (() => void);
         Promise.resolve().then(() => {
           injectStyle(injectedRoot, options.name);
-          // TODO: pass `props`
-          callback = ModuleRef!.current!.default(node);
+          const attributes: Record<string, any> = options.attrs ?? {};
+          for (const key in attributes) {
+            node.setAttribute(key, attributes[key]);
+          }
+          callback = ModuleRef!.current!.default(node, options.props ?? {});
           if (options.retargetEvent) {
             retargetEvents(injectedRoot);
           }
@@ -45,7 +48,7 @@ export const useWebComponents: UseWebComponents = (options) => {
           callback && callback();
         };
       }, []);
-      return <fronts-app {...props} />;
+      return <fronts-app />;
     }),
     [loaded]
   );

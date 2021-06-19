@@ -1,5 +1,10 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { FunctionComponent, ReactElement } from 'react';
-import { UseIframeOptions, UseWebComponentsOptions, UseAppOptions } from 'fronts';
+import {
+  UseIframeOptions,
+  UseWebComponentsOptions,
+  UseAppOptions,
+} from 'fronts';
 
 export type AppWrapper<T> = FunctionComponent<
   {
@@ -13,13 +18,12 @@ export type IframeWrapper<T> = FunctionComponent<
   } & T
 >;
 
-export type UseApp = <T extends Record<string, any> = Record<string, any>>(
-  options: Pick<UseAppOptions, Exclude<keyof UseAppOptions, 'target'>>
-) => AppWrapper<T>;
-
-export type UseIframe = <T extends Record<string, any> = Record<string, any>>(
-  options: Pick<UseIframeOptions, Exclude<keyof UseIframeOptions, 'target'>>
-) => FunctionComponent<T>;
+export type UseApp = <T = {}, P = {}>(
+  options: Pick<
+    UseAppOptions<T, P>,
+    Exclude<keyof UseAppOptions<T, P>, 'target'>
+  >
+) => AppWrapper<{}>;
 
 export type UseWebComponents = <
   T extends Record<string, any> = Record<string, any>
@@ -28,4 +32,11 @@ export type UseWebComponents = <
     UseWebComponentsOptions,
     Exclude<keyof UseWebComponentsOptions, 'target'>
   >
-) => AppWrapper<T>;
+) => AppWrapper<{}>;
+
+export type UseIframe = <T = {}>(
+  options: Pick<
+    UseIframeOptions<T>,
+    Exclude<keyof UseIframeOptions<T>, 'target'>
+  >
+) => FunctionComponent;

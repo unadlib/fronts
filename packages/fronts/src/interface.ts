@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/ban-types */
 export type NodeElement = HTMLElement | null;
 
-export type Render = (target: NodeElement) => () => void;
+export type Render<P = {}> = (target: NodeElement, props?: P) => () => void;
 
-export type DynamicImport = (
+export type DynamicImport<T = {}> = (
   name: string
 ) => Promise<{
-  default: Render;
+  default: Render<T>;
 }>;
 
 export type RegistryResponse = Record<string, string>;
@@ -15,7 +16,7 @@ export interface CacheContainer {
   setItem(key: string, value: string): Promise<void> | void;
 }
 
-export interface UseAppOptions {
+export interface UseAppOptions<T = {}, P = {}> {
   /**
    *
    */
@@ -28,9 +29,17 @@ export interface UseAppOptions {
    *
    */
   loader: DynamicImport;
+  /**
+   *
+   */
+  attrs?: T;
+  /**
+   *
+   */
+  props?: P;
 }
 
-export interface UseIframeOptions {
+export interface UseIframeOptions<T = {}> {
   /**
    *
    */
@@ -43,9 +52,13 @@ export interface UseIframeOptions {
    *
    */
   url?: string;
+  /**
+   *
+   */
+  attrs?: T;
 }
 
-export interface UseWebComponentsOptions {
+export interface UseWebComponentsOptions<T = {}, P = {}> {
   /**
    *
    */
@@ -69,16 +82,26 @@ export interface UseWebComponentsOptions {
   /**
    *
    */
-   retargetEvent?: boolean;
+  retargetEvent?: boolean;
+  /**
+   *
+   */
+  attrs?: T;
+  /**
+   *
+   */
+  props?: P;
 }
 
-export type UseApp = (options: UseAppOptions) => Promise<void | (() => void)>;
-
-export type UseIframe = (options: UseIframeOptions) => void; // TODO: fix type with iframe Attributes
-
-export type UseWebComponents = (
-  options: UseWebComponentsOptions
+export type UseApp = <T = {}, P = {}>(
+  options: UseAppOptions<T, P>
 ) => Promise<void | (() => void)>;
+
+export type UseWebComponents = <T = {}, P = {}>(
+  options: UseWebComponentsOptions<T, P>
+) => Promise<void | (() => void)>;
+
+export type UseIframe = <T = {}>(options: UseIframeOptions<T>) => void;
 
 export type DefineCustomElementOptions = Pick<
   UseWebComponentsOptions,

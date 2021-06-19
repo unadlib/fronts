@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { injectStyle, loadApp, Render, unmount } from 'fronts';
 import { AppWrapper, UseApp } from './interface';
@@ -14,8 +15,8 @@ export const useApp: UseApp = (options) => {
       ModuleRef.current = module;
     });
   }, []);
-  const App: AppWrapper<any> = useCallback(
-    memo((props) => {
+  const App: AppWrapper<{}> = useCallback(
+    memo(() => {
       const rootRef = useRef<HTMLDivElement>(null);
       const renderRef = useRef<HTMLDivElement>(null);
       useEffect(() => {
@@ -27,8 +28,10 @@ export const useApp: UseApp = (options) => {
         let callback: void | (() => void);
         Promise.resolve().then(() => {
           injectStyle(rootRef.current!, options.name);
-          // TODO: pass `props`
-          callback = ModuleRef!.current!.default(renderRef.current);
+          callback = ModuleRef!.current!.default(
+            renderRef.current,
+            options.props ?? {}
+          );
         });
         return () => {
           unmount(rootRef.current!, options.name);
@@ -40,7 +43,7 @@ export const useApp: UseApp = (options) => {
           ref={rootRef}
           data-fronts={options?.name}
           data-render={Date.now()}
-          {...props}
+          {...options.attrs}
         >
           <div ref={renderRef}></div>
         </div>

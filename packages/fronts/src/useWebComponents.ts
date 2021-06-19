@@ -59,8 +59,11 @@ export const useWebComponents: UseWebComponents = (options) => {
       name: options.name,
     });
     injectStyle(injectedRoot, options.name);
-    // TODO: pass `props`
-    const callback = module.default(node);
+    const attributes: Record<string, any> = options.attrs ?? {};
+    for (const key in attributes) {
+      node.setAttribute(key, attributes[key]);
+    }
+    const callback = module.default(node, options.props ?? {});
     if (options.retargetEvent) {
       retargetEvents(injectedRoot);
     }

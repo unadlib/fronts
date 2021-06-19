@@ -32,14 +32,15 @@ export const getIframeUrl = async (siteName: string) => {
   return url;
 };
 
-export const useIframe: UseIframe = async ({ target, name, url }) => {
+export const useIframe: UseIframe = async ({ target, name, url, attrs }) => {
   const iframe = document.createElement('iframe');
   iframe.src = url ?? (await getIframeUrl(name));
   const uid = Math.random().toString(36).slice(2, -1);
+  iframe.setAttribute('frameBorder', 'no');
+  const attributes: Record<string, any> = attrs ?? {};
+  for (const key in attributes) {
+    iframe.setAttribute(key, attributes[key]);
+  }
   iframe.setAttribute('data-fronts', uid);
-  // iframe.setAttribute('frameBorder', 'no');
-  // for (const key in options) {
-  //   iframe.setAttribute(key, options[key]);
-  // }
   target?.appendChild(iframe);
 };
