@@ -24,7 +24,7 @@ export const useIframe: UseIframe = ({ name, url = '', attrs = {} }) => {
       }, []);
       const uid = getUid(name);
       return iframeUrl ? (
-        <iframe frameBorder="no" {...attrs} src={iframeUrl} data-fronts={uid} />
+        <iframe frameBorder="no" {...attrs} src={iframeUrl} data-fronts={uid} name={uid} />
       ) : null;
     }),
     [name]

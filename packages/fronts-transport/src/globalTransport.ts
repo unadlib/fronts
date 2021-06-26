@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { ListenerOptions, Transport, TransportOptions } from 'data-transport';
-import { postMessageToFrames } from './postMessage';
+import { broadcastMessage } from './postMessage';
 
 interface GlobalTransportOptions extends Partial<TransportOptions> {
   /**
@@ -16,7 +16,7 @@ export class GlobalTransport<T = any, P = any> extends Transport<T, P> {
     listener = (callback) => {
       const handler = ({ data }: MessageEvent<ListenerOptions>) => {
         callback(data);
-        postMessageToFrames(data, targetOrigin);
+        broadcastMessage(data, targetOrigin);
       };
       window.addEventListener('message', handler);
       return () => {
@@ -24,8 +24,12 @@ export class GlobalTransport<T = any, P = any> extends Transport<T, P> {
       };
     },
     sender = (message) => {
-      window.top.postMessage(message, targetOrigin);
-      postMessageToFrames(message, targetOrigin);
+      const isParentFronts = !!window.name && /^fronts/.test(window.name);
+      if (isParentFronts) {
+        window.parent.postMessage(message, targetOrigin);
+      } else {
+        window.postMessage(message, targetOrigin);
+      }
     },
     checkListen = false,
     ...options

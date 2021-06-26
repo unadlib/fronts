@@ -43,5 +43,6 @@ export const useIframe: UseIframe = async ({ target, name, url, attrs }) => {
     iframe.setAttribute(key, attributes[key]);
   }
   iframe.setAttribute('data-fronts', uid);
+  iframe.setAttribute('name', uid);
   target?.appendChild(iframe);
 };
