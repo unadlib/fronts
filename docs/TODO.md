@@ -5,14 +5,18 @@
 - [x] Global event system
 - [ ] UT/IT/E2E
 - [ ] Doc for API
-- [ ] Implement `fronts-vue`
-- [ ] Implement `fronts-cli`
+- [ ] `fronts-vue`
+- [ ] `fronts-ng`
+- [ ] `fronts-cli`
+- [ ] `fronts-c4`
+- [ ] `fronts-ssr`
+- [ ] `fronts-registry` with `semver` for version control
+- [ ] `fronts-sandbox`
+- [ ] `fronts-html`
+- [ ] `fronts-vscode-toolkit`
+- [ ] `fronts-extension`
+- [ ] `fronts-logger`
 - [ ] Building tools CLI
 - [ ] Support static `import` for version control
 - [ ] Error handling/Fallback
 - [ ] Logger/Debugger/Testing tools
-- [ ] Implement registry server with `semver` for version control
-- [ ] Implement `fronts-ng`
-- [ ] Support HTML as Entry
-- [ ] Support SSR
-- [ ] JavaScript isolation container
