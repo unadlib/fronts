@@ -8,7 +8,7 @@ import {
   useContext,
   createContextHook,
   createRunner,
-} from '..';
+} from '../src';
 
 test('run', async () => {
   const func = (num: number) => num + 1;
