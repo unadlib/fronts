@@ -132,7 +132,7 @@ export const App = () => {
 
 ### Built-in packages
 
-The most popular frontend frameworks are React, Vue and Angular. When the micro frontends uses one of these frameworks, it is recommended to use Fronts built-in package for this framework, such as `fronts-react`, `fronts-vue` and `fronts-ng`, otherwise please use `front`.
+The most popular frontend frameworks are React, Vue and Angular. When the micro frontends uses one of these frameworks, it is recommended to use Fronts built-in package for this framework, such as `fronts-react`, `fronts-vue` and `fronts-ng`, otherwise please use `fronts`.
 
 | Packages       | Support Framework |         Status |
 | :------------- | :---------------: | -------------: |

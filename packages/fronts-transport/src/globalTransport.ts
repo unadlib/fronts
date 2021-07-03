@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { ListenerOptions, Transport, TransportOptions } from 'data-transport';
-import { broadcastMessage } from './postMessage';
+import { broadcastMessage, isParentFronts } from './postMessage';
 
 interface GlobalTransportOptions extends Partial<TransportOptions> {
   /**
@@ -24,8 +24,7 @@ export class GlobalTransport<T = any, P = any> extends Transport<T, P> {
       };
     },
     sender = (message) => {
-      const isParentFronts = !!window.name && /^fronts/.test(window.name);
-      if (isParentFronts) {
+      if (isParentFronts()) {
         window.parent.postMessage(message, targetOrigin);
       } else {
         window.postMessage(message, targetOrigin);

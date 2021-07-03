@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { SendOptions } from 'data-transport';
+
+export const isParentFronts = () => !!window.name && /^fronts/.test(window.name);
 
 const postMessageToFrames: Window['postMessage'] = (message, targetOrigin) => {
   Array.from(document.getElementsByTagName('iframe')).forEach((frame) => {
@@ -13,9 +16,8 @@ export const broadcastMessage: Window['postMessage'] = (
   targetOrigin
 ) => {
   if (!message?.__DATA_TRANSPORT_UUID__) return;
-  if (!message?.downward) {
-    const isParentFronts = !!window.name && /^fronts/.test(window.name);
-    if (isParentFronts) {
+  if (!message.downward) {
+    if (isParentFronts()) {
       window.parent.postMessage(message, targetOrigin);
     } else {
       // The fronts apps of the top level, and start spreading the message downward
