@@ -5,4 +5,6 @@ export const createContextHook = <T extends Record<string, any>>(
   return () => internalContext!;
 };
 
-export const useContext = createContextHook();
+export const useContext: <
+  T extends Record<string, any> = Record<string, any>
+>() => T = createContextHook();
