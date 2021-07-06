@@ -1,5 +1,5 @@
 {
-  "name": "fronts-react",
+  "name": "fronts-vue",
   "version": "0.1.1",
   "description": "",
   "main": "dist/index.cjs.js",
@@ -12,14 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "peerDependencies": {
-    "react": "^16.13.0"
-  },
+  "peerDependencies": {},
   "dependencies": {
     "fronts": "^0.1.1"
   },
-  "devDependencies": {
-    "@types/react": "^16.13.0",
-    "react": "^16.13.0"
-  }
+  "devDependencies": {}
 }
