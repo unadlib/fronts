@@ -1,10 +1,10 @@
-export const createContextHook = <T extends Record<string, any>>(
-  context?: T
-): (() => T) => {
-  const internalContext = context ?? ({} as T);
-  return () => internalContext!;
-};
+type Context = Record<string, any>;
 
-export const useContext: <
-  T extends Record<string, any> = Record<string, any>
->() => T = createContextHook();
+let context: Context = {};
+
+export const useContext = <T extends Context = Context>(initialContext?: T) => {
+  if (initialContext) {
+    context = initialContext;
+  }
+  return context as T;
+};

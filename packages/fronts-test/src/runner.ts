@@ -1,86 +1,74 @@
-type Step = (...args: any) => any;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type PromiseType<T> = T extends Promise<infer R> ? R : T;
 
-const createRunner = ({
-  before,
-  after,
-}: {
-  before?: (func: (...args: any) => any, args: any[]) => Promise<void>;
-  after?: (
-    func: (...args: any) => any,
-    args: any[],
-    result: any
-  ) => Promise<void>;
-} = {}) => {
-  const $ = async <T extends (...args: any) => any>(
-    func: T,
+type Step = (...args: any) => any;
+type Before = (func: (...args: any) => any, args: any[]) => Promise<void>;
+type After = (
+  func: (...args: any) => any,
+  args: any[],
+  result: any
+) => Promise<void>;
+
+let before: Before | undefined;
+let after: After | undefined;
+
+export const onStep = (
+  options: {
+    before?: Before;
+    after?: After;
+  } = {}
+) => {
+  before = options.before;
+  after = options.after;
+};
+
+export const $ = <T extends Step>(func: T) => {
+  const fn = async (
     ...args: Parameters<T>
-  ): Promise<ReturnType<T>> => {
+  ): Promise<PromiseType<ReturnType<T>>> => {
     try {
       await before?.(func, args);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
     // eslint-disable-next-line prefer-spread
     const result = await func.apply(null, args);
     try {
       await after?.(func, args, result);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
     return result;
   };
-
-  const Given = (desc: string, ...steps: Step[]) => {
-    const Given = async (desc: string, ...steps: Step[]) => {
-      for (const step of steps) {
-        await $(step);
-      }
-    };
-    Given.args = [desc, ...steps];
-    return Given;
-  };
-  const When = (desc: string, ...steps: Step[]) => {
-    const When = async (desc: string, ...steps: Step[]) => {
-      for (const step of steps) {
-        await $(step);
-      }
-    };
-    When.args = [desc, ...steps];
-    return When;
-  };
-  const Then = (desc: string, ...steps: Step[]) => {
-    const Then = async (desc: string, ...steps: Step[]) => {
-      for (const step of steps) {
-        await $(step);
-      }
-    };
-    Then.args = [desc, ...steps];
-    return Then;
-  };
-  const And = (desc: string, ...steps: Step[]) => {
-    const And = async (desc: string, ...steps: Step[]) => {
-      for (const step of steps) {
-        await $(step);
-      }
-    };
-    And.args = [desc, ...steps];
-    return And;
-  };
-  const run = async (...args: Step[]) => {
-    for (const step of args) {
-      await $(step, ...(step as any).args);
-    }
-  };
-  return {
-    run,
-    $,
-    Given,
-    When,
-    Then,
-    And,
-  };
+  return fn;
 };
 
-const { run, $, Given, When, Then, And } = createRunner();
+const Given = <T>(desc: string, props?: T) =>
+  new Promise<T | undefined>((resolve) => {
+    resolve(props);
+  });
 
-export { run, $, Given, When, Then, And, createRunner };
+const $Given: <T>(desc: string, props?: T) => Promise<T> = $<Step>(Given);
+
+const When = <T>(desc: string, props?: T) =>
+  new Promise<T | undefined>((resolve) => {
+    resolve(props);
+  });
+
+const $When: <T>(desc: string, props?: T) => Promise<T> = $<Step>(When);
+
+const Then = <T>(desc: string, props?: T) =>
+  new Promise<T | undefined>((resolve) => {
+    resolve(props);
+  });
+
+const $Then: <T>(desc: string, props?: T) => Promise<T> = $<Step>(Then);
+
+const And = <T>(desc: string, props?: T) =>
+  new Promise<T | undefined>((resolve) => {
+    resolve(props);
+  });
+
+const $And: <T>(desc: string, props?: T) => Promise<T> = $<Step>(And);
+
+export { $Given as Given, $When as When, $Then as Then, $And as And };
