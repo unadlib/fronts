@@ -139,6 +139,7 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 | `fronts`       |   Any Framework   |   Completed ✅ |
 | `fronts-react` |       React       |   Completed ✅ |
 | `fronts-vue`   |        Vue        | In Progress 💡 |
+| `fronts-vite`  |        Vue        | In Progress 💡 |
 | `fronts-ng`    |      Angular      |              - |
 
 ## Running Type
@@ -207,7 +208,7 @@ test('base', async () => {
   await run(
     Given('user open the page', entry),
     When('user add todo text', addTodo),
-    Then('user should see that todo list has a new item', checkTodo),
+    Then('user should see that todo list has a new item', checkTodo)
   );
 });
 ```
