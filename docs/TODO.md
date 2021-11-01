@@ -5,18 +5,24 @@
 - [x] Global event system
 - [ ] UT/IT/E2E
 - [ ] Doc for API
+- [ ] Support static `import` for version control
+- [ ] refactor `import()` for version control
+- [ ] `fronts-vite`
+- [ ] `fronts-sandbox`
+- [ ] `fronts-html`
 - [ ] `fronts-vue`
 - [ ] `fronts-ng`
+- [ ] `fronts-svelte`
+- [ ] `fronts-solid`
+- [ ] `fronts-builder`
+- [ ] `fronts-webpack`
 - [ ] `fronts-cli`
 - [ ] `fronts-c4`
 - [ ] `fronts-ssr`
 - [ ] `fronts-registry` with `semver` for version control
-- [ ] `fronts-sandbox`
-- [ ] `fronts-html`
 - [ ] `fronts-vscode-toolkit`
 - [ ] `fronts-extension`
 - [ ] `fronts-logger`
 - [ ] Building tools CLI
-- [ ] Support static `import` for version control
 - [ ] Error handling/Fallback
 - [ ] Logger/Debugger/Testing tools

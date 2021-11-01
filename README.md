@@ -139,7 +139,6 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 | `fronts`       |   Any Framework   |   Completed ✅ |
 | `fronts-react` |       React       |   Completed ✅ |
 | `fronts-vue`   |        Vue        | In Progress 💡 |
-| `fronts-vite`  |        Vue        | In Progress 💡 |
 | `fronts-ng`    |      Angular      |              - |
 
 ## Running Type
@@ -196,20 +195,18 @@ console.log(getMeta());
 `fronts-test` provides an runner for function step, and any micro frontends IT and E2E can use it for reusable testing. It also provides other APIs, such as `useContext()`, beforeHook and afterHook in `createRunner()`.
 
 ```ts
-import { $, useContext, run, When, Then } from 'fronts-test';
+import { $, useContext, Given, When, Then } from 'fronts-test';
 
-const addTodo = () => {
+const addTodo = $(() => {
   const { page } = useContext();
   await page.type('.text', 'Use Fronts');
   await page.click('.add');
-};
+});
 
 test('base', async () => {
-  await run(
-    Given('user open the page', entry),
-    When('user add todo text', addTodo),
-    Then('user should see that todo list has a new item', checkTodo)
-  );
+  await Given('user open the page').then(entry);
+  await When('user add todo text').then(addTodo);
+  await Then('user should see that todo list has a new item').then(checkTodo);
 });
 ```
 
