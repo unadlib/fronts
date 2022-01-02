@@ -1,21 +1,18 @@
 ## TODO
 
-- [x] Use `docusaurus` for docs website
-- [x] Passing props
-- [x] Global event system
+- [ ] `fronts-webpack` - 2.10
+- [ ] `fronts-vite` - 2.10
+- [ ] `fronts-sandbox`- 2.10
+- [ ] `fronts-html`- 2.10
+- [ ] `fronts-vue`- 2.10
+- [ ] `fronts-ng`
 - [ ] UT/IT/E2E
 - [ ] Doc for API
 - [ ] Support static `import` for version control
 - [ ] refactor `import()` for version control
-- [ ] `fronts-vite`
-- [ ] `fronts-sandbox`
-- [ ] `fronts-html`
-- [ ] `fronts-vue`
-- [ ] `fronts-ng`
 - [ ] `fronts-svelte`
 - [ ] `fronts-solid`
 - [ ] `fronts-builder`
-- [ ] `fronts-webpack`
 - [ ] `fronts-cli`
 - [ ] `fronts-c4`
 - [ ] `fronts-ssr`
