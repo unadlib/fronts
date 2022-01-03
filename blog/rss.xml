@@ -4,15 +4,15 @@
         <title>Fronts Blog</title>
         <link>https://fronts.js.org/blog</link>
         <description>Fronts Blog</description>
-        <lastBuildDate>Fri, 18 Jun 2021 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 04 Jul 2021 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <item>
-            <title><![CDATA[Welcome]]></title>
-            <link>https://fronts.js.org/blog/welcome</link>
-            <guid>welcome</guid>
-            <pubDate>Fri, 18 Jun 2021 00:00:00 GMT</pubDate>
-            <description><![CDATA[todo]]></description>
+            <title><![CDATA[A progressive micro frontends framework - Fronts]]></title>
+            <link>https://fronts.js.org/blog/A progressive micro frontends framework - Fronts</link>
+            <guid>A progressive micro frontends framework - Fronts</guid>
+            <pubDate>Sun, 04 Jul 2021 00:00:00 GMT</pubDate>
+            <description><![CDATA[Micro Frontends]]></description>
         </item>
     </channel>
 </rss>

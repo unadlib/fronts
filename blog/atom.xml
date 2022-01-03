@@ -2,16 +2,16 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fronts.js.org/blog</id>
     <title>Fronts Blog</title>
-    <updated>2021-06-18T00:00:00.000Z</updated>
+    <updated>2021-07-04T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fronts.js.org/blog"/>
     <subtitle>Fronts Blog</subtitle>
     <icon>https://fronts.js.org/img/favicon.ico</icon>
     <entry>
-        <title type="html"><![CDATA[Welcome]]></title>
-        <id>welcome</id>
-        <link href="https://fronts.js.org/blog/welcome"/>
-        <updated>2021-06-18T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[todo]]></summary>
+        <title type="html"><![CDATA[A progressive micro frontends framework - Fronts]]></title>
+        <id>A progressive micro frontends framework - Fronts</id>
+        <link href="https://fronts.js.org/blog/A progressive micro frontends framework - Fronts"/>
+        <updated>2021-07-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Micro Frontends]]></summary>
     </entry>
 </feed>
