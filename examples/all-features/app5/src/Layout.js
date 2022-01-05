@@ -1,9 +1,12 @@
-import { ref } from "vue";
-import ReactButton from "./ReactButton";
+import { defineAsyncComponent, ref } from "vue";
+
+const Button = defineAsyncComponent(() => import('app6/src/components/Button'));
 
 export default {
   name: "Layout",
-  components: { ReactButton },
+  components: {
+    App6Button: Button,
+  },
   setup() {
     const showButton = ref(true);
     const buttonText = ref("React button");
@@ -36,10 +39,8 @@ export default {
         </div>
       </div>
       <div>
-        <h2>React Button - loaded via Module Federation</h2>
-        <div class="remote-component">
-          <react-button v-if="showButton" :text="buttonText" :onClick="incrementCount" />
-        </div>
+        <h2>Button - loaded via Module Federation</h2>
+        <app6-button />
       </div>
     </div>
   `,

@@ -1,16 +1,21 @@
-import { createApp, defineAsyncComponent } from 'vue';
 import { boot } from 'fronts';
-import Layout from './Layout.vue';
+import { createApp } from 'vue';
+import Layout from './Layout';
 
-const Content = defineAsyncComponent(() =>
-  import('app6/src/components/Content')
-);
-const Button = defineAsyncComponent(() => import('app6/src/components/Button'));
+const App = {
+  components: {
+    layout: Layout,
+  },
+  template: `
+    <h1>Vue</h1>
+    <div class="app">
+      <layout />
+    </div>
+  `,
+};
 
 export default function render(element) {
-  const app = createApp(Layout);
-  app.component('content-element', Content);
-  app.component('button-element', Button);
+  const app = createApp(App);
   app.mount(element);
   return () => {
     app.unmount(element);
