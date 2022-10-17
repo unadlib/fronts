@@ -134,12 +134,14 @@ export const App = () => {
 
 The most popular frontend frameworks are React, Vue and Angular. When the micro frontends uses one of these frameworks, it is recommended to use Fronts built-in package for this framework, such as `fronts-react`, `fronts-vue` and `fronts-ng`, otherwise please use `fronts`.
 
-| Packages       | Support Framework |         Status |
-| :------------- | :---------------: | -------------: |
-| `fronts`       |   Any Framework   |   Completed ✅ |
-| `fronts-react` |       React       |   Completed ✅ |
-| `fronts-vue`   |        Vue        | In Progress 💡 |
-| `fronts-ng`    |      Angular      |              - |
+| Packages        | Support Framework |         Status |
+| :-------------- | :---------------: | -------------: |
+| `fronts`        |   Any Framework   |   Completed ✅ |
+| `fronts-react`  |       React       |   Completed ✅ |
+| `fronts-vue`    |        Vue        | In Progress 💡 |
+| `fronts-ng`     |      Angular      |              - |
+| `fronts-svelte` |      svelte       |              - |
+| `fronts-ng`     |      Angular      |              - |
 
 ## Running Type
 
