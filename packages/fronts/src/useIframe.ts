@@ -34,6 +34,10 @@ export const getIframeUrl = async (siteName: string) => {
 };
 
 export const useIframe: UseIframe = async ({ target, name, url, attrs }) => {
+  const isJavaScriptProtocol = /^[\u0000-\u001F ]*j[\r\n\t]*a[\r\n\t]*v[\r\n\t]*a[\r\n\t]*s[\r\n\t]*c[\r\n\t]*r[\r\n\t]*i[\r\n\t]*p[\r\n\t]*t[\r\n\t]*\:/i;
+  if(url && isJavaScriptProtocol.test(url)) {
+    return
+  }
   const iframe = document.createElement('iframe');
   iframe.src = url ?? (await getIframeUrl(name));
   const uid = getUid(name);
