@@ -141,7 +141,7 @@ The most popular frontend frameworks are React, Vue and Angular. When the micro 
 | `fronts-vue`    |        Vue        | In Progress 💡 |
 | `fronts-ng`     |      Angular      |              - |
 | `fronts-svelte` |      svelte       |              - |
-| `fronts-ng`     |      Angular      |              - |
+| `fronts-solid`  |      svelte       |              - |
 
 ## Running Type
 

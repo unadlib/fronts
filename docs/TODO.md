@@ -20,6 +20,9 @@
 - [ ] `fronts-vscode-toolkit`
 - [ ] `fronts-extension`
 - [ ] `fronts-logger`
+- [ ] `fronts-sentry`
+- [ ] `fronts-reactant`
+- [ ] `fronts-reactant-share`
 - [ ] Building tools CLI
 - [ ] Error handling/Fallback
 - [ ] Logger/Debugger/Testing tools
