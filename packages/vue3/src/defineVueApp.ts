@@ -65,7 +65,7 @@ export function defineVueApp<
     ...(options.name === undefined ? {} : { name: options.name }),
     ...(options.capabilities === undefined ? {} : { capabilities: options.capabilities }),
     async mount(context) {
-      const props = shallowReactive({ ...context.props }) as Props;
+      const props = shallowReactive(Object.assign(Object.create(null), context.props)) as Props;
       const Root = defineComponent({
         name: 'FrontsVueRoot',
         setup: () => () => h(options.root, props),

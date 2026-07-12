@@ -113,6 +113,41 @@ describe('Vue application adapter', () => {
     await handle.unmount();
   });
 
+  it('does not let update data replace the reactive props prototype', async () => {
+    interface OptionalProps {
+      readonly value?: string;
+    }
+    const Root = defineComponent({
+      props: { value: String },
+      setup: (props) => () => h('span', props.value ?? 'missing'),
+    });
+    const app = defineVueApp<OptionalProps, object>({ root: Root });
+    const target = document.createElement('div');
+    const handle = await app.mount({
+      identity,
+      props: { value: 'first' },
+      services: {},
+      signal: new AbortController().signal,
+      target,
+    });
+    await handle.ready;
+    const interceptValue = vi.fn();
+    const forgedPrototype = Object.create(null) as object;
+    Object.defineProperty(forgedPrototype, 'value', { set: interceptValue });
+    const update = Object.create(null) as Record<PropertyKey, unknown>;
+    Object.defineProperty(update, '__proto__', {
+      enumerable: true,
+      value: forgedPrototype,
+    });
+
+    await handle.update?.(update as OptionalProps);
+    await handle.update?.({ value: 'safe' });
+
+    expect(interceptValue).not.toHaveBeenCalled();
+    expect(target.textContent).toBe('safe');
+    await handle.unmount();
+  });
+
   it('supports router and plugin composition through the configure hook', async () => {
     const routeKey = Symbol('route');
     const Root = defineComponent({
