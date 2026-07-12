@@ -2,6 +2,7 @@ import { defineApp, type AppHandle, type FrontsApp, type ServiceKey } from '../a
 import { FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL } from '../app/constants.js';
 import { FrontsError, frontsErrorCodes, throwIfAborted } from '../errors.js';
 import type { AppLoader } from '../host/index.js';
+import { linkAbortSignal, raceWithAbort } from '../host/utils.js';
 import type { ResolvedApp } from '../resolver/index.js';
 import {
   createIframeConnectMessage,
@@ -246,6 +247,8 @@ export function createIframeProxyLoader<Source, Services extends object = object
 
           let connected = false;
           let disposed = false;
+          const readinessController = new AbortController();
+          const unlinkReadiness = linkAbortSignal(context.signal, readinessController);
           let resolveReady: () => void;
           let rejectReady: (reason: unknown) => void;
           const agentReady = new Promise<void>((resolve, reject) => {
@@ -256,54 +259,62 @@ export function createIframeProxyLoader<Source, Services extends object = object
           peer.on('fronts.fatal', (error) => rejectReady(toRemoteError(error)));
 
           const ready = (async () => {
-            await waitForFrameLoad(iframe, context.signal, handshakeTimeoutMs);
-            throwIfAborted(context.signal, 'mount');
-            const frameWindow = iframe.contentWindow;
-            if (frameWindow === null) {
-              throw new FrontsError(
-                frontsErrorCodes.iframeProtocol,
-                'The iframe does not have an active content window.',
-                { phase: 'mount' },
-              );
-            }
+            try {
+              await waitForFrameLoad(iframe, readinessController.signal, handshakeTimeoutMs);
+              throwIfAborted(readinessController.signal, 'mount');
+              const frameWindow = iframe.contentWindow;
+              if (frameWindow === null) {
+                throw new FrontsError(
+                  frontsErrorCodes.iframeProtocol,
+                  'The iframe does not have an active content window.',
+                  { phase: 'mount' },
+                );
+              }
 
-            const message = createIframeConnectMessage<Source, Props, Services>({
-              capabilities: offeredCapabilities,
-              channelId,
-              identity: context.identity,
-              props: context.props as Props,
-              ref: resolved.ref,
-              resolved,
-            });
-            frameWindow.postMessage(message, targetOrigin, [channel.port2]);
-            connected = true;
+              const message = createIframeConnectMessage<Source, Props, Services>({
+                capabilities: offeredCapabilities,
+                channelId,
+                identity: context.identity,
+                props: context.props as Props,
+                ref: resolved.ref,
+                resolved,
+              });
+              frameWindow.postMessage(message, targetOrigin, [channel.port2]);
+              connected = true;
 
-            if (handshakeTimeoutMs === 0) {
-              await agentReady;
-            } else {
-              let timer: ReturnType<typeof setTimeout> | undefined;
-              try {
-                await Promise.race([
-                  agentReady,
-                  new Promise<never>((_resolve, reject) => {
-                    timer = setTimeout(
-                      () =>
-                        reject(
-                          new FrontsError(
-                            frontsErrorCodes.rpcTimeout,
-                            `Iframe agent handshake timed out after ${handshakeTimeoutMs}ms.`,
-                            { details: { handshakeTimeoutMs }, phase: 'ready' },
-                          ),
-                        ),
-                      handshakeTimeoutMs,
-                    );
-                  }),
-                ]);
-              } finally {
-                if (timer !== undefined) {
-                  clearTimeout(timer);
+              if (handshakeTimeoutMs === 0) {
+                await raceWithAbort(agentReady, readinessController.signal, 'ready');
+              } else {
+                let timer: ReturnType<typeof setTimeout> | undefined;
+                try {
+                  await raceWithAbort(
+                    Promise.race([
+                      agentReady,
+                      new Promise<never>((_resolve, reject) => {
+                        timer = setTimeout(
+                          () =>
+                            reject(
+                              new FrontsError(
+                                frontsErrorCodes.rpcTimeout,
+                                `Iframe agent handshake timed out after ${handshakeTimeoutMs}ms.`,
+                                { details: { handshakeTimeoutMs }, phase: 'ready' },
+                              ),
+                            ),
+                          handshakeTimeoutMs,
+                        );
+                      }),
+                    ]),
+                    readinessController.signal,
+                    'ready',
+                  );
+                } finally {
+                  if (timer !== undefined) {
+                    clearTimeout(timer);
+                  }
                 }
               }
+            } finally {
+              unlinkReadiness();
             }
           })();
 
@@ -317,6 +328,8 @@ export function createIframeProxyLoader<Source, Services extends object = object
                 return;
               }
               disposed = true;
+              readinessController.abort('Iframe application unmounted');
+              unlinkReadiness();
               try {
                 if (connected && !peer.closed) {
                   await peer.request('lifecycle.unmount', undefined, {

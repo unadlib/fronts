@@ -328,6 +328,40 @@ describe('secure iframe execution', () => {
     validChannel.port2.close();
   });
 
+  it('settles iframe readiness when unmounted before the frame loads', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    iframe.dataset.frontsTargetOrigin = 'https://frame.example.test';
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = {
+      ref,
+      source: { entry: 'checkout.js' },
+    };
+    const proxyApp = getFrontsApp<Props, object>(
+      await createIframeProxyLoader<Source, object, Props>({
+        handshakeTimeoutMs: 0,
+      }).load(resolved, createOperation()),
+    );
+    const handle = await proxyApp.mount({
+      identity,
+      props: { value: 'cancelled' },
+      services: {},
+      signal: new AbortController().signal,
+      target: iframe,
+    });
+    const ready = Promise.resolve(handle.ready);
+    void ready.catch(() => undefined);
+
+    await handle.unmount();
+
+    await expect(ready).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    iframe.remove();
+  });
+
   it('reports malformed iframe connections without leaking a session', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'malformed-connect';
