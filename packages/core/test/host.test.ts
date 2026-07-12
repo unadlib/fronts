@@ -546,6 +546,88 @@ describe('Fronts host runtime', () => {
     expect(app.mount).not.toHaveBeenCalled();
   });
 
+  it('snapshots and freezes trusted host envelopes across extension boundaries', async () => {
+    const ref = { name: 'checkout' };
+    const metadata = { rollout: 'stable' };
+    const resolveOptions = {
+      environment: 'production',
+      metadata,
+      operationId: 'trusted-operation',
+      traceId: 'trusted-trace',
+    };
+    const resolvedMetadata = { deploymentId: 'checkout-v2' };
+    const resolved = {
+      ref: normalizeAppRef(ref),
+      source: { entry: 'checkout.js' },
+      metadata: resolvedMetadata,
+      version: '2.0.0',
+    };
+    const resolver: AppResolver<Source> = {
+      resolve: vi.fn((normalized, resolveContext) => {
+        expect(Object.isFrozen(normalized)).toBe(true);
+        expect(Object.isFrozen(resolveContext)).toBe(true);
+        expect(Object.isFrozen(resolveContext.operation)).toBe(true);
+        expect(Reflect.set(normalized, 'name', 'forged')).toBe(false);
+        expect(Reflect.set(resolveContext.operation, 'hostId', 'forged')).toBe(false);
+        return resolved;
+      }),
+    };
+    const unmount = vi.fn();
+    const app = defineApp<Props, Services>({
+      mount: vi.fn((mountContext) => {
+        expect(Object.isFrozen(mountContext)).toBe(true);
+        expect(Object.isFrozen(mountContext.identity)).toBe(true);
+        expect(mountContext.identity.instanceId).toBe('trusted-instance');
+        return { unmount };
+      }),
+    });
+    const loader: AppLoader<Source> = {
+      load: vi.fn((deployment, loadContext) => {
+        expect(Object.isFrozen(deployment)).toBe(true);
+        expect(Object.isFrozen(deployment.metadata)).toBe(true);
+        expect(Object.isFrozen(loadContext)).toBe(true);
+        expect(Object.isFrozen(loadContext.identity)).toBe(true);
+        expect(Reflect.set(deployment, 'version', 'forged')).toBe(false);
+        expect(Reflect.set(loadContext.identity, 'instanceId', 'forged')).toBe(false);
+        return { default: app };
+      }),
+    };
+    const host = createFrontsHost({ loader, resolver, services });
+
+    const directResolution = host.resolve(ref, resolveOptions);
+    resolveOptions.operationId = 'forged-operation';
+    metadata.rollout = 'forged';
+    await directResolution;
+    expect(resolver.resolve).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        environment: 'production',
+        metadata: { rollout: 'stable' },
+        operation: expect.objectContaining({
+          operationId: 'trusted-operation',
+          traceId: 'trusted-trace',
+        }),
+      }),
+    );
+
+    const instance = await host.mount({
+      instanceId: 'trusted-instance',
+      props: { value: 'trusted' },
+      ref,
+      target: document.createElement('main'),
+    });
+    resolvedMetadata.deploymentId = 'forged-after-resolution';
+
+    expect(instance.identity).toMatchObject({
+      instanceId: 'trusted-instance',
+      name: 'checkout',
+      version: '2.0.0',
+    });
+    expect(instance.resolved.metadata).toEqual({ deploymentId: 'checkout-v2' });
+    await instance.unmount();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('audits and aborts detached resolve, load and preload operations during disposal', async () => {
     const { host, resolver } = createHarness();
     const signals: AbortSignal[] = [];

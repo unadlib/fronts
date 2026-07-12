@@ -11,6 +11,10 @@ Every public host action also creates one immutable operation envelope. The same
 identity flow through the resolver, loader, and container extension boundaries. Callers may supply
 `operationId`/`traceId`, or let the host create them.
 
+Core snapshots and freezes host-owned references, operation contexts, identities, resolution
+policy, and resolved deployment envelopes. Opaque transport source objects, application props,
+services, abort signals, and DOM targets retain their domain-specific ownership.
+
 Runtime IDs are trimmed and must be non-empty strings. Invalid identifiers are rejected before
 resolution with the error code and phase of the requested operation; custom ID factories are
 validated by the same rules.

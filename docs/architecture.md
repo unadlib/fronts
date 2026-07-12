@@ -63,6 +63,8 @@ The operation envelope carries correlation and cancellation across extension bou
 
 An immutable decision containing the normalized reference, transport-specific source, selected
 version, and optional metadata. This object is the handoff between policy and loading.
+The host snapshots and freezes the decision envelope, reference, and top-level metadata. The
+transport source remains opaque; adapters must treat it as read-only and own any internal state.
 
 ### `AppLoader<Source>`
 

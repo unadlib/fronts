@@ -28,12 +28,12 @@ export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
   const range = copyOptional(ref.range);
   const channel = copyOptional(ref.channel);
 
-  return {
+  return Object.freeze({
     name,
     expose,
     ...(range === undefined ? {} : { range }),
     ...(channel === undefined ? {} : { channel }),
-  };
+  });
 }
 
 export function assertResolvedApp<Source>(

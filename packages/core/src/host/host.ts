@@ -118,6 +118,44 @@ function normalizeRuntimeId(
   return value.trim();
 }
 
+function createIdentityEnvelope(identity: ApplicationIdentity): ApplicationIdentity {
+  return Object.freeze({ ...identity });
+}
+
+function createResolutionPolicyEnvelope(
+  options: ResolutionPolicyContext,
+): Readonly<ResolutionPolicyContext> {
+  const { cohort, environment, metadata, tenant } = options;
+  return Object.freeze({
+    ...(environment === undefined ? {} : { environment }),
+    ...(tenant === undefined ? {} : { tenant }),
+    ...(cohort === undefined ? {} : { cohort }),
+    ...(metadata === undefined ? {} : { metadata: Object.freeze({ ...metadata }) }),
+  });
+}
+
+function createHostResolveOptionsEnvelope(options: HostResolveOptions): HostResolveOptions {
+  const { operationId, signal, traceId } = options;
+  return Object.freeze({
+    ...createResolutionPolicyEnvelope(options),
+    ...(operationId === undefined ? {} : { operationId }),
+    ...(signal === undefined ? {} : { signal }),
+    ...(traceId === undefined ? {} : { traceId }),
+  });
+}
+
+function createResolvedEnvelope<Source>(
+  resolved: ResolvedApp<Source>,
+  ref: NormalizedAppRef,
+): ResolvedApp<Source> {
+  const { metadata, ...deployment } = resolved;
+  return Object.freeze({
+    ...deployment,
+    ref,
+    ...(metadata === undefined ? {} : { metadata: Object.freeze({ ...metadata }) }),
+  });
+}
+
 function phaseForIntent(
   intent: HostOperationIntent,
 ): Extract<FrontsPhase, 'load' | 'mount' | 'resolve'> {
@@ -318,8 +356,9 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<ResolvedApp<Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    return this.#scheduleDetachedOperation('resolve', normalized, options, (operation) =>
-      this.#resolveResolved(normalized, options, operation),
+    const requestOptions = createHostResolveOptionsEnvelope(options);
+    return this.#scheduleDetachedOperation('resolve', normalized, requestOptions, (operation) =>
+      this.#resolveResolved(normalized, requestOptions, operation),
     );
   }
 
@@ -329,10 +368,16 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<LoadedApp<Props, Services, Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    return this.#scheduleDetachedOperation('load', normalized, options, async (operation) => {
-      const resolved = await this.#resolveResolved(normalized, options, operation);
-      return this.#loadResolved<Props>(resolved, operation);
-    });
+    const requestOptions = createHostResolveOptionsEnvelope(options);
+    return this.#scheduleDetachedOperation(
+      'load',
+      normalized,
+      requestOptions,
+      async (operation) => {
+        const resolved = await this.#resolveResolved(normalized, requestOptions, operation);
+        return this.#loadResolved<Props>(resolved, operation);
+      },
+    );
   }
 
   async preload(
@@ -341,28 +386,34 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<ResolvedApp<Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    return this.#scheduleDetachedOperation('preload', normalized, options, async (operation) => {
-      try {
-        const resolved = await this.#resolveResolved(normalized, options, operation);
-        if (this.#options.loader.preload === undefined) {
-          await this.#loadResolved(resolved, operation);
-        } else {
-          await raceWithAbort(
-            this.#options.loader.preload(resolved, operation),
-            operation.signal,
+    const requestOptions = createHostResolveOptionsEnvelope(options);
+    return this.#scheduleDetachedOperation(
+      'preload',
+      normalized,
+      requestOptions,
+      async (operation) => {
+        try {
+          const resolved = await this.#resolveResolved(normalized, requestOptions, operation);
+          if (this.#options.loader.preload === undefined) {
+            await this.#loadResolved(resolved, operation);
+          } else {
+            await raceWithAbort(
+              this.#options.loader.preload(resolved, operation),
+              operation.signal,
+              'load',
+            );
+          }
+          return resolved;
+        } catch (error) {
+          throw asFrontsError(
+            error,
+            frontsErrorCodes.loadFailed,
+            `Failed to preload application "${normalized.name}".`,
             'load',
           );
         }
-        return resolved;
-      } catch (error) {
-        throw asFrontsError(
-          error,
-          frontsErrorCodes.loadFailed,
-          `Failed to preload application "${normalized.name}".`,
-          'load',
-        );
-      }
-    });
+      },
+    );
   }
 
   mount<Props, Request extends ContainerRequest>(
@@ -676,12 +727,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       frontsErrorCodes.mountFailed,
       'mount',
     );
-    const initialIdentity: ApplicationIdentity = {
+    const initialIdentity = createIdentityEnvelope({
       expose: ref.expose,
       instanceId,
       name: ref.name,
       traceId,
-    };
+    });
     let operation = this.#createApplicationOperation(
       intent,
       ref,
@@ -716,22 +767,22 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       Awaited<ReturnType<typeof createServiceScope<Services, ServiceKey<Services>>>> | undefined;
 
     try {
-      const resolution = Object.freeze({ ...(options.resolve ?? {}) });
+      const resolution = createResolutionPolicyEnvelope(options.resolve ?? {});
       const resolved = await raceWithAbort(
         this.#options.resolver.resolve(ref, this.#resolveContext(resolution, operation)),
         controller.signal,
         'resolve',
       );
       assertResolvedApp<Source>(resolved, ref);
-      record.resolved = { ...resolved, ref };
-      record.identity = {
+      record.resolved = createResolvedEnvelope(resolved, ref);
+      record.identity = createIdentityEnvelope({
         expose: ref.expose,
         instanceId,
         name: ref.name,
         traceId,
-        ...(resolved.version === undefined ? {} : { version: resolved.version }),
-      };
-      operation = { ...operation, identity: record.identity };
+        ...(record.resolved.version === undefined ? {} : { version: record.resolved.version }),
+      });
+      operation = Object.freeze({ ...operation, identity: record.identity });
 
       phase = 'load';
       this.#transition(record, 'loading', phase);
@@ -769,13 +820,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       this.#transition(record, 'preparing', phase);
       container = await acquireWithAbort({
         acquire: () =>
-          this.#containers.prepare({
-            identity: record.identity,
-            operation,
-            request: containerRequest,
-            signal: controller.signal,
-            target: options.target,
-          }),
+          this.#containers.prepare(
+            Object.freeze({
+              identity: record.identity,
+              operation,
+              request: containerRequest,
+              signal: controller.signal,
+              target: options.target,
+            }),
+          ),
         cleanup: async (prepared) => {
           record.containerElement = prepared.element;
           record.ownsContainerElement = prepared.ownsElement ?? false;
@@ -793,13 +846,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const mountScope = scope;
       appHandle = await acquireWithAbort({
         acquire: () =>
-          app.mount({
-            identity: record.identity,
-            props: options.props,
-            services: mountScope.services as Readonly<Services>,
-            signal: controller.signal,
-            target: mountContainer.target,
-          }),
+          app.mount(
+            Object.freeze({
+              identity: record.identity,
+              props: options.props,
+              services: mountScope.services as Readonly<Services>,
+              signal: controller.signal,
+              target: mountContainer.target,
+            }),
+          ),
         cleanup: async (handle) => handle.unmount(),
         onAbandoned: trackAbandonedCleanup,
         phase: 'mount',
@@ -1050,7 +1105,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         'resolve',
       );
       assertResolvedApp<Source>(result, ref);
-      return { ...result, ref };
+      return createResolvedEnvelope(result, ref);
     } catch (error) {
       throw asFrontsError(
         error,
@@ -1065,14 +1120,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     options: ResolutionPolicyContext,
     operation: ApplicationHostOperationContext | DetachedHostOperationContext,
   ): ResolveContext {
-    return {
+    return Object.freeze({
       operation,
       signal: operation.signal,
       ...(options.environment === undefined ? {} : { environment: options.environment }),
       ...(options.tenant === undefined ? {} : { tenant: options.tenant }),
       ...(options.cohort === undefined ? {} : { cohort: options.cohort }),
       ...(options.metadata === undefined ? {} : { metadata: options.metadata }),
-    };
+    });
   }
 
   #createDetachedOperation(
@@ -1083,7 +1138,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): DetachedHostOperationContext {
     const phase = phaseForIntent(intent);
     const code = failureForPhase(phase);
-    return {
+    return Object.freeze({
       hostId: this.id,
       intent,
       operationId: this.#createOperationId(intent, ref, options.operationId),
@@ -1091,7 +1146,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ...(options.traceId === undefined
         ? {}
         : { traceId: normalizeRuntimeId(options.traceId, 'traceId', code, phase) }),
-    };
+    });
   }
 
   #createApplicationOperation(
@@ -1101,7 +1156,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     signal: AbortSignal,
     operationId?: string,
   ): ApplicationHostOperationContext {
-    return {
+    return Object.freeze({
       hostId: this.id,
       identity,
       intent,
@@ -1113,7 +1168,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         frontsErrorCodes.mountFailed,
         'mount',
       ),
-    };
+    });
   }
 
   #createOperationId(
