@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:coverage",
     "clean": "pnpm -r --if-present clean",
     "dev:examples": "pnpm --parallel --filter './examples/*' dev",
     "format": "prettier --write .",
@@ -21,7 +21,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
