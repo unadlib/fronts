@@ -5,6 +5,7 @@ import type { AppLoader } from '../host/index.js';
 import { assertResolvedApp } from '../resolver/index.js';
 import {
   isIframeConnectMessage,
+  parseIframeCapabilities,
   serializeIframeError,
   type IframeConnectMessage,
   type IframeServiceCall,
@@ -91,6 +92,10 @@ function createSession<Source, Props = unknown>(
 ): AgentSession {
   assertResolvedApp<Source>(message.resolved, message.ref);
   const controller = new AbortController();
+  const availableCapabilities = parseIframeCapabilities(
+    message.capabilities,
+    'Iframe host capabilities',
+  );
   const peer = new IframeRpcPeer(port, {
     channelId: message.channelId,
     idPrefix: 'agent',
@@ -101,7 +106,6 @@ function createSession<Source, Props = unknown>(
   const root = options.target.ownerDocument.createElement('div');
   root.dataset.frontsAgentInstance = message.identity.instanceId;
   options.target.append(root);
-  const services = createRemoteServices<object>(message.capabilities, peer, controller.signal);
   let handle: AppHandle<Props> | undefined;
   let stopped = false;
 
@@ -119,8 +123,12 @@ function createSession<Source, Props = unknown>(
       'load',
     );
     const app = getFrontsApp<Props, object>(module);
-    for (const capability of app.capabilities ?? []) {
-      if (!message.capabilities.includes(capability)) {
+    const requestedCapabilities = parseIframeCapabilities(
+      app.capabilities ?? [],
+      'Iframe application capabilities',
+    );
+    for (const capability of requestedCapabilities) {
+      if (!availableCapabilities.includes(capability)) {
         throw new FrontsError(
           frontsErrorCodes.capabilityDenied,
           `Iframe application requested undeclared capability "${capability}".`,
@@ -128,6 +136,23 @@ function createSession<Source, Props = unknown>(
         );
       }
     }
+    const negotiated = await peer.request<unknown>(
+      'capabilities.negotiate',
+      requestedCapabilities,
+      { signal: controller.signal },
+    );
+    const grantedCapabilities = parseIframeCapabilities(negotiated, 'Iframe granted capabilities');
+    if (
+      grantedCapabilities.length !== requestedCapabilities.length ||
+      requestedCapabilities.some((capability) => !grantedCapabilities.includes(capability))
+    ) {
+      throw new FrontsError(
+        frontsErrorCodes.capabilityDenied,
+        'Iframe host did not grant the complete application capability set.',
+        { phase: 'mount' },
+      );
+    }
+    const services = createRemoteServices<object>(grantedCapabilities, peer, controller.signal);
 
     const mounted = await raceWithAbort(
       app.mount({

@@ -31,6 +31,9 @@ interface Services {
   readonly navigation: {
     go(path: string): Promise<void> | void;
   };
+  readonly telemetry: {
+    emit(name: string): Promise<void> | void;
+  };
 }
 
 const identity: ApplicationIdentity = {
@@ -204,6 +207,102 @@ describe('secure iframe execution', () => {
     validChannel.port2.close();
   });
 
+  it('enforces a one-time negotiated grant on every host-side service call', async () => {
+    const frameOrigin = 'https://frame.example.test';
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    iframe.dataset.frontsFrameLoaded = 'true';
+    iframe.dataset.frontsTargetOrigin = frameOrigin;
+    const frameWindow = iframe.contentWindow;
+    expect(frameWindow).not.toBeNull();
+    if (frameWindow === null) {
+      throw new Error('Happy DOM did not create an iframe window.');
+    }
+
+    const navigation = { go: vi.fn(async () => undefined) };
+    const telemetry = { emit: vi.fn(async () => undefined) };
+    const resolved: ResolvedApp<Source> = {
+      ref: normalizeAppRef({ name: 'checkout' }),
+      source: { entry: 'https://cdn.example.test/checkout/mf-manifest.json' },
+      version: '2.0.0',
+    };
+    const proxyLoader = createIframeProxyLoader<Source, Services, Props>({
+      capabilities: ['navigation', 'telemetry'],
+      handshakeTimeoutMs: 100,
+      requestTimeoutMs: 100,
+    });
+    const proxyApp = getFrontsApp<Props, Services>(
+      await proxyLoader.load(resolved, createOperation()),
+    );
+    let attacker: IframeRpcPeer | undefined;
+    let attack = Promise.resolve();
+
+    vi.spyOn(frameWindow, 'postMessage').mockImplementation(((...args: unknown[]) => {
+      const [message, , transfer] = args;
+      const connect = message as { channelId: string };
+      const port = Array.isArray(transfer) ? (transfer[0] as MessagePort | undefined) : undefined;
+      if (port === undefined) {
+        throw new Error('Iframe proxy did not transfer an RPC port.');
+      }
+      const malicious = new IframeRpcPeer(port, {
+        channelId: connect.channelId,
+        idPrefix: 'malicious-agent',
+        requestTimeoutMs: 100,
+      });
+      attacker = malicious;
+      malicious.handle('lifecycle.unmount', () => undefined);
+      attack = (async () => {
+        await expect(
+          malicious.request('service.call', {
+            args: ['/before-negotiation'],
+            capability: 'navigation',
+            method: 'go',
+          }),
+        ).rejects.toMatchObject({ code: frontsErrorCodes.capabilityDenied });
+
+        await expect(malicious.request('capabilities.negotiate', ['navigation'])).resolves.toEqual([
+          'navigation',
+        ]);
+        await expect(
+          malicious.request('capabilities.negotiate', ['navigation']),
+        ).rejects.toMatchObject({ code: frontsErrorCodes.iframeProtocol });
+        await expect(
+          malicious.request('service.call', {
+            args: ['forged'],
+            capability: 'telemetry',
+            method: 'emit',
+          }),
+        ).rejects.toMatchObject({ code: frontsErrorCodes.capabilityDenied });
+        await expect(
+          malicious.request('service.call', {
+            args: ['/granted'],
+            capability: 'navigation',
+            method: 'go',
+          }),
+        ).resolves.toBeUndefined();
+        malicious.notify('fronts.ready');
+      })();
+    }) as typeof frameWindow.postMessage);
+
+    const handle = await proxyApp.mount({
+      identity,
+      props: { value: 'malicious frame' },
+      services: { navigation, telemetry },
+      signal: new AbortController().signal,
+      target: iframe,
+    });
+    await vi.waitFor(() => expect(attacker).toBeDefined());
+    await Promise.all([handle.ready, attack]);
+
+    expect(navigation.go).toHaveBeenCalledOnce();
+    expect(navigation.go).toHaveBeenCalledWith('/granted');
+    expect(telemetry.emit).not.toHaveBeenCalled();
+    await handle.unmount();
+    attacker?.close();
+    iframe.remove();
+  });
+
   it('loads, mounts, and reliably tears down the real application inside an iframe realm', async () => {
     const parentOrigin = 'https://shell.example.test';
     const frameOrigin = 'https://frame.example.test';
@@ -219,19 +318,21 @@ describe('secure iframe execution', () => {
     }
 
     const navigation = { go: vi.fn(async () => undefined) };
+    const telemetry = { emit: vi.fn(async () => undefined) };
     const remoteUnmount = vi.fn(async () => undefined);
     const remoteUpdate = vi.fn(async () => undefined);
     const remoteApp = defineApp<Props, Services>({
       capabilities: ['navigation'],
       async mount({ props, services, target }) {
+        expect(Object.keys(services)).toEqual(['navigation']);
+        expect('telemetry' in services).toBe(false);
         target.append(document.createTextNode(props.value));
         await services.navigation.go('/ready');
         return { unmount: remoteUnmount, update: remoteUpdate };
       },
     });
-    const frameLoader: AppLoader<Source> = {
-      load: vi.fn(async () => ({ default: remoteApp })),
-    };
+    const frameLoad = vi.fn(async () => ({ default: remoteApp }));
+    const frameLoader: AppLoader<Source> = { load: frameLoad };
     const frameTarget = frameWindow.document.createElement('main');
     frameWindow.document.body.append(frameTarget);
     const agent = createIframeAgent({
@@ -261,7 +362,7 @@ describe('secure iframe execution', () => {
       version: '2.0.0',
     };
     const proxyLoader = createIframeProxyLoader<Source, Services, Props>({
-      capabilities: ['navigation'],
+      capabilities: ['navigation', 'telemetry'],
       handshakeTimeoutMs: 100,
       requestTimeoutMs: 100,
     });
@@ -273,7 +374,7 @@ describe('secure iframe execution', () => {
     const handle = await proxyApp.mount({
       identity,
       props: { value: 'Checkout frame' },
-      services: { navigation },
+      services: { navigation, telemetry },
       signal: controller.signal,
       target: iframe,
     });
@@ -282,8 +383,9 @@ describe('secure iframe execution', () => {
     await handle.ready;
 
     expect(agent.sessions).toBe(1);
-    expect(frameLoader.load).toHaveBeenCalledOnce();
+    expect(frameLoad).toHaveBeenCalledOnce();
     expect(navigation.go).toHaveBeenCalledWith('/ready');
+    expect(telemetry.emit).not.toHaveBeenCalled();
     expect(frameTarget.textContent).toContain('Checkout frame');
 
     await handle.update?.({ value: 'next' });
@@ -292,12 +394,41 @@ describe('secure iframe execution', () => {
     expect(remoteUnmount).toHaveBeenCalledOnce();
     await vi.waitFor(() => expect(agent.sessions).toBe(0));
 
+    const deniedMount = vi.fn(() => ({ unmount: vi.fn() }));
+    const deniedRemoteApp = defineApp<Props, Services>({
+      capabilities: ['telemetry'],
+      mount: deniedMount,
+    });
+    frameLoad.mockResolvedValueOnce({ default: deniedRemoteApp });
+    const restrictedProxyLoader = createIframeProxyLoader<Source, Services, Props>({
+      capabilities: ['navigation'],
+      handshakeTimeoutMs: 100,
+      requestTimeoutMs: 100,
+    });
+    const restrictedProxyApp = getFrontsApp<Props, Services>(
+      await restrictedProxyLoader.load(resolved, proxyOperation),
+    );
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    const deniedHandle = await restrictedProxyApp.mount({
+      identity: { ...identity, instanceId: 'checkout-frame-denied' },
+      props: { value: 'Denied frame' },
+      services: { navigation, telemetry },
+      signal: new AbortController().signal,
+      target: iframe,
+    });
+    await expect(deniedHandle.ready).rejects.toMatchObject({
+      details: { remoteCode: frontsErrorCodes.capabilityDenied },
+    });
+    expect(deniedMount).not.toHaveBeenCalled();
+    await deniedHandle.unmount();
+    await vi.waitFor(() => expect(agent.sessions).toBe(0));
+
     iframe.dataset.frontsChannel = crypto.randomUUID();
     remoteUnmount.mockRejectedValueOnce(new Error('remote cleanup failed'));
     const failingHandle = await proxyApp.mount({
       identity: { ...identity, instanceId: 'checkout-frame-failing' },
       props: { value: 'Failing cleanup frame' },
-      services: { navigation },
+      services: { navigation, telemetry },
       signal: new AbortController().signal,
       target: iframe,
     });

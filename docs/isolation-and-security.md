@@ -66,7 +66,8 @@ Required controls:
 - sender `origin` and `source` validation on both sides;
 - an allowlist of parent origins in the agent;
 - explicit iframe `sandbox` and `allow` policy chosen by the host;
-- capability and method validation before host invocation;
+- one-time capability negotiation after the child application is loaded;
+- negotiated capability and method validation on every host invocation;
 - serializable arguments/results only;
 - bounded connection and lifecycle timeouts;
 - channel teardown and pending-promise rejection on dispose.
@@ -107,8 +108,20 @@ provider services are merged, with provider values taking precedence, before pol
 
 The resulting scope exposes only allowed own keys. Prototype-mutating names are rejected. Service
 objects are proxied and revoked immediately on abort or unmount; provider resources are then
-disposed exactly once as lifecycle cleanup proceeds. In iframe mode, the same allowed keys become
-RPC stubs; the child never receives the original host object.
+disposed exactly once as lifecycle cleanup proceeds.
+
+Iframe authority is the intersection of three sets:
+
+1. the maximum configured by `IframeProxyLoaderOptions.capabilities`;
+2. services actually present in the host-authorized instance facade;
+3. capabilities declared by the application loaded inside the child.
+
+Iframe protocol v2 requires the agent to send the third set after loading the real application.
+The parent validates the intersection, locks one grant for that session, and the child creates RPC
+stubs only for that exact grant. The parent independently checks the locked grant again on every
+`service.call`; hiding extra stubs in the child is not treated as the security boundary. A call
+before negotiation, a repeated negotiation, or a call outside the grant fails closed. The child
+never receives an original host service object.
 
 Guidelines:
 

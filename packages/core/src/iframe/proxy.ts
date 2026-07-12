@@ -4,6 +4,7 @@ import type { AppLoader } from '../host/index.js';
 import type { ResolvedApp } from '../resolver/index.js';
 import {
   createIframeConnectMessage,
+  parseIframeCapabilities,
   type IframeServiceCall,
   type SerializedIframeError,
 } from './protocol.js';
@@ -11,6 +12,7 @@ import { IframeRpcPeer } from './rpc.js';
 import { assertIframeTimeout } from './validation.js';
 
 export interface IframeProxyLoaderOptions<Source, Services extends object> {
+  /** Maximum capability set the child may request; the child declaration is negotiated at mount. */
   readonly capabilities?:
     | readonly ServiceKey<Services>[]
     | ((resolved: ResolvedApp<Source>) => readonly ServiceKey<Services>[]);
@@ -112,8 +114,11 @@ function parseServiceCall(value: unknown): IframeServiceCall {
   const call = value as Partial<IframeServiceCall>;
   if (
     typeof call.capability !== 'string' ||
+    call.capability.length === 0 ||
     typeof call.method !== 'string' ||
+    call.method.length === 0 ||
     !Array.isArray(call.args) ||
+    ['__proto__', 'constructor', 'prototype'].includes(call.capability) ||
     ['__proto__', 'constructor', 'prototype'].includes(call.method)
   ) {
     throw new FrontsError(frontsErrorCodes.iframeProtocol, 'Invalid iframe service method.');
@@ -123,9 +128,24 @@ function parseServiceCall(value: unknown): IframeServiceCall {
 
 async function invokeService<Services extends object>(
   services: Readonly<Services>,
+  grantedCapabilities: ReadonlySet<string> | undefined,
   value: unknown,
 ): Promise<unknown> {
   const call = parseServiceCall(value);
+  if (grantedCapabilities === undefined || !grantedCapabilities.has(call.capability)) {
+    throw new FrontsError(
+      frontsErrorCodes.capabilityDenied,
+      `Iframe application was not granted capability "${call.capability}".`,
+      { phase: 'mount' },
+    );
+  }
+  if (!Object.prototype.hasOwnProperty.call(services, call.capability)) {
+    throw new FrontsError(
+      frontsErrorCodes.capabilityDenied,
+      `Iframe application cannot access capability "${call.capability}".`,
+      { phase: 'mount' },
+    );
+  }
   const service = Reflect.get(services, call.capability) as unknown;
   if ((typeof service !== 'object' && typeof service !== 'function') || service === null) {
     throw new FrontsError(
@@ -153,10 +173,12 @@ export function createIframeProxyLoader<Source, Services extends object = object
 
   return {
     load(resolved): FrontsApp<Props, Services> {
-      const capabilities =
+      const capabilities = parseIframeCapabilities(
         typeof options.capabilities === 'function'
           ? options.capabilities(resolved)
-          : (options.capabilities ?? []);
+          : (options.capabilities ?? []),
+        'Iframe proxy capabilities',
+      ) as readonly ServiceKey<Services>[];
 
       return defineApp<Props, Services>({
         capabilities,
@@ -188,7 +210,35 @@ export function createIframeProxyLoader<Source, Services extends object = object
               ? {}
               : { requestTimeoutMs: options.requestTimeoutMs }),
           });
-          peer.handle('service.call', (params) => invokeService(context.services, params));
+          const availableCapabilities = new Set<string>(capabilities);
+          let grantedCapabilities: ReadonlySet<string> | undefined;
+          peer.handle('capabilities.negotiate', (params) => {
+            if (grantedCapabilities !== undefined) {
+              throw new FrontsError(
+                frontsErrorCodes.iframeProtocol,
+                'Iframe capabilities have already been negotiated for this session.',
+                { phase: 'mount' },
+              );
+            }
+            const requested = parseIframeCapabilities(params, 'Iframe application capabilities');
+            for (const capability of requested) {
+              if (
+                !availableCapabilities.has(capability) ||
+                !Object.prototype.hasOwnProperty.call(context.services, capability)
+              ) {
+                throw new FrontsError(
+                  frontsErrorCodes.capabilityDenied,
+                  `Iframe application cannot be granted capability "${capability}".`,
+                  { phase: 'mount' },
+                );
+              }
+            }
+            grantedCapabilities = new Set(requested);
+            return requested;
+          });
+          peer.handle('service.call', (params) =>
+            invokeService(context.services, grantedCapabilities, params),
+          );
 
           let connected = false;
           let disposed = false;

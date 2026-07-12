@@ -2,7 +2,28 @@ import type { ApplicationIdentity, ServiceKey } from '../app/index.js';
 import type { NormalizedAppRef, ResolvedApp } from '../resolver/index.js';
 
 export const FRONTS_IFRAME_PROTOCOL = 'fronts.iframe' as const;
-export const FRONTS_IFRAME_PROTOCOL_VERSION = 1 as const;
+export const FRONTS_IFRAME_PROTOCOL_VERSION = 2 as const;
+
+const forbiddenCapabilityNames = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function parseIframeCapabilities(value: unknown, label: string): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new TypeError(`${label} must be an array of capability names.`);
+  }
+
+  const capabilities = new Set<string>();
+  for (const capability of value as unknown[]) {
+    if (
+      typeof capability !== 'string' ||
+      capability.length === 0 ||
+      forbiddenCapabilityNames.has(capability)
+    ) {
+      throw new TypeError(`${label} contains invalid capability "${String(capability)}".`);
+    }
+    capabilities.add(capability);
+  }
+  return Object.freeze([...capabilities]);
+}
 
 export interface IframeConnectMessage<Source = unknown, Props = unknown> {
   readonly protocol: typeof FRONTS_IFRAME_PROTOCOL;
@@ -13,6 +34,7 @@ export interface IframeConnectMessage<Source = unknown, Props = unknown> {
   readonly ref: NormalizedAppRef;
   readonly resolved: ResolvedApp<Source>;
   readonly props: Props;
+  /** Parent-configured maximum, not the session's negotiated grant. */
   readonly capabilities: readonly string[];
 }
 
@@ -42,7 +64,7 @@ export function createIframeConnectMessage<
   readonly capabilities: readonly ServiceKey<Services>[];
 }): IframeConnectMessage<Source, Props> {
   return {
-    capabilities: options.capabilities,
+    capabilities: parseIframeCapabilities(options.capabilities, 'Iframe host capabilities'),
     channelId: options.channelId,
     identity: options.identity,
     props: options.props,
@@ -59,7 +81,7 @@ export function isIframeConnectMessage(value: unknown): value is IframeConnectMe
     return false;
   }
   const message = value as Partial<IframeConnectMessage>;
-  return (
+  const validShape =
     message.protocol === FRONTS_IFRAME_PROTOCOL &&
     message.protocolVersion === FRONTS_IFRAME_PROTOCOL_VERSION &&
     message.type === 'connect' &&
@@ -68,9 +90,16 @@ export function isIframeConnectMessage(value: unknown): value is IframeConnectMe
     typeof message.identity === 'object' &&
     message.identity !== null &&
     typeof message.resolved === 'object' &&
-    message.resolved !== null &&
-    Array.isArray(message.capabilities)
-  );
+    message.resolved !== null;
+  if (!validShape) {
+    return false;
+  }
+  try {
+    parseIframeCapabilities(message.capabilities, 'Iframe connect capabilities');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function serializeIframeError(error: unknown): SerializedIframeError {

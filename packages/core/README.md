@@ -71,7 +71,8 @@ The main entry exports:
 
 Additional entry points:
 
-- `@fronts/core/iframe` — parent iframe container/proxy and child agent
+- `@fronts/core/iframe` — origin-bound iframe container/proxy, child agent, and negotiated RPC
+  capabilities
 
 The core package has no React, Vue, bundler, or Module Federation dependency. Pair it with
 `@fronts/mf`, a custom loader, or both.
