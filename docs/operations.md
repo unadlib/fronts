@@ -6,10 +6,11 @@ Every host has a `hostId`; every application has an `instanceId` and `traceId`. 
 monotonic sequence number, timestamp, current snapshot, and state duration. Errors additionally
 carry a stable Fronts error code and phase.
 
-Every public host action also creates one immutable operation envelope. The same `operationId`,
-`hostId`, `traceId`, intent, cancellation signal, and—when an application instance exists—trusted
-identity flow through the resolver, loader, and container extension boundaries. Callers may supply
-`operationId`/`traceId`, or let the host create them.
+Every `resolve`, `load`, `preload`, `mount`, and `replace` action also creates one immutable
+operation envelope. The same `operationId`, `hostId`, `traceId`, intent, cancellation signal,
+and—when an application instance exists—trusted identity flow through the resolver, loader, and
+container extension boundaries. Callers may supply `operationId`/`traceId`, or let the host create
+them.
 
 Core snapshots and freezes host-owned references, operation contexts, identities, resolution
 policy, and resolved deployment envelopes. Opaque transport source objects, application props,
