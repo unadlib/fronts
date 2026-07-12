@@ -191,7 +191,16 @@ export class IframeRpcPeer {
       );
     }
     this.#handlers.set(method, handler);
-    return () => this.#handlers.delete(method);
+    let active = true;
+    return () => {
+      if (!active) {
+        return;
+      }
+      active = false;
+      if (this.#handlers.get(method) === handler) {
+        this.#handlers.delete(method);
+      }
+    };
   }
 
   on(method: string, listener: IframeRpcNotificationListener): () => void {
@@ -204,11 +213,12 @@ export class IframeRpcPeer {
       );
     }
     const listeners = this.#notifications.get(method) ?? new Set();
-    listeners.add(listener);
+    const registration: IframeRpcNotificationListener = (params) => listener(params);
+    listeners.add(registration);
     this.#notifications.set(method, listeners);
     return () => {
-      listeners.delete(listener);
-      if (listeners.size === 0) {
+      listeners.delete(registration);
+      if (listeners.size === 0 && this.#notifications.get(method) === listeners) {
         this.#notifications.delete(method);
       }
     };

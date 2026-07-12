@@ -530,6 +530,36 @@ describe('secure iframe execution', () => {
     receiver.close();
   });
 
+  it('keeps stale RPC disposers from removing later registrations', async () => {
+    const channel = new MessageChannel();
+    const sender = new IframeRpcPeer(channel.port1, { channelId: 'owned-registrations' });
+    const receiver = new IframeRpcPeer(channel.port2, { channelId: 'owned-registrations' });
+    const firstHandler = vi.fn(() => 'first');
+    const secondHandler = vi.fn(() => 'second');
+    const disposeFirstHandler = receiver.handle('value', firstHandler);
+    disposeFirstHandler();
+    const disposeSecondHandler = receiver.handle('value', secondHandler);
+    disposeFirstHandler();
+
+    await expect(sender.request('value')).resolves.toBe('second');
+    expect(firstHandler).not.toHaveBeenCalled();
+    expect(secondHandler).toHaveBeenCalledOnce();
+
+    const listener = vi.fn();
+    const disposeFirstListener = receiver.on('status', listener);
+    disposeFirstListener();
+    const disposeSecondListener = receiver.on('status', listener);
+    disposeFirstListener();
+    sender.notify('status', { ready: true });
+
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledOnce());
+    expect(listener).toHaveBeenCalledWith({ ready: true });
+    disposeSecondHandler();
+    disposeSecondListener();
+    sender.close();
+    receiver.close();
+  });
+
   it('notifies the remote iframe RPC peer when a channel closes', async () => {
     const channel = new MessageChannel();
     const host = new IframeRpcPeer(channel.port1, {
