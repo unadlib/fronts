@@ -84,8 +84,10 @@ export function createRegistryResolver<Source = unknown>(
           typeof options.endpoint === 'function'
             ? await options.endpoint(request)
             : options.endpoint;
+        throwIfAborted(context.signal, 'resolve');
         const headers =
           typeof options.headers === 'function' ? await options.headers(request) : options.headers;
+        throwIfAborted(context.signal, 'resolve');
         const url = appendQuery(endpoint, request);
         const response = await requestFetch(url, {
           ...(options.credentials === undefined ? {} : { credentials: options.credentials }),
@@ -93,6 +95,7 @@ export function createRegistryResolver<Source = unknown>(
           method: 'GET',
           signal: context.signal,
         });
+        throwIfAborted(context.signal, 'resolve');
 
         if (!response.ok) {
           throw new FrontsError(
@@ -106,9 +109,12 @@ export function createRegistryResolver<Source = unknown>(
         }
 
         const payload: unknown = await response.json();
+        throwIfAborted(context.signal, 'resolve');
         const decoded = await (options.decode ?? decodeRegistryPayload<Source>)(payload, request);
+        throwIfAborted(context.signal, 'resolve');
         const result = { ...decoded, ref };
         assertResolvedApp<Source>(result, ref);
+        throwIfAborted(context.signal, 'resolve');
         return result;
       } catch (error) {
         if (context.signal.aborted) {

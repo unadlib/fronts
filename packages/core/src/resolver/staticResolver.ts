@@ -61,6 +61,7 @@ export function createStaticResolver<Source>(
           ? resolution.resolve(ref, context)
           : resolution.resolve;
 
+      throwIfAborted(context.signal, 'resolve');
       return { ...result, ref };
     },
   };

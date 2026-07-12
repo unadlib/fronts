@@ -16,7 +16,9 @@ export function createFallbackResolver<Source>(
       for (const resolver of resolvers) {
         throwIfAborted(context.signal, 'resolve');
         try {
-          return await resolver.resolve(ref, context);
+          const resolved = await resolver.resolve(ref, context);
+          throwIfAborted(context.signal, 'resolve');
+          return resolved;
         } catch (error) {
           throwIfAborted(context.signal, 'resolve');
           lastError = error;

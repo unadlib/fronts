@@ -86,7 +86,9 @@ export function createCachedResolver<Source>(
       throwIfAborted(context.signal, 'resolve');
       const key = getKey(ref, context);
       const cached = await cache.get(key);
+      throwIfAborted(context.signal, 'resolve');
       const currentTime = now();
+      throwIfAborted(context.signal, 'resolve');
 
       if (cached !== undefined && currentTime < cached.expiresAt) {
         return cached.value;
@@ -94,12 +96,15 @@ export function createCachedResolver<Source>(
 
       try {
         const value = await options.resolver.resolve(ref, context);
+        throwIfAborted(context.signal, 'resolve');
         const expiresAt = now() + ttlMs;
+        throwIfAborted(context.signal, 'resolve');
         await cache.set(key, {
           expiresAt,
           staleUntil: expiresAt + staleTtlMs,
           value,
         });
+        throwIfAborted(context.signal, 'resolve');
         return value;
       } catch (error) {
         throwIfAborted(context.signal, 'resolve');

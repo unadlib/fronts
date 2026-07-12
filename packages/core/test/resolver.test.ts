@@ -163,6 +163,71 @@ describe('application resolution', () => {
     await expect(resolver.resolve(ref, context)).rejects.toThrow('slow registry failure');
   });
 
+  it('does not return or refresh a cached resolution after cancellation', async () => {
+    const controller = new AbortController();
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const set = vi.fn();
+    const remote = vi.fn<AppResolver<string>['resolve']>(() => {
+      controller.abort('cancelled during refresh');
+      return { ref, source: 'release-b' };
+    });
+    const resolver = createCachedResolver({
+      cache: {
+        delete: vi.fn(),
+        get: async () => {
+          await Promise.resolve();
+          return {
+            expiresAt: 0,
+            staleUntil: Number.POSITIVE_INFINITY,
+            value: { ref, source: 'release-a' },
+          };
+        },
+        set,
+      },
+      resolver: { resolve: remote },
+    });
+    const cancelledContext = {
+      operation: { ...operation, signal: controller.signal },
+      signal: controller.signal,
+    };
+
+    await expect(resolver.resolve(ref, cancelledContext)).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+    });
+    expect(remote).toHaveBeenCalledOnce();
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('does not return a fresh value when an asynchronous cache lookup is cancelled', async () => {
+    const controller = new AbortController();
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const remote = vi.fn<AppResolver<string>['resolve']>();
+    const resolver = createCachedResolver({
+      cache: {
+        delete: vi.fn(),
+        get: async () => {
+          await Promise.resolve();
+          controller.abort('cancelled during cache lookup');
+          return {
+            expiresAt: Number.POSITIVE_INFINITY,
+            staleUntil: Number.POSITIVE_INFINITY,
+            value: { ref, source: 'release-a' },
+          };
+        },
+        set: vi.fn(),
+      },
+      resolver: { resolve: remote },
+    });
+
+    await expect(
+      resolver.resolve(ref, {
+        operation: { ...operation, signal: controller.signal },
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+    expect(remote).not.toHaveBeenCalled();
+  });
+
   it('falls through resolver chains and preserves the final failure', async () => {
     const first = vi.fn<AppResolver<string>['resolve']>().mockRejectedValue(new Error('missing'));
     const second = vi.fn<AppResolver<string>['resolve']>().mockResolvedValue({
@@ -199,5 +264,66 @@ describe('application resolution', () => {
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.aborted }),
     );
     expect(second).not.toHaveBeenCalled();
+  });
+
+  it('does not accept a successful fallback result after cancellation', async () => {
+    const controller = new AbortController();
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolver = createFallbackResolver<string>([
+      {
+        resolve() {
+          controller.abort('cancelled before success');
+          return { ref, source: 'release-a' };
+        },
+      },
+    ]);
+
+    await expect(
+      resolver.resolve(ref, {
+        operation: { ...operation, signal: controller.signal },
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+  });
+
+  it('stops registry preparation when an async policy callback cancels', async () => {
+    const controller = new AbortController();
+    const request = vi.fn<typeof fetch>();
+    const resolver = createRegistryResolver({
+      endpoint: async () => {
+        await Promise.resolve();
+        controller.abort('registry policy cancelled');
+        return 'https://registry.example.test/resolve';
+      },
+      fetch: request,
+    });
+
+    await expect(
+      resolver.resolve(normalizeAppRef({ name: 'checkout' }), {
+        operation: { ...operation, signal: controller.signal },
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('does not accept a static callback result after cancellation', async () => {
+    const controller = new AbortController();
+    const resolver = createStaticResolver<string>([
+      {
+        match: { name: 'checkout' },
+        resolve() {
+          controller.abort('static policy cancelled');
+          return { source: 'release-a' };
+        },
+      },
+    ]);
+
+    expect(() =>
+      resolver.resolve(normalizeAppRef({ name: 'checkout' }), {
+        operation: { ...operation, signal: controller.signal },
+        signal: controller.signal,
+      }),
+    ).toThrowError(expect.objectContaining({ code: frontsErrorCodes.aborted }));
   });
 });
