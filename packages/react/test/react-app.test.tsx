@@ -201,7 +201,12 @@ describe('React host adapter', () => {
     );
 
     view.rerender(
-      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'second' }} host={host} />,
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'second' }}
+        host={host}
+        traceId="trace-react-checkout"
+      />,
     );
     await waitFor(() => expect(update).toHaveBeenCalledWith({ value: 'second' }));
 
@@ -227,6 +232,89 @@ describe('React host adapter', () => {
     );
 
     expect(await screen.findByText('Failed: registry unavailable')).toBeTruthy();
+  });
+
+  it('ignores late update failures from an instance replaced by remount', async () => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = { ref, source: { entry: 'checkout.json' } };
+    let rejectOldUpdate!: (reason: unknown) => void;
+    const oldUpdate = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectOldUpdate = reject;
+        }),
+    );
+    const createInstance = (
+      instanceId: string,
+      update: MountedApplication<Props, Source>['update'],
+    ): MountedApplication<Props, Source> => ({
+      abort: vi.fn(async () => undefined),
+      activate: vi.fn(async () => undefined),
+      deactivate: vi.fn(async () => undefined),
+      identity: { ...identity, instanceId },
+      ready: Promise.resolve(),
+      ref,
+      resolved,
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update,
+    });
+    const oldInstance = createInstance('react-old', oldUpdate);
+    const newInstance = createInstance(
+      'react-new',
+      vi.fn(async () => undefined),
+    );
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(oldInstance).mockResolvedValueOnce(newInstance),
+    } as unknown as FrontsHost<Source, Services>;
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        fallback={(failure) => <p>{failure.message}</p>}
+        host={host}
+        mountKey={1}
+      />,
+    );
+    await waitFor(() => expect(host.mount).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
+
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'second' }}
+        fallback={(failure) => <p>{failure.message}</p>}
+        host={host}
+        mountKey={1}
+      />,
+    );
+    await waitFor(() => expect(oldUpdate).toHaveBeenCalledOnce());
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'third' }}
+        fallback={(failure) => <p>{failure.message}</p>}
+        host={host}
+        mountKey={2}
+      />,
+    );
+    await waitFor(() => expect(host.mount).toHaveBeenCalledTimes(2));
+    expect(oldUpdate).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
+
+    await act(async () => rejectOldUpdate(new Error('stale update failed')));
+    expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+      'ready',
+    );
+    expect(screen.queryByText('stale update failed')).toBeNull();
   });
 
   it('can be embedded under an existing React root', async () => {

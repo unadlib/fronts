@@ -65,12 +65,24 @@ export function useRemoteApp<
       return;
     }
     appliedPropsVersion = version;
-    void mounted.update(nextProps).catch((reason: unknown) => {
-      const failure = toError(reason);
-      error.value = failure;
-      status.value = 'error';
-      toValue(input).onError?.(failure);
-    });
+    void mounted.update(nextProps).then(
+      () => {
+        if (instance.value !== mounted || appliedPropsVersion !== version) {
+          return;
+        }
+        error.value = null;
+        status.value = 'ready';
+      },
+      (reason: unknown) => {
+        if (instance.value !== mounted || appliedPropsVersion !== version) {
+          return;
+        }
+        const failure = toError(reason);
+        error.value = failure;
+        status.value = 'error';
+        toValue(input).onError?.(failure);
+      },
+    );
   };
 
   watch(
@@ -143,6 +155,9 @@ export function useRemoteApp<
         controller.abort('Vue remote application watcher disposed');
         const mounted = current;
         current = null;
+        if (instance.value === mounted) {
+          instance.value = null;
+        }
         if (mounted !== null) {
           void mounted.unmount().catch(() => undefined);
         }

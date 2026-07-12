@@ -55,6 +55,7 @@ export function useRemoteApp<
   const [instance, setInstance] = useState<MountedApplication<Props, Source> | null>(null);
   const instanceRef = useRef<MountedApplication<Props, Source> | null>(null);
   const lastProps = useRef<Props>(options.appProps);
+  const updateVersion = useRef(0);
   const onError = useRef(options.onError);
   const onReady = useRef(options.onReady);
   onError.current = options.onError;
@@ -72,6 +73,7 @@ export function useRemoteApp<
     setError(null);
     setInstance(null);
     instanceRef.current = null;
+    updateVersion.current += 1;
 
     const mount = options.host.mount<Props, Request>({
       ref: options.app,
@@ -110,6 +112,7 @@ export function useRemoteApp<
 
     return () => {
       disposed = true;
+      updateVersion.current += 1;
       controller.abort('RemoteApp effect disposed');
       const mounted = instanceRef.current;
       instanceRef.current = null;
@@ -133,16 +136,33 @@ export function useRemoteApp<
   ]);
 
   useEffect(() => {
-    if (instance === null || Object.is(lastProps.current, options.appProps)) {
+    if (
+      instance === null ||
+      instanceRef.current !== instance ||
+      Object.is(lastProps.current, options.appProps)
+    ) {
       return;
     }
     lastProps.current = options.appProps;
-    void instance.update(options.appProps).catch((reason: unknown) => {
-      const failure = toError(reason);
-      setError(failure);
-      setStatus('error');
-      onError.current?.(failure);
-    });
+    const version = ++updateVersion.current;
+    void instance.update(options.appProps).then(
+      () => {
+        if (instanceRef.current !== instance || updateVersion.current !== version) {
+          return;
+        }
+        setError(null);
+        setStatus('ready');
+      },
+      (reason: unknown) => {
+        if (instanceRef.current !== instance || updateVersion.current !== version) {
+          return;
+        }
+        const failure = toError(reason);
+        setError(failure);
+        setStatus('error');
+        onError.current?.(failure);
+      },
+    );
   }, [instance, options.appProps]);
 
   return { error, instance, status, targetRef };

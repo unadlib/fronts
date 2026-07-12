@@ -245,6 +245,50 @@ describe('Vue host adapter', () => {
     expect(view.text()).toContain('Failed: registry unavailable');
   });
 
+  it('ignores late update failures from an instance replaced by remount', async () => {
+    const first = createMountedApplication();
+    const second = createMountedApplication();
+    let rejectOldUpdate!: (reason: unknown) => void;
+    const oldUpdate = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectOldUpdate = reject;
+        }),
+    );
+    const oldInstance = { ...first.instance, update: oldUpdate };
+    const newInstance = {
+      ...second.instance,
+      identity: { ...second.instance.identity, instanceId: 'vue-new' },
+    };
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(oldInstance).mockResolvedValueOnce(newInstance),
+    } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: {
+        app: { name: 'checkout' },
+        appProps: { value: 'first' },
+        fallback: (failure: Error) => h('p', failure.message),
+        host,
+        mountKey: 1,
+      },
+    });
+    await flushPromises();
+    expect(view.attributes('data-fronts-vue-status')).toBe('ready');
+
+    await view.setProps({ appProps: { value: 'second' } });
+    await flushPromises();
+    expect(oldUpdate).toHaveBeenCalledOnce();
+    await view.setProps({ appProps: { value: 'third' }, mountKey: 2 });
+    await flushPromises();
+    expect(host.mount).toHaveBeenCalledTimes(2);
+    expect(view.attributes('data-fronts-vue-status')).toBe('ready');
+
+    rejectOldUpdate(new Error('stale update failed'));
+    await flushPromises();
+    expect(view.attributes('data-fronts-vue-status')).toBe('ready');
+    expect(view.text()).not.toContain('stale update failed');
+  });
+
   it('can be embedded under an existing Vue application', () => {
     const Host = defineComponent({
       render: () => h('p', 'Host remains framework-owned'),
