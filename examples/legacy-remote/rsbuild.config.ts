@@ -5,5 +5,5 @@ const origin = 'http://127.0.0.1:4104';
 export default defineConfig({
   dev: { assetPrefix: origin },
   output: { assetPrefix: origin },
-  server: { cors: true, port: 4104 },
+  server: { cors: true, host: '127.0.0.1', port: 4104 },
 });

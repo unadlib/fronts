@@ -13,5 +13,9 @@ export default defineConfig({
       name: 'fronts_vue_remote',
     }),
   ],
-  server: { cors: { origin: ['http://127.0.0.1:4100'] }, port: 4102 },
+  server: {
+    cors: { origin: ['http://127.0.0.1:4100'] },
+    host: '127.0.0.1',
+    port: 4102,
+  },
 });

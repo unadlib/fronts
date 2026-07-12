@@ -3,5 +3,5 @@ import { pluginReact } from '@rsbuild/plugin-react';
 
 export default defineConfig({
   plugins: [pluginReact()],
-  server: { port: 4100 },
+  server: { host: '127.0.0.1', port: 4100 },
 });

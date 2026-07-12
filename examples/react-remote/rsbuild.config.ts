@@ -17,6 +17,7 @@ export default defineConfig({
   ],
   server: {
     cors: { origin: ['http://127.0.0.1:4100', 'http://127.0.0.1:4103'] },
+    host: '127.0.0.1',
     port: 4101,
   },
 });
