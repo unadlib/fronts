@@ -313,7 +313,11 @@ export class IframeRpcPeer {
         break;
       case 'notification':
         for (const listener of this.#notifications.get(message.method) ?? []) {
-          listener(message.params);
+          try {
+            listener(message.params);
+          } catch {
+            // One notification observer must not block the remaining listeners or RPC traffic.
+          }
         }
         break;
       case 'cancel':

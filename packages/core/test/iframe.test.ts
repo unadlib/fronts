@@ -291,6 +291,25 @@ describe('secure iframe execution', () => {
     channel.port2.close();
   });
 
+  it('isolates iframe RPC notification listeners from one another', async () => {
+    const channel = new MessageChannel();
+    const sender = new IframeRpcPeer(channel.port1, { channelId: 'notification-observers' });
+    const receiver = new IframeRpcPeer(channel.port2, { channelId: 'notification-observers' });
+    const first = vi.fn(() => {
+      throw new Error('observer failed');
+    });
+    const second = vi.fn();
+    receiver.on('status', first);
+    receiver.on('status', second);
+
+    sender.notify('status', { ready: true });
+
+    await vi.waitFor(() => expect(second).toHaveBeenCalledWith({ ready: true }));
+    expect(first).toHaveBeenCalledOnce();
+    sender.close();
+    receiver.close();
+  });
+
   it('fails fast for invalid iframe timeout configuration', async () => {
     const channel = new MessageChannel();
     expect(
