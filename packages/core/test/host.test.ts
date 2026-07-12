@@ -460,6 +460,43 @@ describe('Fronts host runtime', () => {
     ]);
   });
 
+  it('reports provider rollback failure without replacing its validation error', async () => {
+    const rollbackFailure = new Error('invalid provider result could not be disposed');
+    const { events, loader, resolver } = createHarness();
+    const host = createFrontsHost<Source, Services>({
+      createServices: () => ({
+        dispose: () => {
+          throw rollbackFailure;
+        },
+        services: null as unknown as Services,
+      }),
+      loader,
+      observer: (event) => events.push(event),
+      resolver,
+      services,
+    });
+
+    await expect(
+      host.mount({
+        instanceId: 'invalid-provider-result',
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
+
+    expect(host.inspect()[0]).toMatchObject({
+      cleanupError: { code: frontsErrorCodes.lifecycleFailed, phase: 'unmount' },
+      error: { code: frontsErrorCodes.mountFailed, phase: 'mount' },
+      state: 'failed',
+    });
+    expect(events.filter((event) => event.kind === 'error').map((event) => event.phase)).toEqual([
+      'mount',
+      'unmount',
+    ]);
+    await expect(host.dispose()).rejects.toMatchObject({ code: frontsErrorCodes.runtimeLeak });
+  });
+
   it('delegates preload without mounting the application', async () => {
     const { app, host, loader, resolver } = createHarness();
     const resolved = await host.preload(

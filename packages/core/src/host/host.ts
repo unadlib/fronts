@@ -84,6 +84,18 @@ interface ServiceProvision<Services extends object> {
   dispose(): Promise<void>;
 }
 
+class RollbackCleanupFailure extends Error {
+  readonly cleanupErrors: readonly unknown[];
+  readonly primaryError: unknown;
+
+  constructor(primaryError: unknown, cleanupErrors: readonly unknown[]) {
+    super('A Fronts acquisition failed and its rollback was incomplete.', { cause: primaryError });
+    this.name = 'RollbackCleanupFailure';
+    this.cleanupErrors = cleanupErrors;
+    this.primaryError = primaryError;
+  }
+}
+
 let hostSequence = 0;
 
 function createHostId(): string {
@@ -811,8 +823,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       this.#instances.set(instanceId, instance as MountedApplication<unknown, Source>);
       return instance;
     } catch (error) {
+      const primaryError = error instanceof RollbackCleanupFailure ? error.primaryError : error;
+      if (error instanceof RollbackCleanupFailure) {
+        cleanupErrors.push(...error.cleanupErrors);
+      }
       const failure = asFrontsError(
-        error,
+        primaryError,
         failureForPhase(phase),
         `Application "${ref.name}" failed during ${phase}.`,
         phase,
@@ -974,8 +990,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     } catch (error) {
       try {
         await dispose();
-      } catch {
-        // The provider/abort failure remains authoritative.
+      } catch (cleanupError) {
+        throw new RollbackCleanupFailure(error, [cleanupError]);
       }
       throw error;
     }
