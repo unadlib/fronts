@@ -755,6 +755,55 @@ describe('secure iframe execution', () => {
     parentPeer.close();
   });
 
+  it('unmounts an acquired iframe handle that fails contract validation', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'invalid-handle-cleanup';
+    const unmount = vi.fn();
+    const remoteApp = defineApp({
+      mount: () => ({ ready: true, unmount }) as never,
+    });
+    const target = document.createElement('main');
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load: async () => ({ default: remoteApp }) },
+      parent: window,
+      target,
+      window,
+    });
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    parentPeer.handle('capabilities.negotiate', () => []);
+    let fatal: unknown;
+    parentPeer.on('fronts.fatal', (error) => {
+      fatal = error;
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+
+    await vi.waitFor(() => expect(fatal).toMatchObject({ code: frontsErrorCodes.invalidApp }));
+    await agent.stop();
+
+    expect(unmount).toHaveBeenCalledOnce();
+    expect(agent.sessions).toBe(0);
+    expect(target.children).toHaveLength(0);
+    parentPeer.close();
+  });
+
   it('shares application cleanup between iframe RPC unmount and agent stop', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'concurrent-session-cleanup';

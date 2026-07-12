@@ -221,8 +221,8 @@ function createSession<Source, Props = unknown>(
       phase: 'mount',
       signal: controller.signal,
     });
-    assertAppHandle(mounted);
     handle = mounted;
+    assertAppHandle(mounted);
     if (mounted.ready !== undefined) {
       await raceWithAbort(mounted.ready, controller.signal, 'ready');
     }
