@@ -67,6 +67,15 @@ describe('Fronts application protocol', () => {
     expect(getFrontsApp(app)).toBe(app);
   });
 
+  it('does not unwrap inherited module exports', () => {
+    const loaded = Object.create({ default: createApplication() }) as object;
+
+    expect(isFrontsAppModule(loaded)).toBe(false);
+    expect(() => getFrontsApp(loaded)).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.invalidApp }),
+    );
+  });
+
   it('rejects values that do not implement the application protocol', () => {
     expect(() => getFrontsApp({ default: { mount: vi.fn() } })).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({

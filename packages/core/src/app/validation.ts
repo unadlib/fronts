@@ -6,6 +6,10 @@ function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function hasOwn(value: object, property: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, property);
+}
+
 function hasSupportedProtocol(value: Record<PropertyKey, unknown>): boolean {
   return (
     value.protocol === FRONTS_APP_PROTOCOL && value.protocolVersion === FRONTS_APP_PROTOCOL_VERSION
@@ -49,7 +53,7 @@ export function assertFrontsApp<Props = unknown, Services extends object = objec
 export function getFrontsApp<Props = unknown, Services extends object = object>(
   loaded: unknown,
 ): FrontsApp<Props, Services> {
-  const candidate = isRecord(loaded) && 'default' in loaded ? loaded.default : loaded;
+  const candidate = isRecord(loaded) && hasOwn(loaded, 'default') ? loaded.default : loaded;
   assertFrontsApp<Props, Services>(candidate);
   return candidate;
 }
@@ -57,7 +61,7 @@ export function getFrontsApp<Props = unknown, Services extends object = object>(
 export function isFrontsAppModule<Props = unknown, Services extends object = object>(
   value: unknown,
 ): value is FrontsAppModule<Props, Services> {
-  return isRecord(value) && isFrontsApp<Props, Services>(value.default);
+  return isRecord(value) && hasOwn(value, 'default') && isFrontsApp<Props, Services>(value.default);
 }
 
 export function assertAppHandle<Props = unknown>(
