@@ -15,6 +15,8 @@ import {
 } from '../src/index.js';
 import {
   IframeRpcPeer,
+  FRONTS_IFRAME_PROTOCOL,
+  FRONTS_IFRAME_PROTOCOL_VERSION,
   createIframeAgent,
   createIframeConnectMessage,
   createIframeContainer,
@@ -203,6 +205,52 @@ describe('secure iframe execution', () => {
 
     host.close();
     frame.close();
+  });
+
+  it('ignores malformed iframe RPC wire messages', async () => {
+    const channelId = 'malformed-rpc';
+    const channel = new MessageChannel();
+    const peer = new IframeRpcPeer(channel.port1, {
+      channelId,
+      requestTimeoutMs: 20,
+    });
+    const handler = vi.fn(() => 'handled');
+    peer.handle('local.method', handler);
+    const base = {
+      channelId,
+      protocol: FRONTS_IFRAME_PROTOCOL,
+      protocolVersion: FRONTS_IFRAME_PROTOCOL_VERSION,
+    };
+    channel.port2.addEventListener('message', (event: MessageEvent<unknown>) => {
+      const request = event.data as { id?: unknown; type?: unknown };
+      if (request.type === 'request') {
+        channel.port2.postMessage({
+          ...base,
+          id: request.id,
+          ok: 'yes',
+          result: 'forged-result',
+          type: 'response',
+        });
+      }
+    });
+    channel.port2.start();
+
+    await expect(peer.request('remote.method', undefined, { timeoutMs: 5 })).rejects.toEqual(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.rpcTimeout }),
+    );
+
+    channel.port2.postMessage({
+      ...base,
+      id: 42,
+      method: 'local.method',
+      params: undefined,
+      type: 'request',
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(handler).not.toHaveBeenCalled();
+
+    peer.close();
+    channel.port2.close();
   });
 
   it('fails fast for invalid iframe timeout configuration', async () => {

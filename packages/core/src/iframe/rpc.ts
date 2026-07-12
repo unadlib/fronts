@@ -66,17 +66,49 @@ interface PendingRequest {
   readonly unlinkAbort: () => void;
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function isSerializedIframeError(value: unknown): value is SerializedIframeError {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const error = value as Partial<SerializedIframeError>;
+  return (
+    typeof error.name === 'string' &&
+    typeof error.message === 'string' &&
+    (error.code === undefined || typeof error.code === 'string') &&
+    (error.phase === undefined || typeof error.phase === 'string')
+  );
+}
+
 function isRpcWireMessage(value: unknown, channelId: string): value is RpcWireMessage {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const message = value as Partial<RpcWireMessage>;
-  return (
+  if (
     message.protocol === FRONTS_IFRAME_PROTOCOL &&
     message.protocolVersion === FRONTS_IFRAME_PROTOCOL_VERSION &&
-    message.channelId === channelId &&
-    ['cancel', 'notification', 'request', 'response'].includes(message.type ?? '')
-  );
+    message.channelId === channelId
+  ) {
+    switch (message.type) {
+      case 'cancel':
+        return isNonEmptyString(message.id);
+      case 'notification':
+        return isNonEmptyString(message.method);
+      case 'request':
+        return isNonEmptyString(message.id) && isNonEmptyString(message.method);
+      case 'response':
+        return (
+          isNonEmptyString(message.id) &&
+          typeof message.ok === 'boolean' &&
+          (message.ok || message.error === undefined || isSerializedIframeError(message.error))
+        );
+    }
+  }
+  return false;
 }
 
 function deserializeIframeError(error: SerializedIframeError | undefined): Error {
