@@ -307,6 +307,37 @@ describe('secure iframe execution', () => {
     frame.close();
   });
 
+  it('settles local RPC cancellation when the cancel frame cannot be delivered', async () => {
+    let posts = 0;
+    const port = {
+      addEventListener: vi.fn(),
+      close: vi.fn(),
+      postMessage: vi.fn(() => {
+        posts += 1;
+        if (posts > 1) {
+          throw new Error('message port transport failed');
+        }
+      }),
+      removeEventListener: vi.fn(),
+      start: vi.fn(),
+    } as unknown as MessagePort;
+    const peer = new IframeRpcPeer(port, {
+      channelId: 'failed-cancel-transport',
+      requestTimeoutMs: 0,
+    });
+    const controller = new AbortController();
+    const pending = peer.request('remote.pending', undefined, { signal: controller.signal });
+
+    controller.abort('navigation changed');
+
+    await expect(pending).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    expect(port.postMessage).toHaveBeenCalledTimes(2);
+    peer.close();
+  });
+
   it('ignores malformed iframe RPC wire messages', async () => {
     const channelId = 'malformed-rpc';
     const channel = new MessageChannel();

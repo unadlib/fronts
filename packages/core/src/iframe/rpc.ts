@@ -241,7 +241,11 @@ export class IframeRpcPeer {
         if (pending.timer !== undefined) {
           clearTimeout(pending.timer);
         }
-        this.#post({ id, type: 'cancel' });
+        try {
+          this.#post({ id, type: 'cancel' });
+        } catch {
+          // The local request must still settle when the cancellation frame cannot be delivered.
+        }
         reject(reason);
       };
 
