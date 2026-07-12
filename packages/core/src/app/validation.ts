@@ -1,17 +1,15 @@
 import { FrontsError, frontsErrorCodes } from '../errors.js';
-import {
-  FRONTS_APP_PROTOCOL,
-  FRONTS_APP_PROTOCOL_VERSION,
-  FRONTS_APP_SYMBOL,
-} from './constants.js';
+import { FRONTS_APP_PROTOCOL, FRONTS_APP_PROTOCOL_VERSION } from './constants.js';
 import type { AppHandle, FrontsApp, FrontsAppModule } from './types.js';
 
 function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function hasAppBrand(value: Record<PropertyKey, unknown>): boolean {
-  return value[FRONTS_APP_SYMBOL] === true;
+function hasSupportedProtocol(value: Record<PropertyKey, unknown>): boolean {
+  return (
+    value.protocol === FRONTS_APP_PROTOCOL && value.protocolVersion === FRONTS_APP_PROTOCOL_VERSION
+  );
 }
 
 export function isFrontsApp<Props = unknown, Services extends object = object>(
@@ -21,11 +19,7 @@ export function isFrontsApp<Props = unknown, Services extends object = object>(
     return false;
   }
 
-  return (
-    hasAppBrand(value) ||
-    (value.protocol === FRONTS_APP_PROTOCOL &&
-      value.protocolVersion === FRONTS_APP_PROTOCOL_VERSION)
-  );
+  return hasSupportedProtocol(value);
 }
 
 export function assertFrontsApp<Props = unknown, Services extends object = object>(
@@ -38,11 +32,7 @@ export function assertFrontsApp<Props = unknown, Services extends object = objec
     );
   }
 
-  if (
-    !hasAppBrand(value) &&
-    (value.protocol !== FRONTS_APP_PROTOCOL ||
-      value.protocolVersion !== FRONTS_APP_PROTOCOL_VERSION)
-  ) {
+  if (!hasSupportedProtocol(value)) {
     throw new FrontsError(
       frontsErrorCodes.unsupportedProtocol,
       `Expected ${FRONTS_APP_PROTOCOL}@${FRONTS_APP_PROTOCOL_VERSION}.`,

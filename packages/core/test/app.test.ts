@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   FRONTS_APP_PROTOCOL,
   FRONTS_APP_PROTOCOL_VERSION,
+  FRONTS_APP_SYMBOL,
   assertAppHandle,
   assertFrontsApp,
   defineApp,
@@ -76,6 +77,19 @@ describe('Fronts application protocol', () => {
     expect(() => getFrontsApp({ default: {} })).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({
         code: frontsErrorCodes.invalidApp,
+      }),
+    );
+
+    const forgedBrand = {
+      [FRONTS_APP_SYMBOL]: true,
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+      protocol: 'fronts.application',
+      protocolVersion: 1,
+    };
+    expect(isFrontsApp(forgedBrand)).toBe(false);
+    expect(() => assertFrontsApp(forgedBrand)).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.unsupportedProtocol,
       }),
     );
   });
