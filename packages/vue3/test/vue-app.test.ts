@@ -215,6 +215,41 @@ describe('Vue application adapter', () => {
     expect(onError).toHaveBeenCalledWith(failure, expect.any(String));
     await handle.unmount();
   });
+
+  it('keeps the render failure authoritative when the Vue error observer throws', async () => {
+    const renderFailure = new Error('render failed');
+    const observerFailure = new Error('error observer failed');
+    const onError = vi.fn(() => {
+      throw observerFailure;
+    });
+    const vueApp = {
+      config: {},
+      mount() {
+        vueApp.config.errorHandler?.(renderFailure, null, 'render function');
+      },
+      provide: vi.fn(),
+      unmount: vi.fn(),
+    } as unknown as App;
+    const app = defineVueApp<Record<string, never>, object>({
+      createApp: (() => vueApp) as typeof createApp,
+      onError,
+      root: defineComponent(() => () => null),
+    });
+
+    const handle = await app.mount({
+      identity,
+      props: {},
+      services: {},
+      signal: new AbortController().signal,
+      target: document.createElement('div'),
+    });
+    const ready = Promise.resolve(handle.ready);
+    void ready.catch(() => undefined);
+
+    await expect(ready).rejects.toBe(renderFailure);
+    expect(onError).toHaveBeenCalledWith(renderFailure, 'render function');
+    await handle.unmount();
+  });
 });
 
 describe('Vue host adapter', () => {

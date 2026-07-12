@@ -87,9 +87,16 @@ export function defineVueApp<
       let pending: Deferred | undefined;
 
       app.config.errorHandler = (error, _instance, info) => {
-        options.onError?.(error, info);
-        pending?.reject(error);
-        pending = undefined;
+        const failed = pending;
+        if (failed !== undefined) {
+          pending = undefined;
+          failed.reject(error);
+        }
+        try {
+          options.onError?.(error, info);
+        } catch {
+          // Observer failures must not replace the application render failure.
+        }
       };
       try {
         await options.configure?.(app, { ...vueContext, props: context.props });
