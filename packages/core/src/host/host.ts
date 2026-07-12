@@ -755,8 +755,9 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   subscribe(listener: HostEventListener<Source>): () => void {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    const registration: HostEventListener<Source> = (event) => listener(event);
+    this.#listeners.add(registration);
+    return () => this.#listeners.delete(registration);
   }
 
   async unmount(instanceId: string): Promise<void> {

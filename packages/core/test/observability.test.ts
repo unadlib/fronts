@@ -52,6 +52,27 @@ function createRuntime(options: {
 }
 
 describe('host observability and runtime audits', () => {
+  it('scopes each host subscription to its own unsubscribe function', async () => {
+    const host = createRuntime({});
+    const listener = vi.fn();
+    const unsubscribeFirst = host.subscribe(listener);
+    unsubscribeFirst();
+    const unsubscribeSecond = host.subscribe(listener);
+    unsubscribeFirst();
+
+    const instance = await host.mount({
+      props: {},
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    expect(listener).toHaveBeenCalled();
+    const callsBeforeUnsubscribe = listener.mock.calls.length;
+    unsubscribeSecond();
+    await instance.unmount();
+    expect(listener).toHaveBeenCalledTimes(callsBeforeUnsubscribe);
+  });
+
   it('emits correlated, ordered state timings and error events', async () => {
     let time = 100;
     const events: HostEvent<Source>[] = [];
