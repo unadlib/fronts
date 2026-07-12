@@ -1,8 +1,18 @@
-import { assertAppHandle, getFrontsApp, type AppHandle } from '../app/index.js';
+import {
+  assertAppHandle,
+  getFrontsApp,
+  type AppHandle,
+  type ApplicationIdentity,
+} from '../app/index.js';
 import { FrontsError, frontsErrorCodes } from '../errors.js';
 import { acquireWithAbort, raceWithAbort } from '../host/utils.js';
 import type { AppLoader } from '../host/index.js';
-import { assertResolvedApp } from '../resolver/index.js';
+import {
+  assertResolvedApp,
+  normalizeAppRef,
+  type NormalizedAppRef,
+  type ResolvedApp,
+} from '../resolver/index.js';
 import {
   isIframeConnectMessage,
   parseIframeCapabilities,
@@ -30,6 +40,39 @@ export interface IframeAgent {
 
 interface AgentSession {
   readonly stop: () => Promise<void>;
+}
+
+function assertSessionIdentity<Source>(
+  value: unknown,
+  ref: NormalizedAppRef,
+  resolved: ResolvedApp<Source>,
+): asserts value is ApplicationIdentity {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new FrontsError(frontsErrorCodes.iframeProtocol, 'Invalid iframe application identity.');
+  }
+  const identity = value as Partial<ApplicationIdentity>;
+  if (
+    typeof identity.instanceId !== 'string' ||
+    identity.instanceId.trim() === '' ||
+    identity.instanceId !== identity.instanceId.trim() ||
+    identity.name !== ref.name ||
+    (identity.expose !== undefined && identity.expose !== ref.expose) ||
+    (identity.version !== undefined &&
+      (typeof identity.version !== 'string' ||
+        identity.version.trim() === '' ||
+        identity.version !== identity.version.trim() ||
+        (resolved.version !== undefined && identity.version !== resolved.version))) ||
+    (identity.traceId !== undefined &&
+      (typeof identity.traceId !== 'string' ||
+        identity.traceId.trim() === '' ||
+        identity.traceId !== identity.traceId.trim()))
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      'Iframe application identity does not match its resolved application.',
+      { phase: 'mount' },
+    );
+  }
 }
 
 function validateAllowedOrigins(origins: readonly string[]): Set<string> {
@@ -90,7 +133,9 @@ function createSession<Source, Props = unknown>(
   options: IframeAgentOptions<Source>,
   remove: () => void,
 ): AgentSession {
-  assertResolvedApp<Source>(message.resolved, message.ref);
+  const ref = normalizeAppRef(message.ref);
+  assertResolvedApp<Source>(message.resolved, ref);
+  assertSessionIdentity(message.identity, ref, message.resolved);
   const controller = new AbortController();
   const availableCapabilities = parseIframeCapabilities(
     message.capabilities,

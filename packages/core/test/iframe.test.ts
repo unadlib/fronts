@@ -376,6 +376,52 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('rejects iframe identities that disagree with the resolved application', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'mismatched-identity';
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    const load = vi.fn<AppLoader<Source>['load']>();
+    const target = document.createElement('main');
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load },
+      parent: window,
+      target,
+      window,
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity: { ...identity, name: 'forged-name' },
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    let fatal: unknown;
+    parentPeer.on('fronts.fatal', (error) => {
+      fatal = error;
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+
+    await vi.waitFor(() => expect(fatal).toMatchObject({ code: frontsErrorCodes.iframeProtocol }));
+    expect(agent.sessions).toBe(0);
+    expect(load).not.toHaveBeenCalled();
+    expect(target.children).toHaveLength(0);
+
+    parentPeer.close();
+    await agent.stop();
+  });
+
   it('makes concurrent iframe agent stops await the same cleanup', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'concurrent-stop';
