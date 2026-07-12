@@ -137,11 +137,11 @@ await host.dispose();
 host.assertIdle();
 ```
 
-`dispose()` aborts direct operations, aborts/unmounts instances, waits for their cleanup, and
-releases host resources. It rejects with `FRONTS_RUNTIME_LEAK` if cleanup failed or an owned
-container remains attached; inspect `audit().cleanupFailures` and `audit().retainedContainers` for
-the affected identities. Transport-specific objects with their own lifetime should also be disposed
-by the composition root.
+`dispose()` aborts direct operations, aborts/unmounts instances, waits for replacement transactions
+and their cleanup, and releases host resources. It rejects with `FRONTS_RUNTIME_LEAK` if cleanup
+failed or an owned container remains attached; inspect `audit().cleanupFailures` and
+`audit().retainedContainers` for the affected identities. Transport-specific objects with their own
+lifetime should also be disposed by the composition root.
 
 ## Replacement runbook
 

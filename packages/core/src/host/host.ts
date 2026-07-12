@@ -283,6 +283,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   readonly #detachedControllers = new Set<AbortController>();
   readonly #pending = new Set<Promise<unknown>>();
   readonly #replacing = new Set<string>();
+  readonly #replacementTasks = new Set<Promise<unknown>>();
   readonly #now: () => number;
   readonly #readyTimeoutMs: number;
   #instanceSequence = 0;
@@ -417,6 +418,19 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     options: ReplaceAppOptions<Props, Request>,
   ): Promise<ReplacementResult<Props, Source>> {
     this.#assertAvailable();
+    return await this.#trackReplacement(this.#replace(currentInstanceId, options));
+  }
+
+  #trackReplacement<Value>(task: Promise<Value>): Promise<Value> {
+    this.#replacementTasks.add(task);
+    void task.finally(() => this.#replacementTasks.delete(task)).catch(() => undefined);
+    return task;
+  }
+
+  async #replace<Props, Request extends ContainerRequest>(
+    currentInstanceId: string,
+    options: ReplaceAppOptions<Props, Request>,
+  ): Promise<ReplacementResult<Props, Source>> {
     const current = this.#instances.get(currentInstanceId);
     if (current === undefined) {
       throw new FrontsError(
@@ -618,6 +632,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
     const operations = [
       ...this.#pending,
+      ...this.#replacementTasks,
       ...[...this.#instances.values()].map((instance) => instance.unmount()),
     ];
     try {

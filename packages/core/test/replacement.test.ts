@@ -34,7 +34,7 @@ function deferred(): Deferred {
 }
 
 function createReplacementHarness(options: {
-  readonly oldUnmount?: () => void;
+  readonly oldUnmount?: () => Promise<void> | void;
   readonly nextReady?: Promise<void>;
 }) {
   const oldUnmount = vi.fn(options.oldUnmount ?? (() => undefined));
@@ -158,6 +158,36 @@ describe('ready-first application replacement', () => {
     expect(oldUnmount).not.toHaveBeenCalled();
     expect(target.textContent).toBe('old:stable');
     expect(target.querySelector('[data-fronts-deployment]')).toBeNull();
+  });
+
+  it('waits for replacement rollback before host disposal becomes idle', async () => {
+    const readiness = deferred();
+    const { host, nextMount } = createReplacementHarness({ nextReady: readiness.promise });
+    const target = document.createElement('main');
+    await host.mount({
+      instanceId: 'checkout-current',
+      props: { label: 'stable' },
+      ref: { name: 'checkout', range: '1' },
+      target,
+    });
+    const replacement = host.replace('checkout-current', {
+      instanceId: 'checkout-next',
+      props: { label: 'canary' },
+      ref: { name: 'checkout', range: '2' },
+      target,
+    });
+    void replacement.catch(() => undefined);
+    await vi.waitFor(() => expect(nextMount).toHaveBeenCalledOnce());
+
+    const disposal = host.dispose();
+    await expect(replacement).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+    await expect(disposal).resolves.toBeUndefined();
+
+    expect(target.children).toHaveLength(0);
+    expect(host.audit()).toMatchObject({
+      idle: true,
+      replacementTransactions: [],
+    });
   });
 
   it('rejects concurrent replacement transactions for the same instance', async () => {
