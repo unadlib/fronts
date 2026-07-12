@@ -73,6 +73,9 @@ export function createLegacyScriptLoader(
   const baseUrl = new URL(document.baseURI);
   const originPolicy = options.allowedOrigins ?? [baseUrl.origin];
   const timeoutMs = options.timeoutMs ?? 10_000;
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+    throw loadFailure('timeoutMs must be a finite, non-negative duration.', { timeoutMs });
+  }
   const removeScript = options.removeScript ?? true;
   const requireIntegrity = options.requireIntegrityForCrossOrigin ?? true;
   const controller = new AbortController();
@@ -153,12 +156,15 @@ export function createLegacyScriptLoader(
       }
 
       let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       const finish = (operation: () => void): void => {
         if (settled) {
           return;
         }
         settled = true;
-        globalThis.clearTimeout(timeout);
+        if (timeout !== undefined) {
+          globalThis.clearTimeout(timeout);
+        }
         controller.signal.removeEventListener('abort', onAbort);
         script.removeEventListener('error', onError);
         script.removeEventListener('load', onLoad);
@@ -193,19 +199,21 @@ export function createLegacyScriptLoader(
           loadedValues.set(globalName, loaded);
           resolve(loaded);
         });
-      const timeout = globalThis.setTimeout(
-        () =>
-          finish(() =>
-            reject(
-              loadFailure(`Timed out loading legacy script "${url.href}".`, {
-                globalName,
-                timeoutMs,
-                url: url.href,
-              }),
+      if (timeoutMs > 0) {
+        timeout = globalThis.setTimeout(
+          () =>
+            finish(() =>
+              reject(
+                loadFailure(`Timed out loading legacy script "${url.href}".`, {
+                  globalName,
+                  timeoutMs,
+                  url: url.href,
+                }),
+              ),
             ),
-          ),
-        timeoutMs,
-      );
+          timeoutMs,
+        );
+      }
 
       controller.signal.addEventListener('abort', onAbort, { once: true });
       script.addEventListener('error', onError, { once: true });

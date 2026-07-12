@@ -117,6 +117,8 @@ root.
 
 ## Timeouts
 
+- Timeout values must be finite and non-negative; `0` disables the corresponding deadline while
+  `AbortSignal` cancellation remains active.
 - Set readiness deadlines from real application SLOs, not an unlimited default.
 - Keep iframe handshake and RPC deadlines finite.
 - Pass abort signals through registry fetch and custom loaders.

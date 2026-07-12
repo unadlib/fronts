@@ -5,6 +5,7 @@ import {
   type SerializedIframeError,
 } from './protocol.js';
 import { FrontsError, createAbortedError, frontsErrorCodes } from '../errors.js';
+import { assertIframeTimeout } from './validation.js';
 
 interface RpcMessageBase {
   readonly protocol: typeof FRONTS_IFRAME_PROTOCOL;
@@ -112,6 +113,7 @@ export class IframeRpcPeer {
     this.#port = port;
     this.#channelId = options.channelId;
     this.#requestTimeoutMs = options.requestTimeoutMs ?? 10_000;
+    assertIframeTimeout(this.#requestTimeoutMs, 'requestTimeoutMs');
     this.#idPrefix = options.idPrefix ?? 'rpc';
     this.#port.addEventListener('message', this.#onMessage);
     this.#port.start();
@@ -152,6 +154,11 @@ export class IframeRpcPeer {
     this.#assertOpen();
     const id = `${this.#idPrefix}:${++this.#sequence}`;
     const timeoutMs = options.timeoutMs ?? this.#requestTimeoutMs;
+    try {
+      assertIframeTimeout(timeoutMs, 'timeoutMs');
+    } catch (error) {
+      return Promise.reject(error);
+    }
 
     return new Promise<Result>((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | undefined;

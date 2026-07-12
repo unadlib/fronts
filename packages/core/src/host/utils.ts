@@ -68,15 +68,15 @@ export async function waitUntilReady(
   signal: AbortSignal,
 ): Promise<void> {
   throwIfAborted(signal, 'ready');
-  if (ready === undefined) {
-    return;
-  }
   if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
     throw new FrontsError(
       frontsErrorCodes.readyTimeout,
       'readyTimeoutMs must be a finite, non-negative duration.',
       { phase: 'ready' },
     );
+  }
+  if (ready === undefined) {
+    return;
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;

@@ -128,6 +128,43 @@ describe('secure iframe execution', () => {
     frame.close();
   });
 
+  it('fails fast for invalid iframe timeout configuration', async () => {
+    const channel = new MessageChannel();
+    expect(
+      () =>
+        new IframeRpcPeer(channel.port1, {
+          channelId: 'invalid-timeout',
+          requestTimeoutMs: Number.NaN,
+        }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
+    );
+    channel.port1.close();
+    channel.port2.close();
+
+    expect(() => createIframeProxyLoader({ handshakeTimeoutMs: -1 })).toThrow(
+      'handshakeTimeoutMs must be a finite, non-negative duration',
+    );
+    expect(() =>
+      createIframeAgent({
+        allowedOrigins: ['https://shell.example.test'],
+        loader: { load: vi.fn() },
+        requestTimeoutMs: Number.POSITIVE_INFINITY,
+        target: document.createElement('main'),
+      }),
+    ).toThrow('requestTimeoutMs must be a finite, non-negative duration');
+
+    const validChannel = new MessageChannel();
+    const peer = new IframeRpcPeer(validChannel.port1, {
+      channelId: 'request-timeout',
+    });
+    await expect(peer.request('method', undefined, { timeoutMs: -1 })).rejects.toThrow(
+      'timeoutMs must be a finite, non-negative duration',
+    );
+    peer.close();
+    validChannel.port2.close();
+  });
+
   it('loads, mounts, and reliably tears down the real application inside an iframe realm', async () => {
     const parentOrigin = 'https://shell.example.test';
     const frameOrigin = 'https://frame.example.test';

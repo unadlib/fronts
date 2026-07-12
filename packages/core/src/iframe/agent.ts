@@ -10,6 +10,7 @@ import {
   type IframeServiceCall,
 } from './protocol.js';
 import { IframeRpcPeer } from './rpc.js';
+import { assertIframeTimeout } from './validation.js';
 
 export interface IframeAgentOptions<Source> {
   readonly loader: AppLoader<Source>;
@@ -197,6 +198,7 @@ function createSession<Source, Props = unknown>(
 }
 
 export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): IframeAgent {
+  assertIframeTimeout(options.requestTimeoutMs ?? 10_000, 'requestTimeoutMs');
   const allowedOrigins = validateAllowedOrigins(options.allowedOrigins);
   const targetWindow = options.window ?? window;
   const expectedParent = options.parent ?? targetWindow.parent;

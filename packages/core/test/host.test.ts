@@ -154,6 +154,24 @@ describe('Fronts host runtime', () => {
     expect(host.inspect()[0]).toMatchObject({ state: 'failed' });
   });
 
+  it('rejects invalid readiness timeouts even when an app has no ready promise', async () => {
+    const { host } = createHarness();
+
+    await expect(
+      host.mount({
+        props: { value: 'first' },
+        readyTimeoutMs: Number.POSITIVE_INFINITY,
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.readyTimeout,
+        phase: 'ready',
+      }),
+    );
+  });
+
   it('maps loader errors to the load phase without leaving a container behind', async () => {
     const { host, loader } = createHarness();
     loader.load.mockRejectedValueOnce(new Error('remote entry unavailable'));

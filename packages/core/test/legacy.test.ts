@@ -161,6 +161,24 @@ describe('Fronts 0.x application adapter', () => {
 });
 
 describe('Fronts 0.x script loader', () => {
+  it('fails fast for invalid timeout configuration', () => {
+    expect(() => createLoader({ timeoutMs: Number.NaN })).toThrow(
+      'timeoutMs must be a finite, non-negative duration',
+    );
+  });
+
+  it('allows a zero timeout to disable the legacy load deadline', async () => {
+    vi.useFakeTimers();
+    const loader = createLoader({ timeoutMs: 0 });
+    const pending = loader.load(resolved({ url: '/no-deadline.js' }), {
+      signal: new AbortController().signal,
+    });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    registerAndLoad('checkout', () => undefined);
+    await expect(pending).resolves.toBeDefined();
+  });
+
   it('loads and adapts an explicitly registered same-origin v0 script', async () => {
     const render = vi.fn((target: HTMLElement | null) => {
       target?.append('legacy checkout');

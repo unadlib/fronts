@@ -8,6 +8,7 @@ import {
   type SerializedIframeError,
 } from './protocol.js';
 import { IframeRpcPeer } from './rpc.js';
+import { assertIframeTimeout } from './validation.js';
 
 export interface IframeProxyLoaderOptions<Source, Services extends object> {
   readonly capabilities?:
@@ -145,6 +146,11 @@ async function invokeService<Services extends object>(
 export function createIframeProxyLoader<Source, Services extends object = object, Props = unknown>(
   options: IframeProxyLoaderOptions<Source, Services> = {},
 ): AppLoader<Source> {
+  const handshakeTimeoutMs = options.handshakeTimeoutMs ?? 10_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 10_000;
+  assertIframeTimeout(handshakeTimeoutMs, 'handshakeTimeoutMs');
+  assertIframeTimeout(requestTimeoutMs, 'requestTimeoutMs');
+
   return {
     load(resolved): FrontsApp<Props, Services> {
       const capabilities =
@@ -196,7 +202,6 @@ export function createIframeProxyLoader<Source, Services extends object = object
           peer.on('fronts.fatal', (error) => rejectReady(toRemoteError(error)));
 
           const ready = (async () => {
-            const handshakeTimeoutMs = options.handshakeTimeoutMs ?? 10_000;
             await waitForFrameLoad(iframe, context.signal, handshakeTimeoutMs);
             throwIfAborted(context.signal, 'mount');
             const frameWindow = iframe.contentWindow;
