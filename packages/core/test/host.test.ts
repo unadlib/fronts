@@ -84,7 +84,7 @@ describe('Fronts host runtime', () => {
     expect(mount).toHaveBeenCalledWith(
       expect.objectContaining({
         props: { value: 'first' },
-        services: { navigation: services.navigation },
+        services: { navigation: expect.any(Object) },
         target: target.firstElementChild,
       }),
     );
@@ -169,6 +169,39 @@ describe('Fronts host runtime', () => {
     );
     expect(target.children).toHaveLength(0);
     expect(host.inspect()[0]).toMatchObject({ state: 'failed' });
+  });
+
+  it('reports capability authorization failures in the mount phase', async () => {
+    const app = defineApp<Props, Services>({
+      capabilities: ['navigation'],
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+    });
+    const { loader, resolver } = createHarness(app);
+    const events: HostEvent<Source>[] = [];
+    const host = createFrontsHost({
+      capabilityPolicy: () => false,
+      loader,
+      observer: (event) => events.push(event),
+      resolver,
+      services,
+    });
+
+    await expect(
+      host.mount({
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.capabilityDenied,
+        phase: 'mount',
+      }),
+    );
+    expect(events.find((event) => event.kind === 'error')).toMatchObject({
+      phase: 'mount',
+      snapshot: { state: 'failed' },
+    });
   });
 
   it('delegates preload without mounting the application', async () => {

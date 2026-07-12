@@ -34,7 +34,9 @@ describe('capability-scoped host services', () => {
     });
 
     expect(Object.keys(scope.services)).toEqual(['navigation', 'telemetry']);
-    expect(scope.services.navigation).toBe(services.navigation);
+    expect(scope.services.navigation).not.toBe(services.navigation);
+    scope.services.navigation.go('/checkout');
+    expect(services.navigation.go).toHaveBeenCalledWith('/checkout');
     expect('auth' in scope.services).toBe(false);
     expect(scope.revoked).toBe(false);
   });
@@ -74,18 +76,59 @@ describe('capability-scoped host services', () => {
     );
   });
 
-  it('revokes access to the service map after application teardown', async () => {
+  it('revokes retained service and method references after application teardown', async () => {
     const scope = await createServiceScope({
       capabilities: ['navigation'],
       identity,
       services,
       signal: new AbortController().signal,
     });
+    const retainedService = scope.services.navigation;
+    const retainedMethod = scope.services.navigation.go;
 
     scope.revoke();
     scope.revoke();
     expect(scope.revoked).toBe(true);
     expect(() => Object.keys(scope.services)).toThrow(TypeError);
+    expect(() => retainedService.go('/after-unmount')).toThrow(TypeError);
+    expect(() => retainedMethod('/after-unmount')).toThrow(TypeError);
+  });
+
+  it('preserves service receiver identity and promise behavior while active', async () => {
+    const receiver = {
+      prefix: '/store',
+      async go(this: { prefix: string }, path: string) {
+        return `${this.prefix}${path}`;
+      },
+    };
+    const scope = await createServiceScope({
+      capabilities: ['navigation'],
+      identity,
+      services: { navigation: receiver },
+      signal: new AbortController().signal,
+    });
+
+    await expect(scope.services.navigation.go('/cart')).resolves.toBe('/store/cart');
+  });
+
+  it('revokes nested and reflectively obtained capability values', async () => {
+    const call = vi.fn();
+    const scope = await createServiceScope({
+      capabilities: ['workflow'],
+      identity,
+      services: { workflow: { nested: { call } } },
+      signal: new AbortController().signal,
+    });
+    const retainedNested = scope.services.workflow.nested;
+    const descriptor = Object.getOwnPropertyDescriptor(scope.services.workflow, 'nested');
+    const reflected = descriptor?.value as { call(): void };
+
+    retainedNested.call();
+    reflected.call();
+    expect(call).toHaveBeenCalledTimes(2);
+    scope.revoke();
+    expect(() => retainedNested.call()).toThrow(TypeError);
+    expect(() => reflected.call()).toThrow(TypeError);
   });
 
   it('returns a fail-closed empty scope for applications declaring no capabilities', async () => {

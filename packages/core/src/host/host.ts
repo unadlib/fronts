@@ -522,6 +522,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const loaded = await this.#loadResolved<Props>(record.resolved, controller.signal, loader);
       const app = loaded.app;
 
+      phase = 'mount';
       scope = await createServiceScope({
         capabilities: app.capabilities ?? [],
         identity: record.identity,
@@ -547,7 +548,6 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       record.containerElement = container.element;
       record.ownsContainerElement = container.ownsElement ?? false;
 
-      phase = 'mount';
       this.#transition(record, 'mounting', phase);
       appHandle = await raceWithAbort(
         app.mount({
