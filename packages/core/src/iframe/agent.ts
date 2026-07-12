@@ -4,7 +4,7 @@ import {
   type AppHandle,
   type ApplicationIdentity,
 } from '../app/index.js';
-import { FrontsError, frontsErrorCodes } from '../errors.js';
+import { FrontsError, frontsErrorCodes, stringifyUnknown } from '../errors.js';
 import { acquireWithAbort, raceWithAbort } from '../host/utils.js';
 import type { AppLoader } from '../host/index.js';
 import {
@@ -85,7 +85,7 @@ function assertSessionIdentity<Source>(
 }
 
 function validateAllowedOrigins(origins: readonly string[]): Set<string> {
-  if (origins.length === 0 || origins.includes('*')) {
+  if (!Array.isArray(origins) || origins.length === 0 || origins.includes('*')) {
     throw new FrontsError(
       frontsErrorCodes.iframeProtocol,
       'Iframe agents require at least one explicit parent origin.',
@@ -93,14 +93,22 @@ function validateAllowedOrigins(origins: readonly string[]): Set<string> {
   }
   return new Set(
     origins.map((origin) => {
-      const parsed = new URL(origin);
-      if (parsed.origin !== origin) {
+      try {
+        if (typeof origin !== 'string') {
+          throw new TypeError('origin is not a string');
+        }
+        const parsed = new URL(origin);
+        if (parsed.origin === origin) {
+          return origin;
+        }
+        throw new TypeError('origin is not canonical');
+      } catch (error) {
         throw new FrontsError(
           frontsErrorCodes.iframeProtocol,
-          `Invalid iframe agent origin "${origin}".`,
+          `Invalid iframe agent origin "${stringifyUnknown(origin)}".`,
+          { cause: error },
         );
       }
-      return origin;
     }),
   );
 }

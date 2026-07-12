@@ -500,6 +500,29 @@ describe('secure iframe execution', () => {
     validChannel.port2.close();
   });
 
+  it.each([
+    { allowedOrigins: [] },
+    { allowedOrigins: ['*'] },
+    { allowedOrigins: ['not an origin'] },
+    { allowedOrigins: [42] },
+  ])('fails fast for invalid iframe agent origins: $allowedOrigins', ({ allowedOrigins }) => {
+    const addEventListener = vi.fn();
+
+    expect(() =>
+      createIframeAgent({
+        allowedOrigins: allowedOrigins as never,
+        loader: { load: vi.fn() },
+        target: document.createElement('main'),
+        window: { addEventListener } as unknown as Window,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.iframeProtocol,
+      }),
+    );
+    expect(addEventListener).not.toHaveBeenCalled();
+  });
+
   it('fails fast for invalid or closed iframe RPC registrations and methods', () => {
     const channel = new MessageChannel();
     const peer = new IframeRpcPeer(channel.port1, { channelId: 'validated-rpc' });
