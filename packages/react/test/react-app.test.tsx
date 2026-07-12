@@ -120,6 +120,30 @@ describe('React application adapter', () => {
     act(() => void handle?.unmount());
   });
 
+  it('rolls back the React root when initial render composition throws', () => {
+    const failure = new Error('provider composition failed');
+    const root = { render: vi.fn(), unmount: vi.fn() };
+    const app = defineReactApp<Record<string, never>, object>({
+      createRoot: () => root,
+      render() {
+        throw failure;
+      },
+      root: () => null,
+    });
+
+    expect(() =>
+      app.mount({
+        identity,
+        props: {},
+        services: {},
+        signal: new AbortController().signal,
+        target: document.createElement('div'),
+      }),
+    ).toThrow(failure);
+    expect(root.render).not.toHaveBeenCalled();
+    expect(root.unmount).toHaveBeenCalledOnce();
+  });
+
   it('rejects readiness and renders an application fallback after React errors', async () => {
     const failure = new Error('render failed');
     const onError = vi.fn();

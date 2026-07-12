@@ -113,47 +113,72 @@ export function defineReactApp<
           props,
           Root: options.root,
         };
-        const application =
-          options.render?.(renderContext) ?? createElement(options.root, props as Props);
-        const content = createElement(
-          ReactAppErrorBoundary,
-          {
-            ...(options.fallback === undefined ? {} : { fallback: options.fallback }),
-            key: boundaryVersion,
-            onError(error, info) {
-              resetBoundary = true;
-              if (pending === deferred) {
-                pending = undefined;
-                deferred.reject(error);
-              }
-              options.onError?.(error, info);
-            },
-          },
-          createElement(
-            Fragment,
-            null,
-            application,
-            createElement(CommitSignal, {
-              commit() {
+        try {
+          const application =
+            options.render?.(renderContext) ?? createElement(options.root, props as Props);
+          const content = createElement(
+            ReactAppErrorBoundary,
+            {
+              ...(options.fallback === undefined ? {} : { fallback: options.fallback }),
+              key: boundaryVersion,
+              onError(error, info) {
+                resetBoundary = true;
                 if (pending === deferred) {
                   pending = undefined;
-                  deferred.resolve();
+                  deferred.reject(error);
                 }
+                options.onError?.(error, info);
               },
-            }),
-          ),
-        );
-        root.render(
-          createElement(
-            FrontsReactContext.Provider,
-            { value: reactContext },
-            options.strictMode === true ? createElement(StrictMode, null, content) : content,
-          ),
-        );
-        return deferred.promise;
+            },
+            createElement(
+              Fragment,
+              null,
+              application,
+              createElement(CommitSignal, {
+                commit() {
+                  if (pending === deferred) {
+                    pending = undefined;
+                    deferred.resolve();
+                  }
+                },
+              }),
+            ),
+          );
+          root.render(
+            createElement(
+              FrontsReactContext.Provider,
+              { value: reactContext },
+              options.strictMode === true ? createElement(StrictMode, null, content) : content,
+            ),
+          );
+          return deferred.promise;
+        } catch (error) {
+          if (pending === deferred) {
+            pending = undefined;
+          }
+          throw error;
+        }
       };
 
-      const ready = render(context.props);
+      let ready: Promise<void>;
+      try {
+        ready = render(context.props);
+      } catch (error) {
+        disposed = true;
+        try {
+          root.unmount();
+        } catch (cleanupError) {
+          throw new FrontsError(
+            frontsErrorCodes.mountFailed,
+            `React application "${context.identity.name}" failed to render and clean up.`,
+            {
+              cause: new AggregateError([error, cleanupError]),
+              phase: 'mount',
+            },
+          );
+        }
+        throw error;
+      }
       return {
         ready,
         activate: () => options.onActivate?.(context.identity),
