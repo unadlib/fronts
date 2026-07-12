@@ -124,6 +124,32 @@ describe('host observability and runtime audits', () => {
     await instance.unmount();
   });
 
+  it('reports unsupported application updates as lifecycle errors', async () => {
+    const events: HostEvent<Source>[] = [];
+    const host = createRuntime({ observer: (event) => events.push(event) });
+    const instance = await host.mount({
+      instanceId: 'static-checkout',
+      props: {},
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    await expect(instance.update({})).rejects.toMatchObject({
+      code: frontsErrorCodes.lifecycleFailed,
+      phase: 'update',
+    });
+    expect(events.filter((event) => event.kind === 'error')).toEqual([
+      expect.objectContaining({
+        phase: 'update',
+        snapshot: expect.objectContaining({
+          identity: expect.objectContaining({ instanceId: 'static-checkout' }),
+        }),
+      }),
+    ]);
+
+    await instance.unmount();
+  });
+
   it('reports live instances and becomes idle after complete teardown', async () => {
     const host = createRuntime({ hostId: 'shell-audit' });
     const instance = await host.mount({

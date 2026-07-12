@@ -52,11 +52,13 @@ export class MountedApplicationImpl<
     return this.#enqueue(async () => {
       this.#assertUsable('update');
       if (this.#resources.appHandle.update === undefined) {
-        throw new FrontsError(
+        const failure = new FrontsError(
           frontsErrorCodes.lifecycleFailed,
           `Application "${this.identity.name}" does not implement update().`,
           { phase: 'update' },
         );
+        this.#callbacks.reportError(failure);
+        throw failure;
       }
 
       const stableState = this.#state;
