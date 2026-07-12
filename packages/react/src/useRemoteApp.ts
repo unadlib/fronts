@@ -56,6 +56,7 @@ export function useRemoteApp<
   const instanceRef = useRef<MountedApplication<Props, Source> | null>(null);
   const lastProps = useRef<Props>(options.appProps);
   const updateVersion = useRef(0);
+  const teardown = useRef<Promise<void>>(Promise.resolve());
   const onError = useRef(options.onError);
   const onReady = useRef(options.onReady);
   onError.current = options.onError;
@@ -75,22 +76,31 @@ export function useRemoteApp<
     instanceRef.current = null;
     updateVersion.current += 1;
 
-    const mount = options.host.mount<Props, Request>({
-      ref: options.app,
-      target,
-      props: options.appProps,
-      signal: controller.signal,
-      ...(options.container === undefined ? {} : { container: options.container }),
-      ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
-      ...(options.readyTimeoutMs === undefined ? {} : { readyTimeoutMs: options.readyTimeoutMs }),
-      ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
-      ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
-    });
+    const previousTeardown = teardown.current;
+    const mount = previousTeardown
+      .catch(() => undefined)
+      .then(() => {
+        if (disposed) {
+          return null;
+        }
+        return options.host.mount<Props, Request>({
+          ref: options.app,
+          target,
+          props: options.appProps,
+          signal: controller.signal,
+          ...(options.container === undefined ? {} : { container: options.container }),
+          ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
+          ...(options.readyTimeoutMs === undefined
+            ? {}
+            : { readyTimeoutMs: options.readyTimeoutMs }),
+          ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
+          ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
+        });
+      });
 
     void mount.then(
       (mounted) => {
-        if (disposed) {
-          void mounted.unmount().catch(() => undefined);
+        if (mounted === null || disposed) {
           return;
         }
         instanceRef.current = mounted;
@@ -116,9 +126,11 @@ export function useRemoteApp<
       controller.abort('RemoteApp effect disposed');
       const mounted = instanceRef.current;
       instanceRef.current = null;
-      if (mounted !== null) {
-        void mounted.unmount().catch(() => undefined);
-      }
+      teardown.current = mount
+        .then(async (resolved) => {
+          await (resolved ?? mounted)?.unmount();
+        })
+        .catch(() => undefined);
     };
   }, [
     target,

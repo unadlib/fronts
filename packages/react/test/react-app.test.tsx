@@ -386,6 +386,72 @@ describe('React host adapter', () => {
     expect(screen.queryByText('stale update failed')).toBeNull();
   });
 
+  it('waits for prior teardown before remounting the same host slot', async () => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = { ref, source: { entry: 'checkout.json' } };
+    let finishUnmount!: () => void;
+    const firstUnmount = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUnmount = resolve;
+        }),
+    );
+    const createInstance = (
+      instanceId: string,
+      unmount: MountedApplication<Props, Source>['unmount'],
+    ): MountedApplication<Props, Source> => ({
+      abort: vi.fn(async () => undefined),
+      activate: vi.fn(async () => undefined),
+      deactivate: vi.fn(async () => undefined),
+      identity: { ...identity, instanceId },
+      ready: Promise.resolve(),
+      ref,
+      resolved,
+      state: 'ready',
+      unmount,
+      update: vi.fn(async () => undefined),
+    });
+    const first = createInstance('shared-slot', firstUnmount);
+    const second = createInstance(
+      'shared-slot',
+      vi.fn(async () => undefined),
+    );
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second),
+    } as unknown as FrontsHost<Source, Services>;
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        host={host}
+        instanceId="shared-slot"
+        mountKey={1}
+      />,
+    );
+    await waitFor(() => expect(host.mount).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
+
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'second' }}
+        host={host}
+        instanceId="shared-slot"
+        mountKey={2}
+      />,
+    );
+    await waitFor(() => expect(firstUnmount).toHaveBeenCalledOnce());
+    expect(host.mount).toHaveBeenCalledOnce();
+
+    await act(async () => finishUnmount());
+    await waitFor(() => expect(host.mount).toHaveBeenCalledTimes(2));
+    view.unmount();
+  });
+
   it('can be embedded under an existing React root', async () => {
     const element = document.createElement('div');
     const root = createRoot(element);
