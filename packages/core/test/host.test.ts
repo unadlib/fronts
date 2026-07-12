@@ -8,6 +8,8 @@ import {
   normalizeAppRef,
   type AppLoader,
   type AppResolver,
+  type ContainerAdapter,
+  type ContainerRequest,
   type FrontsError,
   type HostEvent,
   type ServiceProviderContext,
@@ -24,6 +26,10 @@ interface Services {
 
 interface Props {
   readonly value: string;
+}
+
+interface AbortableContainerRequest extends ContainerRequest {
+  readonly type: 'abortable';
 }
 
 const services: Services = {
@@ -498,6 +504,76 @@ describe('Fronts host runtime', () => {
     await vi.waitFor(() => expect(instance.state).toBe('destroyed'));
     expect(unmount).toHaveBeenCalledOnce();
     expect(disposeServices).toHaveBeenCalledOnce();
+  });
+
+  it('cleans a container whose ownership arrives after cancellation', async () => {
+    const controller = new AbortController();
+    const dispose = vi.fn();
+    const target = document.createElement('main');
+    const adapter: ContainerAdapter<AbortableContainerRequest> = {
+      type: 'abortable',
+      prepare({ target: parent }) {
+        const element = parent.ownerDocument.createElement('section');
+        parent.append(element);
+        controller.abort('cancelled during container preparation');
+        return {
+          dispose: () => {
+            dispose();
+            element.remove();
+          },
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'abortable',
+        };
+      },
+    };
+    const { loader, resolver } = createHarness();
+    const host = createFrontsHost({ containers: [adapter], loader, resolver, services });
+
+    await expect(
+      host.mount<Props, AbortableContainerRequest>({
+        container: { type: 'abortable' },
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        signal: controller.signal,
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted, phase: 'container' });
+
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+    expect(target.children).toHaveLength(0);
+    expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
+  });
+
+  it('unmounts an application handle that resolves after cancellation', async () => {
+    let resolveHandle!: (handle: { unmount(): void }) => void;
+    const unmount = vi.fn();
+    const mount = vi.fn(
+      () =>
+        new Promise<{ unmount(): void }>((resolve) => {
+          resolveHandle = resolve;
+        }),
+    );
+    const app = defineApp<Props, Services>({ mount });
+    const { loader, resolver } = createHarness(app);
+    const host = createFrontsHost({ loader, resolver, services });
+    const controller = new AbortController();
+    const pending = host.mount({
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      signal: controller.signal,
+      target: document.createElement('main'),
+    });
+    await vi.waitFor(() => expect(mount).toHaveBeenCalledOnce());
+
+    controller.abort('navigation changed');
+    await expect(pending).rejects.toMatchObject({ code: frontsErrorCodes.aborted, phase: 'mount' });
+    expect(host.audit()).toMatchObject({ idle: false, pendingOperations: 1 });
+
+    resolveHandle({ unmount });
+    await vi.waitFor(() => expect(unmount).toHaveBeenCalledOnce());
+    expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
   });
 
   it('rejects duplicate instance identities and operations after host disposal', async () => {

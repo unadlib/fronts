@@ -1,6 +1,6 @@
 import { assertAppHandle, getFrontsApp, type AppHandle } from '../app/index.js';
 import { FrontsError, frontsErrorCodes } from '../errors.js';
-import { raceWithAbort } from '../host/utils.js';
+import { acquireWithAbort, raceWithAbort } from '../host/utils.js';
 import type { AppLoader } from '../host/index.js';
 import { assertResolvedApp } from '../resolver/index.js';
 import {
@@ -154,17 +154,19 @@ function createSession<Source, Props = unknown>(
     }
     const services = createRemoteServices<object>(grantedCapabilities, peer, controller.signal);
 
-    const mounted = await raceWithAbort(
-      app.mount({
-        identity: message.identity,
-        props: message.props as Readonly<Props>,
-        services,
-        signal: controller.signal,
-        target: root,
-      }),
-      controller.signal,
-      'mount',
-    );
+    const mounted = await acquireWithAbort({
+      acquire: () =>
+        app.mount({
+          identity: message.identity,
+          props: message.props as Readonly<Props>,
+          services,
+          signal: controller.signal,
+          target: root,
+        }),
+      cleanup: async (handle) => handle.unmount(),
+      phase: 'mount',
+      signal: controller.signal,
+    });
     assertAppHandle(mounted);
     handle = mounted;
     if (mounted.ready !== undefined) {

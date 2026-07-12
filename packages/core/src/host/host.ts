@@ -51,7 +51,13 @@ import type {
   ReplaceAppOptions,
   ReplacementResult,
 } from './types.js';
-import { asFrontsError, linkAbortSignal, raceWithAbort, waitUntilReady } from './utils.js';
+import {
+  acquireWithAbort,
+  asFrontsError,
+  linkAbortSignal,
+  raceWithAbort,
+  waitUntilReady,
+} from './utils.js';
 
 interface ApplicationRecord<Source> {
   identity: ApplicationIdentity;
@@ -354,9 +360,19 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     intent: ApplicationHostOperationContext['intent'],
   ): Promise<MountedApplication<Props, Source>> {
     const task = this.#mount(options, intent);
+    return this.#trackPending(task);
+  }
+
+  #trackPending<Value>(task: Promise<Value>): Promise<Value> {
     this.#pending.add(task);
     void task.finally(() => this.#pending.delete(task)).catch(() => undefined);
     return task;
+  }
+
+  async #drainPending(): Promise<void> {
+    while (this.#pending.size > 0) {
+      await Promise.allSettled([...this.#pending]);
+    }
   }
 
   async replace<Props, Request extends ContainerRequest>(
@@ -550,6 +566,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ...[...this.#instances.values()].map((instance) => instance.unmount()),
     ];
     await Promise.allSettled(operations);
+    await this.#drainPending();
     this.#listeners.clear();
   }
 
@@ -654,32 +671,44 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
       phase = 'container';
       this.#transition(record, 'preparing', phase);
-      container = await raceWithAbort(
-        this.#containers.prepare({
-          identity: record.identity,
-          operation,
-          request: containerRequest,
-          signal: controller.signal,
-          target: options.target,
-        }),
-        controller.signal,
-        'container',
-      );
+      container = await acquireWithAbort({
+        acquire: () =>
+          this.#containers.prepare({
+            identity: record.identity,
+            operation,
+            request: containerRequest,
+            signal: controller.signal,
+            target: options.target,
+          }),
+        cleanup: async (prepared) => prepared.dispose(),
+        onAbandoned: (cleanup) => {
+          this.#trackPending(cleanup);
+        },
+        phase: 'container',
+        signal: controller.signal,
+      });
       record.containerElement = container.element;
       record.ownsContainerElement = container.ownsElement ?? false;
 
       this.#transition(record, 'mounting', phase);
-      appHandle = await raceWithAbort(
-        app.mount({
-          identity: record.identity,
-          props: options.props,
-          services: scope.services as Readonly<Services>,
-          signal: controller.signal,
-          target: container.target,
-        }),
-        controller.signal,
-        'mount',
-      );
+      const mountContainer = container;
+      const mountScope = scope;
+      appHandle = await acquireWithAbort({
+        acquire: () =>
+          app.mount({
+            identity: record.identity,
+            props: options.props,
+            services: mountScope.services as Readonly<Services>,
+            signal: controller.signal,
+            target: mountContainer.target,
+          }),
+        cleanup: async (handle) => handle.unmount(),
+        onAbandoned: (cleanup) => {
+          this.#trackPending(cleanup);
+        },
+        phase: 'mount',
+        signal: controller.signal,
+      });
       assertAppHandle<Props>(appHandle);
 
       phase = 'ready';

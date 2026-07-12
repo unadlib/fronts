@@ -7,6 +7,14 @@ import {
   type FrontsPhase,
 } from '../errors.js';
 
+export interface AbortableAcquisitionOptions<Value> {
+  readonly acquire: () => PromiseLike<Value> | Value;
+  readonly cleanup: (value: Value) => PromiseLike<void> | void;
+  readonly onAbandoned?: (cleanup: Promise<void>) => void;
+  readonly phase: FrontsPhase;
+  readonly signal: AbortSignal;
+}
+
 export function linkAbortSignal(
   source: AbortSignal | undefined,
   controller: AbortController,
@@ -60,6 +68,30 @@ export async function raceWithAbort<Value>(
       (error: unknown) => finish(() => reject(error)),
     );
   });
+}
+
+export async function acquireWithAbort<Value>(
+  options: AbortableAcquisitionOptions<Value>,
+): Promise<Value> {
+  throwIfAborted(options.signal, options.phase);
+  const acquisition = Promise.resolve().then(() => {
+    throwIfAborted(options.signal, options.phase);
+    return options.acquire();
+  });
+
+  try {
+    return await raceWithAbort(acquisition, options.signal, options.phase);
+  } catch (error) {
+    if (options.signal.aborted) {
+      const cleanup = acquisition.then(
+        async (value) => options.cleanup(value),
+        () => undefined,
+      );
+      options.onAbandoned?.(cleanup);
+      void cleanup.catch(() => undefined);
+    }
+    throw error;
+  }
 }
 
 export async function waitUntilReady(
