@@ -323,8 +323,24 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
       stopped = true;
       targetWindow.removeEventListener('message', receive);
       stopPromise = Promise.resolve().then(async () => {
-        await Promise.allSettled([...sessions.values()].map((session) => session.stop()));
+        const results = await Promise.allSettled(
+          [...sessions.values()].map((session) => session.stop()),
+        );
         sessions.clear();
+        const failures = results.flatMap((result) =>
+          result.status === 'rejected' ? [result.reason] : [],
+        );
+        if (failures.length > 0) {
+          throw new FrontsError(
+            frontsErrorCodes.lifecycleFailed,
+            'One or more iframe applications failed to stop cleanly.',
+            {
+              cause: new AggregateError(failures),
+              details: { failureCount: failures.length },
+              phase: 'unmount',
+            },
+          );
+        }
       });
       return stopPromise;
     },

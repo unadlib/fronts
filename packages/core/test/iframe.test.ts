@@ -346,6 +346,61 @@ describe('secure iframe execution', () => {
     parentPeer.close();
   });
 
+  it('reports iframe application failures after stopping every session resource', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'failed-stop';
+    const cleanupFailure = new Error('iframe application cleanup failed');
+    const unmount = vi.fn(async () => {
+      throw cleanupFailure;
+    });
+    const remoteApp = defineApp({ mount: () => ({ unmount }) });
+    const target = document.createElement('main');
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load: async () => ({ default: remoteApp }) },
+      parent: window,
+      target,
+      window,
+    });
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    parentPeer.handle('capabilities.negotiate', () => []);
+    let ready = false;
+    parentPeer.on('fronts.ready', () => {
+      ready = true;
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+    await vi.waitFor(() => expect(ready).toBe(true));
+
+    const stopping = agent.stop();
+    await expect(stopping).rejects.toMatchObject({
+      code: frontsErrorCodes.lifecycleFailed,
+      details: { failureCount: 1 },
+      phase: 'unmount',
+    });
+    await expect(agent.stop()).rejects.toMatchObject({ code: frontsErrorCodes.lifecycleFailed });
+    expect(unmount).toHaveBeenCalledOnce();
+    expect(agent.sessions).toBe(0);
+    expect(target.children).toHaveLength(0);
+    parentPeer.close();
+  });
+
   it('enforces a one-time negotiated grant on every host-side service call', async () => {
     const frameOrigin = 'https://frame.example.test';
     const iframe = document.createElement('iframe');

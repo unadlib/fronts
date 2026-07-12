@@ -20,7 +20,9 @@ const agent = createIframeAgent<ModuleFederationSource>({
 window.addEventListener(
   'beforeunload',
   () => {
-    void agent.stop();
+    void agent.stop().catch((error: unknown) => {
+      console.error('Failed to stop the Fronts iframe agent cleanly.', error);
+    });
   },
   { once: true },
 );
