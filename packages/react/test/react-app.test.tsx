@@ -1,0 +1,239 @@
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+import type {
+  ApplicationIdentity,
+  FrontsHost,
+  MountedApplication,
+  ResolvedApp,
+} from '@fronts/core';
+import { normalizeAppRef } from '@fronts/core';
+import { render, screen, waitFor } from '@testing-library/react';
+
+import {
+  RemoteApp,
+  defineReactApp,
+  useApplicationAbortSignal,
+  useApplicationIdentity,
+  useHostServices,
+} from '../src/index.js';
+
+interface Props {
+  readonly value: string;
+}
+
+interface Services {
+  readonly locale: { readonly language: string };
+}
+
+interface Source {
+  readonly entry: string;
+}
+
+const identity: ApplicationIdentity = {
+  instanceId: 'react-app-1',
+  name: 'react-app',
+  version: '2.0.0',
+};
+
+function ContextConsumer({ value }: Props) {
+  const services = useHostServices<Services>();
+  const appIdentity = useApplicationIdentity();
+  const signal = useApplicationAbortSignal();
+  return (
+    <output data-aborted={String(signal.aborted)}>
+      {appIdentity.name}:{services.locale.language}:{value}
+    </output>
+  );
+}
+
+describe('React application adapter', () => {
+  beforeAll(() => {
+    Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true);
+  });
+
+  afterAll(() => {
+    Reflect.deleteProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT');
+  });
+
+  it('turns a React root into the framework-neutral Fronts lifecycle', async () => {
+    const app = defineReactApp<Props, Services>({
+      capabilities: ['locale'],
+      root: ContextConsumer,
+    });
+    const target = document.createElement('div');
+    const controller = new AbortController();
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: { value: 'first' },
+        services: { locale: { language: 'en-US' } },
+        signal: controller.signal,
+        target,
+      });
+    });
+    if (handle === undefined) {
+      throw new Error('React application did not return a handle.');
+    }
+    await handle.ready;
+    expect(target.textContent).toBe('react-app:en-US:first');
+
+    let update: PromiseLike<void> | void = undefined;
+    act(() => {
+      update = handle?.update?.({ value: 'second' });
+    });
+    await update;
+    expect(target.textContent).toBe('react-app:en-US:second');
+
+    act(() => {
+      void handle?.unmount();
+    });
+    expect(target.textContent).toBe('');
+  });
+
+  it('supports custom provider/router composition without coupling core to a router', async () => {
+    const app = defineReactApp<Props, Services>({
+      render: ({ Root, props }) => (
+        <section data-router="memory">
+          <Root {...props} />
+        </section>
+      ),
+      root: ContextConsumer,
+    });
+    const target = document.createElement('div');
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: { value: 'routed' },
+        services: { locale: { language: 'zh-CN' } },
+        signal: new AbortController().signal,
+        target,
+      });
+    });
+
+    await handle?.ready;
+    expect(target.querySelector('[data-router="memory"]')).not.toBeNull();
+    act(() => void handle?.unmount());
+  });
+
+  it('rejects readiness and renders an application fallback after React errors', async () => {
+    const failure = new Error('render failed');
+    const onError = vi.fn();
+    const Broken = () => {
+      throw failure;
+    };
+    const app = defineReactApp<Record<string, never>, object>({
+      fallback: <p>Application unavailable</p>,
+      onError,
+      root: Broken,
+    });
+    const target = document.createElement('div');
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+    let ready: Promise<void> | undefined;
+
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: {},
+        services: {},
+        signal: new AbortController().signal,
+        target,
+      });
+      ready = Promise.resolve(handle.ready);
+      void ready.catch(() => undefined);
+    });
+
+    await expect(ready).rejects.toBe(failure);
+    expect(target.textContent).toBe('Application unavailable');
+    expect(onError).toHaveBeenCalledOnce();
+    act(() => void handle?.unmount());
+  });
+});
+
+describe('React host adapter', () => {
+  it('mounts, updates and tears down remote applications without owning their DOM', async () => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = {
+      ref,
+      source: { entry: 'checkout.json' },
+    };
+    const update = vi.fn(async () => undefined);
+    const unmount = vi.fn(async () => undefined);
+    const instance: MountedApplication<Props, Source> = {
+      abort: vi.fn(async () => undefined),
+      activate: vi.fn(async () => undefined),
+      deactivate: vi.fn(async () => undefined),
+      identity,
+      ready: Promise.resolve(),
+      ref,
+      resolved,
+      state: 'ready',
+      unmount,
+      update,
+    };
+    const mount = vi.fn(async () => instance);
+    const host = { mount } as unknown as FrontsHost<Source, Services>;
+    const onReady = vi.fn();
+
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        host={host}
+        loading={<p>Loading checkout</p>}
+        onReady={onReady}
+      />,
+    );
+
+    expect(await screen.findByText('Loading checkout')).toBeTruthy();
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(instance));
+    expect(mount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: { value: 'first' },
+        ref: { name: 'checkout' },
+      }),
+    );
+
+    view.rerender(
+      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'second' }} host={host} />,
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledWith({ value: 'second' }));
+
+    view.unmount();
+    await waitFor(() => expect(unmount).toHaveBeenCalled());
+  });
+
+  it('renders host-level fallbacks when resolving or loading fails', async () => {
+    const failure = new Error('registry unavailable');
+    const host = {
+      mount: vi.fn(async () => {
+        throw failure;
+      }),
+    } as unknown as FrontsHost<Source, Services>;
+
+    render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        fallback={(error) => <p>Failed: {error.message}</p>}
+        host={host}
+      />,
+    );
+
+    expect(await screen.findByText('Failed: registry unavailable')).toBeTruthy();
+  });
+
+  it('can be embedded under an existing React root', async () => {
+    const element = document.createElement('div');
+    const root = createRoot(element);
+    await act(async () => {
+      root.render(<p>Host remains framework-owned</p>);
+    });
+    expect(element.textContent).toBe('Host remains framework-owned');
+    act(() => root.unmount());
+  });
+});
