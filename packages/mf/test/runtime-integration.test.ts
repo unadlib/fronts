@@ -69,7 +69,7 @@ describe('official Module Federation runtime integration', () => {
         resolve: { source, version: '2.0.0' },
       },
     ]);
-    const memoryElement = { parentNode: null } as unknown as Element;
+    const memoryElement = { nodeType: 1, parentNode: null } as unknown as Element;
     const memoryContainer: ContainerAdapter<MemoryContainerRequest> = {
       type: 'memory',
       prepare: () => ({
