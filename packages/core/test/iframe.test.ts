@@ -290,6 +290,62 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('makes concurrent iframe agent stops await the same cleanup', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'concurrent-stop';
+    let releaseCleanup!: () => void;
+    const cleanup = new Promise<void>((resolve) => {
+      releaseCleanup = resolve;
+    });
+    const unmount = vi.fn(() => cleanup);
+    const remoteApp = defineApp({ mount: () => ({ unmount }) });
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load: async () => ({ default: remoteApp }) },
+      parent: window,
+      target: document.createElement('main'),
+      window,
+    });
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    parentPeer.handle('capabilities.negotiate', () => []);
+    let ready = false;
+    parentPeer.on('fronts.ready', () => {
+      ready = true;
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+    await vi.waitFor(() => expect(ready).toBe(true));
+
+    const firstStop = agent.stop();
+    let secondStopSettled = false;
+    const secondStop = agent.stop().then(() => {
+      secondStopSettled = true;
+    });
+    await vi.waitFor(() => expect(unmount).toHaveBeenCalledOnce());
+    expect(secondStopSettled).toBe(false);
+
+    releaseCleanup();
+    await Promise.all([firstStop, secondStop]);
+    expect(agent.sessions).toBe(0);
+    parentPeer.close();
+  });
+
   it('enforces a one-time negotiated grant on every host-side service call', async () => {
     const frameOrigin = 'https://frame.example.test';
     const iframe = document.createElement('iframe');

@@ -272,6 +272,7 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
   const expectedParent = options.parent ?? targetWindow.parent;
   const sessions = new Map<string, AgentSession>();
   let stopped = false;
+  let stopPromise: Promise<void> | undefined;
 
   const receive = (event: MessageEvent<unknown>) => {
     if (stopped || !allowedOrigins.has(event.origin) || event.source !== expectedParent) {
@@ -315,14 +316,17 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
     get sessions() {
       return sessions.size;
     },
-    async stop() {
-      if (stopped) {
-        return;
+    stop() {
+      if (stopPromise !== undefined) {
+        return stopPromise;
       }
       stopped = true;
       targetWindow.removeEventListener('message', receive);
-      await Promise.allSettled([...sessions.values()].map((session) => session.stop()));
-      sessions.clear();
+      stopPromise = Promise.resolve().then(async () => {
+        await Promise.allSettled([...sessions.values()].map((session) => session.stop()));
+        sessions.clear();
+      });
+      return stopPromise;
     },
   };
 }
