@@ -188,6 +188,7 @@ describe('Module Federation runtime adapter', () => {
       [{ remote: { entry: 'checkout.js', name: 'check out' } }, 'remote.name'],
       [{ remote: { alias: '', entry: 'checkout.js', name: 'checkout' } }, 'remote.alias'],
       [{ remote: { entry: 'checkout.js', name: 'checkout', shareScope: [] } }, 'remote.shareScope'],
+      [{ remote: { entry: 'checkout.js', name: 'checkout', version: '2.0.0' } }, 'remote'],
       [{ force: 'yes', remote: { entry: 'checkout.js', name: 'checkout' } }, 'force'],
       [{ preload: [], remote: { entry: 'checkout.js', name: 'checkout' } }, 'preload'],
     ] as const) {

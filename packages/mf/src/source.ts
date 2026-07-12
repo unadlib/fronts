@@ -42,11 +42,11 @@ export function assertModuleFederationSource(
   if (hasVersion && !isTrimmedString(remote.version)) {
     throw invalidSourceField('remote.version');
   }
-  if (!hasEntry && !hasVersion) {
+  if (hasEntry === hasVersion) {
     throw new FrontsError(
       frontsErrorCodes.loadFailed,
-      `Module Federation remote "${remote.name}" must provide an entry or version.`,
-      { phase: 'load' },
+      `Module Federation remote "${remote.name}" must provide exactly one of entry or version.`,
+      { details: { field: 'remote' }, phase: 'load' },
     );
   }
   if (remote.alias !== undefined && (!isTrimmedString(remote.alias) || /\s/.test(remote.alias))) {
