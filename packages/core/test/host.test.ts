@@ -497,6 +497,7 @@ describe('Fronts host runtime', () => {
       target: document.createElement('main'),
     });
     await vi.waitFor(() => expect(capabilityPolicy).toHaveBeenCalledOnce());
+    expect(Object.isFrozen(capabilityPolicy.mock.calls[0]?.[0])).toBe(true);
 
     controller.abort('iframe mount cancelled');
 
@@ -627,6 +628,7 @@ describe('Fronts host runtime', () => {
     });
     expect(providerContexts[0]?.identity).toBe(providerContexts[0]?.operation.identity);
     expect(providerContexts[0]?.signal).toBe(providerContexts[0]?.operation.signal);
+    expect(Object.isFrozen(providerContexts[0])).toBe(true);
     expect(Object.isFrozen(providerContexts[0]?.capabilities)).toBe(true);
     expect(Object.isFrozen(providerContexts[0]?.resolution)).toBe(true);
     expect(staticNavigation.go).toHaveBeenCalledWith('/checkout-a');

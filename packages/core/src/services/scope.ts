@@ -191,12 +191,14 @@ export async function createServiceScope<Services extends object, Key extends Se
       const allowed =
         options.policy === undefined ||
         (await raceWithAbort(
-          options.policy({
-            capability,
-            identity: options.identity,
-            service,
-            signal: options.signal,
-          }),
+          options.policy(
+            Object.freeze({
+              capability,
+              identity: options.identity,
+              service,
+              signal: options.signal,
+            }),
+          ),
           options.signal,
           'mount',
         ));

@@ -1192,7 +1192,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const allowed =
         this.#options.capabilityPolicy === undefined ||
         (await raceWithAbort(
-          this.#options.capabilityPolicy({ capability, identity, service, signal }),
+          this.#options.capabilityPolicy(Object.freeze({ capability, identity, service, signal })),
           signal,
           'mount',
         ));
@@ -1219,15 +1219,17 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     throwIfAborted(operation.signal, 'mount');
     const result = await acquireWithAbort<unknown>({
       acquire: () =>
-        provider({
-          capabilities,
-          hostId: this.id,
-          identity: operation.identity,
-          operation,
-          resolution,
-          resolved,
-          signal: operation.signal,
-        }),
+        provider(
+          Object.freeze({
+            capabilities,
+            hostId: this.id,
+            identity: operation.identity,
+            operation,
+            resolution,
+            resolved,
+            signal: operation.signal,
+          }),
+        ),
       cleanup: async (lateResult) => createServiceDisposer(lateResult)(),
       onAbandoned,
       phase: 'mount',

@@ -60,6 +60,7 @@ describe('capability-scoped host services', () => {
       }),
     );
     expect(policy).toHaveBeenCalledOnce();
+    expect(Object.isFrozen(policy.mock.calls[0]?.[0])).toBe(true);
     expect(dispose).toHaveBeenCalledOnce();
   });
 
