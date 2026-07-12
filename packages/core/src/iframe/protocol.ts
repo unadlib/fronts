@@ -102,15 +102,35 @@ export function isIframeConnectMessage(value: unknown): value is IframeConnectMe
   }
 }
 
+function readStringProperty(value: object, property: PropertyKey): string | undefined {
+  try {
+    const result = Reflect.get(value, property) as unknown;
+    return typeof result === 'string' ? result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function stringifyError(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return 'An unknown iframe error occurred.';
+  }
+}
+
 export function serializeIframeError(error: unknown): SerializedIframeError {
-  if (error instanceof Error) {
-    const candidate = error as Error & { code?: unknown; phase?: unknown };
+  if ((typeof error === 'object' && error !== null) || typeof error === 'function') {
+    const message = readStringProperty(error, 'message') ?? stringifyError(error);
+    const name = readStringProperty(error, 'name') ?? 'Error';
+    const code = readStringProperty(error, 'code');
+    const phase = readStringProperty(error, 'phase');
     return {
-      message: error.message,
-      name: error.name,
-      ...(typeof candidate.code === 'string' ? { code: candidate.code } : {}),
-      ...(typeof candidate.phase === 'string' ? { phase: candidate.phase } : {}),
+      message,
+      name,
+      ...(code === undefined ? {} : { code }),
+      ...(phase === undefined ? {} : { phase }),
     };
   }
-  return { message: String(error), name: 'Error' };
+  return { message: stringifyError(error), name: 'Error' };
 }

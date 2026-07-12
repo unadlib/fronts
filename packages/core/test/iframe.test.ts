@@ -21,6 +21,7 @@ import {
   createIframeConnectMessage,
   createIframeContainer,
   createIframeProxyLoader,
+  serializeIframeError,
 } from '../src/iframe/index.js';
 
 interface Source {
@@ -308,6 +309,36 @@ describe('secure iframe execution', () => {
 
     peer.close();
     channel.port2.close();
+  });
+
+  it('serializes hostile iframe errors without throwing', () => {
+    const unstringifiable = Object.create(null) as object;
+    const hostile = new Error('hidden');
+    Object.defineProperties(hostile, {
+      code: { get: () => 'FRONTS_REMOTE_FAILURE' },
+      message: {
+        get() {
+          throw new Error('message getter failed');
+        },
+      },
+      name: {
+        get() {
+          throw new Error('name getter failed');
+        },
+      },
+      phase: { get: () => 'mount' },
+    });
+
+    expect(serializeIframeError(unstringifiable)).toEqual({
+      message: 'An unknown iframe error occurred.',
+      name: 'Error',
+    });
+    expect(serializeIframeError(hostile)).toEqual({
+      code: 'FRONTS_REMOTE_FAILURE',
+      message: 'An unknown iframe error occurred.',
+      name: 'Error',
+      phase: 'mount',
+    });
   });
 
   it('does not dispatch duplicate in-flight iframe RPC request ids', async () => {
