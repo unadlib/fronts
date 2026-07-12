@@ -287,6 +287,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
     const controller = new AbortController();
     const unlinkSignal = linkAbortSignal(options.signal, controller);
+    const containerRequest = options.container ?? ({ type: 'dom' } as Request);
+    const loader = this.#options.containerLoaders?.[containerRequest.type] ?? this.#options.loader;
     const now = this.#now();
     const record: ApplicationRecord<Source> = {
       controller,
@@ -295,6 +297,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ref,
       state: 'resolving',
       updatedAt: now,
+      containerType: containerRequest.type,
     };
     this.#records.set(instanceId, record);
     this.#emitState(record, undefined, 'resolve');
@@ -326,7 +329,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
       phase = 'load';
       this.#transition(record, 'loading', phase);
-      const loaded = await this.#loadResolved<Props>(record.resolved, controller.signal);
+      const loaded = await this.#loadResolved<Props>(record.resolved, controller.signal, loader);
       const app = loaded.app;
 
       scope = await createServiceScope({
@@ -341,8 +344,6 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
       phase = 'container';
       this.#transition(record, 'preparing', phase);
-      const containerRequest = options.container ?? ({ type: 'dom' } as Request);
-      record.containerType = containerRequest.type;
       container = await raceWithAbort(
         this.#containers.prepare({
           identity: record.identity,
@@ -435,13 +436,10 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   async #loadResolved<Props>(
     resolved: ResolvedApp<Source>,
     signal: AbortSignal,
+    loader = this.#options.loader,
   ): Promise<LoadedApp<Props, Services, Source>> {
     try {
-      const loaded = await raceWithAbort(
-        this.#options.loader.load(resolved, { signal }),
-        signal,
-        'load',
-      );
+      const loaded = await raceWithAbort(loader.load(resolved, { signal }), signal, 'load');
       return { app: getFrontsApp<Props, Services>(loaded), resolved };
     } catch (error) {
       throw asFrontsError(

@@ -181,6 +181,32 @@ describe('Fronts host runtime', () => {
     expect(app.mount).not.toHaveBeenCalled();
   });
 
+  it('selects an isolated loader for a configured container type', async () => {
+    const harness = createHarness();
+    const { loader: defaultLoader, resolved, resolver } = harness;
+    const isolatedApp = defineApp<Props, Services>({ mount: () => ({ unmount: vi.fn() }) });
+    const isolatedLoader = {
+      load: vi.fn<AppLoader<Source>['load']>().mockResolvedValue({ default: isolatedApp }),
+    };
+    const host = createFrontsHost({
+      containerLoaders: { shadow: isolatedLoader },
+      loader: defaultLoader,
+      resolver,
+      services,
+    });
+
+    const instance = await host.mount({
+      container: { type: 'shadow' },
+      props: { value: 'isolated' },
+      ref: resolved.ref,
+      target: document.createElement('main'),
+    });
+
+    expect(isolatedLoader.load).toHaveBeenCalledOnce();
+    expect(defaultLoader.load).not.toHaveBeenCalled();
+    expect(instance.state).toBe('ready');
+  });
+
   it('automatically unmounts when the caller lifetime is aborted', async () => {
     const unmount = vi.fn();
     const app = defineApp<Props, Services>({ mount: () => ({ unmount }) });
