@@ -4,7 +4,19 @@ import type { Remote } from '@module-federation/runtime/types';
 import type { ModuleFederationSource } from './types.js';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isTrimmedString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && value === value.trim();
+}
+
+function invalidSourceField(field: string): FrontsError {
+  return new FrontsError(
+    frontsErrorCodes.loadFailed,
+    `Module Federation source field "${field}" is invalid.`,
+    { details: { field }, phase: 'load' },
+  );
 }
 
 export function assertModuleFederationSource(
@@ -19,22 +31,49 @@ export function assertModuleFederationSource(
   }
 
   const remote = source.remote;
-  if (typeof remote.name !== 'string' || remote.name.trim() === '') {
-    throw new FrontsError(
-      frontsErrorCodes.loadFailed,
-      'A Module Federation remote must have a non-empty name.',
-      { phase: 'load' },
-    );
+  if (!isTrimmedString(remote.name) || /\s/.test(remote.name)) {
+    throw invalidSourceField('remote.name');
   }
-  if (
-    (typeof remote.entry !== 'string' || remote.entry.trim() === '') &&
-    (typeof remote.version !== 'string' || remote.version.trim() === '')
-  ) {
+  const hasEntry = 'entry' in remote;
+  const hasVersion = 'version' in remote;
+  if (hasEntry && !isTrimmedString(remote.entry)) {
+    throw invalidSourceField('remote.entry');
+  }
+  if (hasVersion && !isTrimmedString(remote.version)) {
+    throw invalidSourceField('remote.version');
+  }
+  if (!hasEntry && !hasVersion) {
     throw new FrontsError(
       frontsErrorCodes.loadFailed,
       `Module Federation remote "${remote.name}" must provide an entry or version.`,
       { phase: 'load' },
     );
+  }
+  if (remote.alias !== undefined && (!isTrimmedString(remote.alias) || /\s/.test(remote.alias))) {
+    throw invalidSourceField('remote.alias');
+  }
+  if (
+    remote.shareScope !== undefined &&
+    !(
+      isTrimmedString(remote.shareScope) ||
+      (Array.isArray(remote.shareScope) &&
+        remote.shareScope.length > 0 &&
+        remote.shareScope.every(isTrimmedString))
+    )
+  ) {
+    throw invalidSourceField('remote.shareScope');
+  }
+  if (remote.type !== undefined && !isTrimmedString(remote.type)) {
+    throw invalidSourceField('remote.type');
+  }
+  if (remote.entryGlobalName !== undefined && !isTrimmedString(remote.entryGlobalName)) {
+    throw invalidSourceField('remote.entryGlobalName');
+  }
+  if (source.force !== undefined && typeof source.force !== 'boolean') {
+    throw invalidSourceField('force');
+  }
+  if (source.preload !== undefined && !isRecord(source.preload)) {
+    throw invalidSourceField('preload');
   }
 }
 

@@ -154,6 +154,22 @@ describe('Module Federation runtime adapter', () => {
     expect(() => assertModuleFederationSource({ remote: { name: 'checkout' } })).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.loadFailed }),
     );
+    for (const [source, field] of [
+      [{ remote: { entry: 42, name: 'checkout', version: '2.0.0' } }, 'remote.entry'],
+      [{ remote: { entry: 'checkout.js', name: 'check out' } }, 'remote.name'],
+      [{ remote: { alias: '', entry: 'checkout.js', name: 'checkout' } }, 'remote.alias'],
+      [{ remote: { entry: 'checkout.js', name: 'checkout', shareScope: [] } }, 'remote.shareScope'],
+      [{ force: 'yes', remote: { entry: 'checkout.js', name: 'checkout' } }, 'force'],
+      [{ preload: [], remote: { entry: 'checkout.js', name: 'checkout' } }, 'preload'],
+    ] as const) {
+      expect(() => assertModuleFederationSource(source)).toThrowError(
+        expect.objectContaining<Partial<FrontsError>>({
+          code: frontsErrorCodes.loadFailed,
+          details: { field },
+          phase: 'load',
+        }),
+      );
+    }
 
     const runtime = createRuntime();
     runtime.loadRemote.mockResolvedValue(null);
