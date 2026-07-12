@@ -235,6 +235,29 @@ describe('Fronts host runtime', () => {
     );
   });
 
+  it.each([null, {}, { type: '' }, { type: ' padded ' }])(
+    'rejects the invalid container request %j before starting a transaction',
+    async (container) => {
+      const { app, host, loader, resolver } = createHarness();
+
+      await expect(
+        host.mount({
+          container: container as unknown as ContainerRequest,
+          props: { value: 'first' },
+          ref: { name: 'checkout' },
+          target: document.createElement('main'),
+        }),
+      ).rejects.toMatchObject({
+        code: frontsErrorCodes.containerFailed,
+        phase: 'container',
+      });
+      expect(resolver.resolve).not.toHaveBeenCalled();
+      expect(loader.load).not.toHaveBeenCalled();
+      expect(app.mount).not.toHaveBeenCalled();
+      expect(host.audit().idle).toBe(true);
+    },
+  );
+
   it('maps loader errors to the load phase without leaving a container behind', async () => {
     const { events, host, loader } = createHarness();
     loader.load.mockRejectedValueOnce(new Error('remote entry unavailable'));

@@ -170,19 +170,45 @@ function createResolvedEnvelope<Source>(
 function createContainerRequestEnvelope<Request extends ContainerRequest>(
   request: Request,
 ): Request {
-  const envelope: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(request)) {
-    envelope[key] = value;
+  try {
+    if (
+      typeof request !== 'object' ||
+      request === null ||
+      Array.isArray(request) ||
+      typeof request.type !== 'string' ||
+      request.type.trim() === '' ||
+      request.type !== request.type.trim()
+    ) {
+      throw new FrontsError(
+        frontsErrorCodes.containerFailed,
+        'A container request must provide a non-empty type.',
+        { phase: 'container' },
+      );
+    }
+
+    const envelope: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(request)) {
+      envelope[key] = value;
+    }
+    const attributes = envelope.attributes;
+    if (typeof attributes === 'object' && attributes !== null && !Array.isArray(attributes)) {
+      envelope.attributes = Object.freeze({ ...(attributes as Record<string, unknown>) });
+    }
+    const sandbox = envelope.sandbox;
+    if (Array.isArray(sandbox)) {
+      envelope.sandbox = Object.freeze([...sandbox] as unknown[]);
+    }
+    return Object.freeze(envelope) as Request;
+  } catch (error) {
+    if (error instanceof FrontsError) {
+      throw error;
+    }
+    throw new FrontsError(
+      frontsErrorCodes.containerFailed,
+      'Failed to read the container request.',
+      { cause: error, phase: 'container' },
+    );
   }
-  const attributes = envelope.attributes;
-  if (typeof attributes === 'object' && attributes !== null && !Array.isArray(attributes)) {
-    envelope.attributes = Object.freeze({ ...(attributes as Record<string, unknown>) });
-  }
-  const sandbox = envelope.sandbox;
-  if (Array.isArray(sandbox)) {
-    envelope.sandbox = Object.freeze([...sandbox] as unknown[]);
-  }
-  return Object.freeze(envelope) as Request;
 }
 
 function createReplacementSlot(target: Element | ShadowRoot, instanceId: string): HTMLElement {
@@ -776,7 +802,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
     const controller = new AbortController();
     const containerRequest = createContainerRequestEnvelope(
-      requestedContainer ?? ({ type: 'dom' } as Request),
+      requestedContainer === undefined ? ({ type: 'dom' } as Request) : requestedContainer,
     );
     const loader = this.#options.containerLoaders?.[containerRequest.type] ?? this.#options.loader;
     const now = this.#now();
