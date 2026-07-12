@@ -176,6 +176,7 @@ function createContainerRequestEnvelope<Request extends ContainerRequest>(
       typeof request !== 'object' ||
       request === null ||
       Array.isArray(request) ||
+      !Object.prototype.hasOwnProperty.call(request, 'type') ||
       typeof request.type !== 'string' ||
       request.type.trim() === '' ||
       request.type !== request.type.trim()

@@ -371,7 +371,7 @@ describe('Fronts host runtime', () => {
     );
   });
 
-  it.each([null, {}, { type: '' }, { type: ' padded ' }])(
+  it.each([null, {}, { type: '' }, { type: ' padded ' }, Object.create({ type: 'dom' })])(
     'rejects the invalid container request %j before starting a transaction',
     async (container) => {
       const { app, host, loader, resolver } = createHarness();
