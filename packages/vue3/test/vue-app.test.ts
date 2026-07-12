@@ -88,6 +88,31 @@ describe('Vue application adapter', () => {
     expect(target.textContent).toBe('');
   });
 
+  it('does not retain props supplied only through an update prototype', async () => {
+    interface OptionalProps {
+      readonly value?: string;
+    }
+    const Root = defineComponent({
+      props: { value: String },
+      setup: (props) => () => h('span', props.value ?? 'missing'),
+    });
+    const app = defineVueApp<OptionalProps, object>({ root: Root });
+    const target = document.createElement('div');
+    const handle = await app.mount({
+      identity,
+      props: { value: 'first' },
+      services: {},
+      signal: new AbortController().signal,
+      target,
+    });
+    await handle.ready;
+
+    await handle.update?.(Object.create({ value: 'forged' }) as OptionalProps);
+
+    expect(target.textContent).toBe('missing');
+    await handle.unmount();
+  });
+
   it('supports router and plugin composition through the configure hook', async () => {
     const routeKey = Symbol('route');
     const Root = defineComponent({

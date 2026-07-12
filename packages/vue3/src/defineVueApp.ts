@@ -183,7 +183,7 @@ export function defineVueApp<
             );
           }
           for (const key of Object.keys(props)) {
-            if (!(key in nextProps)) {
+            if (!Object.prototype.hasOwnProperty.call(nextProps, key)) {
               Reflect.deleteProperty(props, key);
             }
           }
