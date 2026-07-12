@@ -17,12 +17,28 @@ function matchesRef(value: unknown, expected: NormalizedAppRef): boolean {
   );
 }
 
-function copyOptional(property: string | undefined): string | undefined {
-  const normalized = property?.trim();
+function normalizeOptional(value: unknown, property: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    throw new FrontsError(
+      frontsErrorCodes.resolutionFailed,
+      `AppRef.${property} must be a string when provided.`,
+      { details: { property }, phase: 'resolve' },
+    );
+  }
+  const normalized = value.trim();
   return normalized === '' ? undefined : normalized;
 }
 
 export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
+  if (!isRecord(ref) || typeof ref.name !== 'string') {
+    throw new FrontsError(frontsErrorCodes.resolutionFailed, 'AppRef must contain a string name.', {
+      details: { property: 'name' },
+      phase: 'resolve',
+    });
+  }
   const name = ref.name.trim();
   if (name === '' || /\s/.test(name)) {
     throw new FrontsError(
@@ -32,7 +48,7 @@ export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
     );
   }
 
-  const expose = copyOptional(ref.expose) ?? './application';
+  const expose = normalizeOptional(ref.expose, 'expose') ?? './application';
   if (!expose.startsWith('./')) {
     throw new FrontsError(
       frontsErrorCodes.resolutionFailed,
@@ -41,8 +57,8 @@ export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
     );
   }
 
-  const range = copyOptional(ref.range);
-  const channel = copyOptional(ref.channel);
+  const range = normalizeOptional(ref.range, 'range');
+  const channel = normalizeOptional(ref.channel, 'channel');
 
   return Object.freeze({
     name,

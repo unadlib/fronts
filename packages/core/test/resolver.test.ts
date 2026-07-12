@@ -44,6 +44,19 @@ describe('application resolution', () => {
       }),
     );
     expect(() => normalizeAppRef({ name: 'check out' })).toThrowError();
+    for (const invalid of [
+      null,
+      { name: 42 },
+      { expose: 42, name: 'checkout' },
+      { name: 'checkout', range: false },
+    ]) {
+      expect(() => normalizeAppRef(invalid as never)).toThrowError(
+        expect.objectContaining<Partial<FrontsError>>({
+          code: frontsErrorCodes.resolutionFailed,
+          phase: 'resolve',
+        }),
+      );
+    }
   });
 
   it('rejects mismatched and malformed resolution decisions', () => {
