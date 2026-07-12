@@ -77,6 +77,21 @@ describe('capability-scoped host services', () => {
     });
   });
 
+  it('preserves capability errors for unprintable names', async () => {
+    await expect(
+      createServiceScope({
+        capabilities: [Object.create(null)] as unknown as readonly (keyof Services & string)[],
+        identity,
+        services,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.capabilityDenied,
+      details: { capability: '[unprintable value]', reason: 'invalid' },
+      phase: 'mount',
+    });
+  });
+
   it('fails closed when a requested service is unavailable', async () => {
     await expect(
       createServiceScope({

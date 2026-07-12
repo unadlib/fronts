@@ -15,6 +15,7 @@ import {
 import {
   FrontsError,
   frontsErrorCodes,
+  stringifyUnknown,
   throwIfAborted,
   type FrontsErrorCode,
   type FrontsPhase,
@@ -272,11 +273,12 @@ function normalizeDeclaredCapabilities<Services extends object>(
       capability.length === 0 ||
       ['__proto__', 'constructor', 'prototype'].includes(capability)
     ) {
+      const description = stringifyUnknown(capability);
       throw new FrontsError(
         frontsErrorCodes.capabilityDenied,
-        `Application "${identity.name}" requested invalid capability "${String(capability)}".`,
+        `Application "${identity.name}" requested invalid capability "${description}".`,
         {
-          details: { capability: String(capability), reason: 'invalid' },
+          details: { capability: description, reason: 'invalid' },
           phase: 'mount',
         },
       );

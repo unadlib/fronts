@@ -157,6 +157,34 @@ describe('secure iframe execution', () => {
     expect(target.children).toHaveLength(0);
   });
 
+  it('preserves iframe protocol errors for unprintable sandbox tokens', () => {
+    const target = document.createElement('main');
+    const operation = createOperation();
+
+    expect(() =>
+      createIframeContainer().prepare({
+        identity,
+        operation,
+        request: {
+          sandbox: [Object.create(null)] as unknown as readonly string[],
+          src: 'https://frame.example.test/app',
+          targetOrigin: 'https://frame.example.test',
+          title: 'Checkout',
+          type: 'iframe',
+        },
+        resolved: createResolved(),
+        signal: operation.signal,
+        target,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.iframeProtocol,
+        phase: 'container',
+      }),
+    );
+    expect(target.children).toHaveLength(0);
+  });
+
   it('rejects an iframe agent deployed on the host origin', () => {
     const target = document.createElement('main');
     const operation = createOperation();

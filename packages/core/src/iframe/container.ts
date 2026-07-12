@@ -1,4 +1,4 @@
-import { FrontsError, frontsErrorCodes, throwIfAborted } from '../errors.js';
+import { FrontsError, frontsErrorCodes, stringifyUnknown, throwIfAborted } from '../errors.js';
 import { createElementDisposer } from '../container/element.js';
 import type { ContainerAdapter, ContainerRequest, PreparedContainer } from '../container/types.js';
 
@@ -112,7 +112,7 @@ function validateSandbox(
     ) {
       throw new FrontsError(
         frontsErrorCodes.iframeProtocol,
-        `Invalid iframe sandbox token "${String(token)}".`,
+        `Invalid iframe sandbox token "${stringifyUnknown(token)}".`,
         { phase: 'container' },
       );
     }

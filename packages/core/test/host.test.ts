@@ -471,6 +471,27 @@ describe('Fronts host runtime', () => {
     expect(app.mount).not.toHaveBeenCalled();
   });
 
+  it('preserves capability errors for unprintable declarations', async () => {
+    const app = defineApp<Props, Services>({
+      capabilities: [Object.create(null)] as unknown as readonly (keyof Services & string)[],
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+    });
+    const { host } = createHarness(app);
+
+    await expect(
+      host.mount({
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.capabilityDenied,
+      details: { capability: '[unprintable value]', reason: 'invalid' },
+      phase: 'mount',
+    });
+    expect(app.mount).not.toHaveBeenCalled();
+  });
+
   it('creates identity-bound services per instance and disposes each scope independently', async () => {
     const serviceFacades: Services['telemetry'][] = [];
     const serviceCalls: string[] = [];

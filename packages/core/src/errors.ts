@@ -56,6 +56,14 @@ export function isFrontsError(value: unknown): value is FrontsError {
   return value instanceof FrontsError;
 }
 
+export function stringifyUnknown(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return '[unprintable value]';
+  }
+}
+
 export function createAbortedError(phase: FrontsPhase, cause?: unknown): FrontsError {
   return new FrontsError(frontsErrorCodes.aborted, `The Fronts ${phase} operation was aborted.`, {
     cause,

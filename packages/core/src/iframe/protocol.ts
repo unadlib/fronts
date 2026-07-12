@@ -1,4 +1,5 @@
 import type { ApplicationIdentity, ServiceKey } from '../app/index.js';
+import { stringifyUnknown } from '../errors.js';
 import type { NormalizedAppRef, ResolvedApp } from '../resolver/index.js';
 
 export const FRONTS_IFRAME_PROTOCOL = 'fronts.iframe' as const;
@@ -18,7 +19,9 @@ export function parseIframeCapabilities(value: unknown, label: string): readonly
       capability.length === 0 ||
       forbiddenCapabilityNames.has(capability)
     ) {
-      throw new TypeError(`${label} contains invalid capability "${String(capability)}".`);
+      throw new TypeError(
+        `${label} contains invalid capability "${stringifyUnknown(capability)}".`,
+      );
     }
     capabilities.add(capability);
   }

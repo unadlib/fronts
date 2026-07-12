@@ -1,4 +1,4 @@
-import { FrontsError, frontsErrorCodes, throwIfAborted } from '../errors.js';
+import { FrontsError, frontsErrorCodes, stringifyUnknown, throwIfAborted } from '../errors.js';
 import type { ServiceKey } from '../app/index.js';
 import type { CreateServiceScopeOptions, ServiceScope } from './types.js';
 
@@ -165,11 +165,12 @@ export async function createServiceScope<Services extends object, Key extends Se
         capability.length === 0 ||
         ['__proto__', 'constructor', 'prototype'].includes(capability)
       ) {
+        const description = stringifyUnknown(capability);
         throw new FrontsError(
           frontsErrorCodes.capabilityDenied,
-          `Application "${options.identity.name}" requested invalid capability "${String(capability)}".`,
+          `Application "${options.identity.name}" requested invalid capability "${description}".`,
           {
-            details: { capability: String(capability), reason: 'invalid' },
+            details: { capability: description, reason: 'invalid' },
             phase: 'mount',
           },
         );
