@@ -44,6 +44,25 @@ export {
   throwIfAborted,
 } from './errors.js';
 export type { FrontsErrorCode, FrontsErrorOptions, FrontsPhase } from './errors.js';
+export { FrontsHostImpl, MountedApplicationImpl, createFrontsHost } from './host/index.js';
+export type {
+  AppInstanceState,
+  AppLoadContext,
+  AppLoader,
+  ApplicationInstanceSnapshot,
+  FrontsHost,
+  FrontsHostOptions,
+  HostErrorEvent,
+  HostEvent,
+  HostEventListener,
+  HostResolveOptions,
+  HostStateEvent,
+  LoadedApp,
+  MountAppOptions,
+  MountResolveOptions,
+  MountedApplication,
+  MountedApplicationCallbacks,
+} from './host/index.js';
 export {
   MemoryResolutionCache,
   assertResolvedApp,
