@@ -296,6 +296,9 @@ export class IframeRpcPeer {
   };
 
   async #handleRequest(message: RpcRequestMessage): Promise<void> {
+    if (this.#inflight.has(message.id)) {
+      return;
+    }
     const handler = this.#handlers.get(message.method);
     if (handler === undefined) {
       this.#post({

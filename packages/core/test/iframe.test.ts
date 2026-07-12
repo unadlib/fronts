@@ -253,6 +253,44 @@ describe('secure iframe execution', () => {
     channel.port2.close();
   });
 
+  it('does not dispatch duplicate in-flight iframe RPC request ids', async () => {
+    const channelId = 'duplicate-rpc-id';
+    const channel = new MessageChannel();
+    const peer = new IframeRpcPeer(channel.port1, { channelId });
+    let requestSignal: AbortSignal | undefined;
+    const handler = vi.fn(
+      (_params: unknown, context: { readonly signal: AbortSignal }) =>
+        new Promise<void>(() => {
+          requestSignal = context.signal;
+        }),
+    );
+    peer.handle('local.method', handler);
+    const request = {
+      channelId,
+      id: 'remote:1',
+      method: 'local.method',
+      params: undefined,
+      protocol: FRONTS_IFRAME_PROTOCOL,
+      protocolVersion: FRONTS_IFRAME_PROTOCOL_VERSION,
+      type: 'request',
+    };
+    channel.port2.postMessage(request);
+    channel.port2.postMessage(request);
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+
+    channel.port2.postMessage({
+      channelId,
+      id: request.id,
+      protocol: FRONTS_IFRAME_PROTOCOL,
+      protocolVersion: FRONTS_IFRAME_PROTOCOL_VERSION,
+      type: 'cancel',
+    });
+    await vi.waitFor(() => expect(requestSignal?.aborted).toBe(true));
+
+    peer.close();
+    channel.port2.close();
+  });
+
   it('fails fast for invalid iframe timeout configuration', async () => {
     const channel = new MessageChannel();
     expect(
