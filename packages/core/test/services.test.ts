@@ -43,10 +43,12 @@ describe('capability-scoped host services', () => {
 
   it('applies asynchronous per-application authorization policies', async () => {
     const policy = vi.fn(async ({ capability }) => capability !== 'auth');
+    const dispose = vi.fn(async () => undefined);
 
     await expect(
       createServiceScope({
         capabilities: ['auth'],
+        dispose,
         identity,
         policy,
         services,
@@ -58,6 +60,21 @@ describe('capability-scoped host services', () => {
       }),
     );
     expect(policy).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledOnce();
+  });
+
+  it('rejects inherited and prototype-mutating capability names', async () => {
+    await expect(
+      createServiceScope({
+        capabilities: ['__proto__'],
+        identity,
+        services: services as Services & Record<'__proto__', unknown>,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.capabilityDenied,
+      details: { capability: '__proto__', reason: 'invalid' },
+    });
   });
 
   it('fails closed when a requested service is unavailable', async () => {
@@ -92,6 +109,27 @@ describe('capability-scoped host services', () => {
     expect(() => Object.keys(scope.services)).toThrow(TypeError);
     expect(() => retainedService.go('/after-unmount')).toThrow(TypeError);
     expect(() => retainedMethod('/after-unmount')).toThrow(TypeError);
+  });
+
+  it('disposes an owned service resource exactly once after revoking its facade', async () => {
+    const dispose = vi.fn(async () => undefined);
+    const scope = await createServiceScope({
+      capabilities: ['navigation'],
+      dispose,
+      identity,
+      services,
+      signal: new AbortController().signal,
+    });
+    const retainedMethod = scope.services.navigation.go;
+
+    const first = scope.dispose();
+    const second = scope.dispose();
+    await Promise.all([first, second]);
+
+    expect(first).toBe(second);
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(scope.revoked).toBe(true);
+    expect(() => retainedMethod('/after-dispose')).toThrow(TypeError);
   });
 
   it('revokes capabilities immediately when the application lifetime is aborted', async () => {

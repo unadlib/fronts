@@ -100,9 +100,15 @@ capabilityPolicy: ({ capability, identity }) =>
   capability !== 'navigation' || trustedNavigationApps.has(identity.name);
 ```
 
-The resulting scope exposes only allowed keys. Service objects are proxied and revoked on abort or
-unmount. In iframe mode, the same allowed keys become RPC stubs; the child never receives the
-original host object.
+For identity-, tenant-, deployment-, or trace-bound implementations, configure `createServices`.
+It receives trusted host identity, operation, resolution policy, resolved deployment, declared
+capabilities, and the instance signal, and may return an asynchronous disposer. Static and
+provider services are merged, with provider values taking precedence, before policy evaluation.
+
+The resulting scope exposes only allowed own keys. Prototype-mutating names are rejected. Service
+objects are proxied and revoked immediately on abort or unmount; provider resources are then
+disposed exactly once as lifecycle cleanup proceeds. In iframe mode, the same allowed keys become
+RPC stubs; the child never receives the original host object.
 
 Guidelines:
 
@@ -112,6 +118,7 @@ Guidelines:
 - rate-limit expensive or sensitive methods;
 - never expose raw auth tokens, storage, `fetch`, DOM roots, or a generic `eval/execute` service;
 - log denied capability requests and privileged calls.
+- make providers abort-aware and roll back partial allocation when they throw before returning.
 
 ## Supply-chain checklist
 

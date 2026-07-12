@@ -125,6 +125,41 @@ Declaration is necessary but not sufficient. The host's `capabilityPolicy` evalu
 the concrete application identity. Undeclared or denied services are absent. A service scope is
 revoked on cleanup, so retained method proxies fail rather than continuing to affect the host.
 
+Static `services` remain the simplest host configuration. When a capability must be bound to one
+application instance, use `createServices` as an instance-level provider:
+
+```ts
+const host = createFrontsHost({
+  // resolver, loader, static services ...
+  createServices({ identity, operation, resolved, resolution, capabilities, signal }) {
+    const channel = telemetry.open({
+      app: identity.name,
+      instanceId: identity.instanceId,
+      tenant: resolution.tenant,
+      traceId: operation.traceId,
+      version: resolved.version,
+      signal,
+    });
+
+    return {
+      services: { telemetry: channel },
+      dispose: () => channel.close(),
+    };
+  },
+});
+```
+
+The provider runs once per mount/replace transaction after resolution and application validation.
+Its frozen `capabilities` list contains declarations, not grants. Provider services override static
+services with the same key; the host then applies availability checks and `capabilityPolicy`, and
+only the requested, authorized keys enter the application facade.
+
+Returning the result transfers ownership to the host. `dispose` is called at most once after
+facade revocation, including authorization failure, aborted mount, ordinary unmount, and host
+shutdown. It may be asynchronous; a failure is surfaced as an unmount cleanup failure without
+skipping container disposal. Providers must honor `signal`. If a provider throws before returning
+its result, it still owns rollback of any partially allocated resources.
+
 Prefer narrow intent APIs such as `navigation.go()` and `telemetry.emit()` over ambient objects
 such as `window`, a Redux store, or a generic message bus.
 

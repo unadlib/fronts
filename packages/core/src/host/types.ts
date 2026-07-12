@@ -16,7 +16,7 @@ import type {
   ResolutionPolicyContext,
   ResolvedApp,
 } from '../resolver/index.js';
-import type { CapabilityPolicy, ServiceScope } from '../services/index.js';
+import type { CapabilityPolicy, ServiceProvider, ServiceScope } from '../services/index.js';
 
 export type AppLoadContext = HostOperationContext;
 
@@ -134,6 +134,7 @@ export interface FrontsHostOptions<Source, Services extends object> {
   readonly resolver: AppResolver<Source>;
   readonly loader: AppLoader<Source>;
   readonly services?: Services;
+  readonly createServices?: ServiceProvider<Source, Services>;
   readonly capabilityPolicy?: CapabilityPolicy<Services>;
   readonly containers?: ContainerRegistry | readonly ContainerAdapter[];
   readonly containerLoaders?: Readonly<Record<string, AppLoader<Source>>>;

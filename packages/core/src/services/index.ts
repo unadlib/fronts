@@ -3,5 +3,8 @@ export type {
   CapabilityPolicy,
   CapabilityPolicyContext,
   CreateServiceScopeOptions,
+  ServiceProvider,
+  ServiceProviderContext,
+  ServiceProviderResult,
   ServiceScope,
 } from './types.js';

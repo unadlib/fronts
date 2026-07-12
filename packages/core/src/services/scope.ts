@@ -153,70 +153,102 @@ function createRevocableMembrane(): RevocableMembrane {
 export async function createServiceScope<Services extends object, Key extends ServiceKey<Services>>(
   options: CreateServiceScopeOptions<Services, Key>,
 ): Promise<ServiceScope<Pick<Services, Key>>> {
-  throwIfAborted(options.signal, 'mount');
   const scoped = Object.create(null) as Pick<Services, Key>;
   const membrane = createRevocableMembrane();
 
-  for (const capability of new Set(options.capabilities)) {
+  try {
     throwIfAborted(options.signal, 'mount');
-    if (!(capability in options.services)) {
-      throw new FrontsError(
-        frontsErrorCodes.capabilityDenied,
-        `Application "${options.identity.name}" requested unavailable capability "${capability}".`,
-        {
-          details: { capability, reason: 'unavailable' },
-          phase: 'mount',
-        },
-      );
+    for (const capability of new Set(options.capabilities)) {
+      throwIfAborted(options.signal, 'mount');
+      if (
+        typeof capability !== 'string' ||
+        capability.length === 0 ||
+        ['__proto__', 'constructor', 'prototype'].includes(capability)
+      ) {
+        throw new FrontsError(
+          frontsErrorCodes.capabilityDenied,
+          `Application "${options.identity.name}" requested invalid capability "${String(capability)}".`,
+          {
+            details: { capability: String(capability), reason: 'invalid' },
+            phase: 'mount',
+          },
+        );
+      }
+      if (!Object.prototype.hasOwnProperty.call(options.services, capability)) {
+        throw new FrontsError(
+          frontsErrorCodes.capabilityDenied,
+          `Application "${options.identity.name}" requested unavailable capability "${capability}".`,
+          {
+            details: { capability, reason: 'unavailable' },
+            phase: 'mount',
+          },
+        );
+      }
+
+      const service = options.services[capability];
+      const allowed =
+        options.policy === undefined ||
+        (await options.policy({ capability, identity: options.identity, service }));
+      throwIfAborted(options.signal, 'mount');
+
+      if (!allowed) {
+        throw new FrontsError(
+          frontsErrorCodes.capabilityDenied,
+          `Application "${options.identity.name}" was denied capability "${capability}".`,
+          {
+            details: { capability, reason: 'policy' },
+            phase: 'mount',
+          },
+        );
+      }
+
+      Object.defineProperty(scoped, capability, {
+        enumerable: true,
+        value: membrane.wrap(service),
+        writable: false,
+      });
     }
 
-    const service = options.services[capability];
-    const allowed =
-      options.policy === undefined ||
-      (await options.policy({ capability, identity: options.identity, service }));
-    throwIfAborted(options.signal, 'mount');
+    Object.freeze(scoped);
+    const revocable = Proxy.revocable(scoped, {});
+    let revoked = false;
+    let disposePromise: Promise<void> | undefined;
+    let unlinkAbort: () => void = () => undefined;
 
-    if (!allowed) {
-      throw new FrontsError(
-        frontsErrorCodes.capabilityDenied,
-        `Application "${options.identity.name}" was denied capability "${capability}".`,
-        {
-          details: { capability, reason: 'policy' },
-          phase: 'mount',
-        },
-      );
-    }
+    const revokeScope = (): void => {
+      if (revoked) {
+        return;
+      }
+      revoked = true;
+      unlinkAbort();
+      revocable.revoke();
+      membrane.revoke();
+    };
+    const onAbort = () => revokeScope();
+    options.signal.addEventListener('abort', onAbort, { once: true });
+    unlinkAbort = () => options.signal.removeEventListener('abort', onAbort);
 
-    Object.defineProperty(scoped, capability, {
-      enumerable: true,
-      value: membrane.wrap(service),
-      writable: false,
-    });
-  }
-
-  Object.freeze(scoped);
-  const revocable = Proxy.revocable(scoped, {});
-  let revoked = false;
-  let unlinkAbort: () => void = () => undefined;
-
-  const revokeScope = (): void => {
-    if (revoked) {
-      return;
-    }
-    revoked = true;
-    unlinkAbort();
-    revocable.revoke();
+    return {
+      dispose() {
+        revokeScope();
+        disposePromise ??= (async () => {
+          await options.dispose?.();
+        })();
+        return disposePromise;
+      },
+      get revoked() {
+        return revoked;
+      },
+      revoke: revokeScope,
+      services: revocable.proxy,
+    };
+  } catch (error) {
     membrane.revoke();
-  };
-  const onAbort = () => revokeScope();
-  options.signal.addEventListener('abort', onAbort, { once: true });
-  unlinkAbort = () => options.signal.removeEventListener('abort', onAbort);
-
-  return {
-    get revoked() {
-      return revoked;
-    },
-    revoke: revokeScope,
-    services: revocable.proxy,
-  };
+    try {
+      await options.dispose?.();
+    } catch {
+      // The authorization or cancellation failure remains authoritative.
+    }
+    throw error;
+  }
 }

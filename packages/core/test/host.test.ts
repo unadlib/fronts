@@ -10,6 +10,7 @@ import {
   type AppResolver,
   type FrontsError,
   type HostEvent,
+  type ServiceProviderContext,
 } from '../src/index.js';
 
 interface Source {
@@ -229,8 +230,10 @@ describe('Fronts host runtime', () => {
     });
     const { loader, resolver } = createHarness(app);
     const events: HostEvent<Source>[] = [];
+    const disposeServices = vi.fn(async () => undefined);
     const host = createFrontsHost({
       capabilityPolicy: () => false,
+      createServices: () => ({ dispose: disposeServices, services: {} }),
       loader,
       observer: (event) => events.push(event),
       resolver,
@@ -253,6 +256,148 @@ describe('Fronts host runtime', () => {
       phase: 'mount',
       snapshot: { state: 'failed' },
     });
+    expect(disposeServices).toHaveBeenCalledOnce();
+  });
+
+  it('rejects invalid capability declarations before invoking the service provider', async () => {
+    const app = defineApp<Props, Services>({
+      capabilities: ['__proto__'] as unknown as readonly (keyof Services & string)[],
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+    });
+    const { loader, resolver } = createHarness(app);
+    const createServices = vi.fn(() => ({ services: {} }));
+    const host = createFrontsHost({ createServices, loader, resolver, services });
+
+    await expect(
+      host.mount({
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.capabilityDenied,
+      details: { capability: '__proto__', reason: 'invalid' },
+    });
+    expect(createServices).not.toHaveBeenCalled();
+    expect(app.mount).not.toHaveBeenCalled();
+  });
+
+  it('creates identity-bound services per instance and disposes each scope independently', async () => {
+    const serviceFacades: Services['telemetry'][] = [];
+    const serviceCalls: string[] = [];
+    const disposers = new Map<string, ReturnType<typeof vi.fn>>();
+    const providerContexts: ServiceProviderContext<Source, Services>[] = [];
+    const app = defineApp<Props, Services>({
+      capabilities: ['navigation', 'telemetry'],
+      mount({ identity, services }) {
+        serviceFacades.push(services.telemetry);
+        services.navigation.go(`/${identity.instanceId}`);
+        services.telemetry.emit('mounted');
+        return { unmount: vi.fn() };
+      },
+    });
+    const { loader, resolver } = createHarness(app);
+    const staticNavigation: Services['navigation'] = { go: vi.fn() };
+    const staticTelemetry: Services['telemetry'] = { emit: vi.fn() };
+    const host = createFrontsHost<Source, Services>({
+      createServices(context) {
+        providerContexts.push(context);
+        const dispose = vi.fn(async () => undefined);
+        disposers.set(context.identity.instanceId, dispose);
+        return {
+          dispose,
+          services: {
+            telemetry: {
+              emit: (name) => {
+                serviceCalls.push(`${context.identity.instanceId}:${name}`);
+              },
+            },
+          },
+        };
+      },
+      hostId: 'contextual-services-host',
+      loader,
+      resolver,
+      services: {
+        navigation: staticNavigation,
+        telemetry: staticTelemetry,
+      },
+    });
+
+    const first = await host.mount({
+      instanceId: 'checkout-a',
+      operationId: 'mount-a',
+      props: { value: 'a' },
+      ref: { name: 'checkout' },
+      resolve: { tenant: 'acme' },
+      target: document.createElement('main'),
+      traceId: 'trace-a',
+    });
+    const second = await host.mount({
+      instanceId: 'checkout-b',
+      operationId: 'mount-b',
+      props: { value: 'b' },
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+      traceId: 'trace-b',
+    });
+
+    expect(serviceCalls).toEqual(['checkout-a:mounted', 'checkout-b:mounted']);
+    expect(staticTelemetry.emit).not.toHaveBeenCalled();
+    expect(serviceFacades[0]).not.toBe(serviceFacades[1]);
+    expect(providerContexts[0]).toMatchObject({
+      capabilities: ['navigation', 'telemetry'],
+      hostId: 'contextual-services-host',
+      identity: { instanceId: 'checkout-a', traceId: 'trace-a', version: '2.0.0' },
+      operation: { intent: 'mount', operationId: 'mount-a', traceId: 'trace-a' },
+      resolution: { tenant: 'acme' },
+      resolved: { version: '2.0.0' },
+    });
+    expect(providerContexts[0]?.identity).toBe(providerContexts[0]?.operation.identity);
+    expect(providerContexts[0]?.signal).toBe(providerContexts[0]?.operation.signal);
+    expect(Object.isFrozen(providerContexts[0]?.capabilities)).toBe(true);
+    expect(Object.isFrozen(providerContexts[0]?.resolution)).toBe(true);
+    expect(staticNavigation.go).toHaveBeenCalledWith('/checkout-a');
+    expect(staticNavigation.go).toHaveBeenCalledWith('/checkout-b');
+    await first.unmount();
+    expect(disposers.get('checkout-a')).toHaveBeenCalledOnce();
+    expect(disposers.get('checkout-b')).not.toHaveBeenCalled();
+    await second.unmount();
+    expect(disposers.get('checkout-b')).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces service disposal failures while still releasing the application container', async () => {
+    const disposalFailure = new Error('telemetry channel cleanup failed');
+    const app = defineApp<Props, Services>({
+      capabilities: ['telemetry'],
+      mount: () => ({ unmount: vi.fn() }),
+    });
+    const { loader, resolver } = createHarness(app);
+    const target = document.createElement('main');
+    const host = createFrontsHost({
+      createServices: () => ({
+        dispose: () => {
+          throw disposalFailure;
+        },
+        services: { telemetry: { emit: vi.fn() } },
+      }),
+      loader,
+      resolver,
+      services,
+    });
+    const instance = await host.mount({
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      target,
+    });
+
+    await expect(instance.unmount()).rejects.toMatchObject({
+      code: frontsErrorCodes.lifecycleFailed,
+      phase: 'unmount',
+    });
+    expect(instance.state).toBe('failed');
+    expect(target.children).toHaveLength(0);
+    expect(host.get(instance.identity.instanceId)).toBeUndefined();
   });
 
   it('delegates preload without mounting the application', async () => {
@@ -333,7 +478,14 @@ describe('Fronts host runtime', () => {
   it('automatically unmounts when the caller lifetime is aborted', async () => {
     const unmount = vi.fn();
     const app = defineApp<Props, Services>({ mount: () => ({ unmount }) });
-    const { host } = createHarness(app);
+    const { loader, resolver } = createHarness(app);
+    const disposeServices = vi.fn(async () => undefined);
+    const host = createFrontsHost({
+      createServices: () => ({ dispose: disposeServices, services: {} }),
+      loader,
+      resolver,
+      services,
+    });
     const controller = new AbortController();
     const instance = await host.mount({
       props: { value: 'x' },
@@ -345,6 +497,7 @@ describe('Fronts host runtime', () => {
     controller.abort('navigation');
     await vi.waitFor(() => expect(instance.state).toBe('destroyed'));
     expect(unmount).toHaveBeenCalledOnce();
+    expect(disposeServices).toHaveBeenCalledOnce();
   });
 
   it('rejects duplicate instance identities and operations after host disposal', async () => {

@@ -105,5 +105,8 @@ export type {
   CapabilityPolicy,
   CapabilityPolicyContext,
   CreateServiceScopeOptions,
+  ServiceProvider,
+  ServiceProviderContext,
+  ServiceProviderResult,
   ServiceScope,
 } from './services/index.js';

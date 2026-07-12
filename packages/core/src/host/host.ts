@@ -30,7 +30,11 @@ import type {
   DetachedHostOperationContext,
   HostOperationIntent,
 } from '../operation/index.js';
-import { createServiceScope, type ServiceScope } from '../services/index.js';
+import {
+  createServiceScope,
+  type ServiceProviderResult,
+  type ServiceScope,
+} from '../services/index.js';
 import { MountedApplicationImpl } from './instance.js';
 import type {
   AppInstanceState,
@@ -66,6 +70,11 @@ interface ApplicationRecord<Source> {
   deploymentSlot?: HTMLElement;
 }
 
+interface ServiceProvision<Services extends object> {
+  readonly services: Services;
+  dispose(): Promise<void>;
+}
+
 let hostSequence = 0;
 
 function createHostId(): string {
@@ -83,6 +92,78 @@ function normalizeRuntimeId(value: unknown, label: string): string {
     });
   }
   return value.trim();
+}
+
+function normalizeDeclaredCapabilities<Services extends object>(
+  value: unknown,
+  identity: ApplicationIdentity,
+): readonly ServiceKey<Services>[] {
+  if (value === undefined) {
+    return Object.freeze([]);
+  }
+  if (!Array.isArray(value)) {
+    throw new FrontsError(
+      frontsErrorCodes.capabilityDenied,
+      `Application "${identity.name}" must declare capabilities as an array.`,
+      { details: { reason: 'invalid' }, phase: 'mount' },
+    );
+  }
+
+  const capabilities = new Set<ServiceKey<Services>>();
+  for (const capability of value as unknown[]) {
+    if (
+      typeof capability !== 'string' ||
+      capability.length === 0 ||
+      ['__proto__', 'constructor', 'prototype'].includes(capability)
+    ) {
+      throw new FrontsError(
+        frontsErrorCodes.capabilityDenied,
+        `Application "${identity.name}" requested invalid capability "${String(capability)}".`,
+        {
+          details: { capability: String(capability), reason: 'invalid' },
+          phase: 'mount',
+        },
+      );
+    }
+    capabilities.add(capability as ServiceKey<Services>);
+  }
+  return Object.freeze([...capabilities]);
+}
+
+function assertServiceProviderResult<Services extends object>(
+  value: unknown,
+): asserts value is ServiceProviderResult<Services> {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    typeof (value as Partial<ServiceProviderResult<Services>>).services !== 'object' ||
+    (value as Partial<ServiceProviderResult<Services>>).services === null ||
+    Array.isArray((value as Partial<ServiceProviderResult<Services>>).services) ||
+    ((value as Partial<ServiceProviderResult<Services>>).dispose !== undefined &&
+      typeof (value as Partial<ServiceProviderResult<Services>>).dispose !== 'function')
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.mountFailed,
+      'createServices() must return a services object and an optional dispose function.',
+      { phase: 'mount' },
+    );
+  }
+}
+
+function createServiceDisposer(value: unknown): () => Promise<void> {
+  let disposePromise: Promise<void> | undefined;
+  return () => {
+    disposePromise ??= (async () => {
+      if (typeof value !== 'object' || value === null) {
+        return;
+      }
+      const dispose = Reflect.get(value, 'dispose') as unknown;
+      if (typeof dispose === 'function') {
+        await Reflect.apply(dispose, value, []);
+      }
+    })();
+    return disposePromise;
+  };
 }
 
 function isTerminalState(state: AppInstanceState): boolean {
@@ -527,13 +608,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     let phase: FrontsPhase = 'resolve';
     let container: Awaited<ReturnType<ContainerRegistry['prepare']>> | undefined;
     let appHandle: AppHandle<Props> | undefined;
+    let provision: ServiceProvision<Services> | undefined;
     let scope:
       Awaited<ReturnType<typeof createServiceScope<Services, ServiceKey<Services>>>> | undefined;
 
     try {
-      const resolveOptions = options.resolve ?? {};
+      const resolution = Object.freeze({ ...(options.resolve ?? {}) });
       const resolved = await raceWithAbort(
-        this.#options.resolver.resolve(ref, this.#resolveContext(resolveOptions, operation)),
+        this.#options.resolver.resolve(ref, this.#resolveContext(resolution, operation)),
         controller.signal,
         'resolve',
       );
@@ -554,13 +636,19 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const app = loaded.app;
 
       phase = 'mount';
+      const capabilities = normalizeDeclaredCapabilities<Services>(
+        app.capabilities,
+        record.identity,
+      );
+      provision = await this.#provideServices(capabilities, resolution, record.resolved, operation);
       scope = await createServiceScope({
-        capabilities: app.capabilities ?? [],
+        capabilities,
+        dispose: provision.dispose,
         identity: record.identity,
         ...(this.#options.capabilityPolicy === undefined
           ? {}
           : { policy: this.#options.capabilityPolicy }),
-        services: this.#services,
+        services: provision.services,
         signal: controller.signal,
       });
 
@@ -642,7 +730,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           // The original mount failure remains authoritative.
         }
       }
-      scope?.revoke();
+      try {
+        if (scope === undefined) {
+          await provision?.dispose();
+        } else {
+          await scope.dispose();
+        }
+      } catch {
+        // The original mount failure remains authoritative.
+      }
       if (container !== undefined) {
         try {
           await container.dispose();
@@ -657,6 +753,48 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       this.#transition(record, terminal, phase);
       this.#reportError(record, failure, phase);
       throw failure;
+    }
+  }
+
+  async #provideServices(
+    capabilities: readonly ServiceKey<Services>[],
+    resolution: Readonly<ResolutionPolicyContext>,
+    resolved: ResolvedApp<Source>,
+    operation: ApplicationHostOperationContext,
+  ): Promise<ServiceProvision<Services>> {
+    const provider = this.#options.createServices;
+    if (provider === undefined) {
+      return { dispose: async () => undefined, services: this.#services };
+    }
+
+    throwIfAborted(operation.signal, 'mount');
+    const result: unknown = await provider({
+      capabilities,
+      hostId: this.id,
+      identity: operation.identity,
+      operation,
+      resolution,
+      resolved,
+      signal: operation.signal,
+    });
+    const dispose = createServiceDisposer(result);
+
+    try {
+      assertServiceProviderResult<Services>(result);
+      throwIfAborted(operation.signal, 'mount');
+      const services = Object.assign(
+        Object.create(null) as Services,
+        this.#services,
+        result.services,
+      );
+      return { dispose, services: Object.freeze(services) };
+    } catch (error) {
+      try {
+        await dispose();
+      } catch {
+        // The provider/abort failure remains authoritative.
+      }
+      throw error;
     }
   }
 

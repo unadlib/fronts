@@ -149,7 +149,11 @@ export class MountedApplicationImpl<
       } catch (error) {
         errors.push(error);
       }
-      this.#resources.scope.revoke();
+      try {
+        await this.#resources.scope.dispose();
+      } catch (error) {
+        errors.push(error);
+      }
       try {
         await this.#resources.container.dispose();
       } catch (error) {

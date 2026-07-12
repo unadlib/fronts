@@ -99,8 +99,8 @@ Expected policy:
 | Resolution/registry failure           | Use configured cached/fallback resolver or reject mount                    |
 | MF load failure                       | Roll back acquired resources; current replacement target remains active    |
 | Invalid application protocol          | Reject before mount                                                        |
-| Container preparation failure         | Revoke services and reject                                                 |
-| Mount/ready failure or timeout        | Unmount if possible, dispose container, revoke scope                       |
+| Container preparation failure         | Revoke services, dispose provider resources, and reject                    |
+| Mount/ready failure or timeout        | Unmount if possible, dispose service scope and container                   |
 | Update failure                        | Instance remains mounted but failure is surfaced; product chooses recovery |
 | Replacement staging failure           | Destroy staging and retain current instance                                |
 | Previous cleanup failure after commit | Return `previousCleanupError`; new instance remains committed              |

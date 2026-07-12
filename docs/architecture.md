@@ -117,7 +117,8 @@ The host executes these phases in order:
 2. Resolve the deployment.
 3. Choose the default or container-specific loader and load the module.
 4. Validate protocol name/version and application shape.
-5. Authorize declared capabilities and create a revocable service scope.
+5. Create instance-bound services when configured, authorize declared capabilities, and create a
+   revocable service scope.
 6. Prepare the container.
 7. Call `mount()` with immutable props, scoped services, target, identity, and abort signal.
 8. Wait for the application `ready` promise with a deadline.
@@ -147,6 +148,7 @@ boundary without mutating MF runtime caches behind an active application.
 - Implement `AppLoader` for a non-MF transport.
 - Implement `ContainerAdapter` for another execution target.
 - Subscribe to `HostEvent` and map it to OpenTelemetry or an internal telemetry pipeline.
+- Use `createServices` for instance-bound capability implementations and deterministic cleanup.
 - Use `capabilityPolicy` for tenant, identity, or deployment-specific authorization.
 
 Extension points are explicit objects, not process-wide globals.
