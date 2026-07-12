@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  createDomContainer,
   createFrontsHost,
   defineApp,
   frontsErrorCodes,
@@ -44,15 +45,19 @@ function createHarness(
     load: vi.fn<AppLoader<Source>['load']>().mockResolvedValue({ default: app }),
     preload: vi.fn<NonNullable<AppLoader<Source>['preload']>>().mockResolvedValue(undefined),
   };
+  const domContainer = createDomContainer();
+  const containerPrepare = vi.fn(domContainer.prepare);
   const events: HostEvent<Source>[] = [];
   const host = createFrontsHost({
+    containers: [{ ...domContainer, prepare: containerPrepare }],
+    hostId: 'host-test',
     loader,
     observer: (event) => events.push(event),
     resolver,
     services,
   });
 
-  return { app, events, host, loader, resolved, resolver };
+  return { app, containerPrepare, events, host, loader, resolved, resolver };
 }
 
 describe('Fronts host runtime', () => {
@@ -63,14 +68,16 @@ describe('Fronts host runtime', () => {
       capabilities: ['navigation'],
       mount,
     });
-    const { events, host, loader, resolver } = createHarness(app);
+    const { containerPrepare, events, host, loader, resolver } = createHarness(app);
     const target = document.createElement('main');
 
     const instance = await host.mount({
       instanceId: 'checkout-primary',
+      operationId: 'checkout-mount',
       props: { value: 'first' },
       ref: { name: 'checkout', range: '^2' },
       target,
+      traceId: 'checkout-trace',
     });
 
     expect(instance.state).toBe('ready');
@@ -81,6 +88,27 @@ describe('Fronts host runtime', () => {
     });
     expect(resolver.resolve).toHaveBeenCalledOnce();
     expect(loader.load).toHaveBeenCalledOnce();
+    expect(resolver.resolve.mock.calls[0]?.[1].operation).toMatchObject({
+      hostId: 'host-test',
+      identity: { instanceId: 'checkout-primary', name: 'checkout' },
+      intent: 'mount',
+      operationId: 'checkout-mount',
+      traceId: 'checkout-trace',
+    });
+    expect(loader.load.mock.calls[0]?.[1]).toMatchObject({
+      hostId: 'host-test',
+      identity: { instanceId: 'checkout-primary', name: 'checkout', version: '2.0.0' },
+      intent: 'mount',
+      operationId: 'checkout-mount',
+      traceId: 'checkout-trace',
+    });
+    expect(containerPrepare.mock.calls[0]?.[0].operation).toMatchObject({
+      hostId: 'host-test',
+      identity: { instanceId: 'checkout-primary', name: 'checkout', version: '2.0.0' },
+      intent: 'mount',
+      operationId: 'checkout-mount',
+      traceId: 'checkout-trace',
+    });
     expect(mount).toHaveBeenCalledWith(
       expect.objectContaining({
         props: { value: 'first' },
@@ -89,7 +117,12 @@ describe('Fronts host runtime', () => {
       }),
     );
     expect(host.get('checkout-primary')).toBe(instance);
-    expect(host.inspect()[0]).toMatchObject({ containerType: 'dom', state: 'ready' });
+    expect(host.inspect()[0]).toMatchObject({
+      containerType: 'dom',
+      intent: 'mount',
+      operationId: 'checkout-mount',
+      state: 'ready',
+    });
     expect(
       events.filter((event) => event.kind === 'state').map((event) => event.snapshot.state),
     ).toEqual(['resolving', 'loading', 'preparing', 'mounting', 'ready']);
@@ -223,12 +256,51 @@ describe('Fronts host runtime', () => {
   });
 
   it('delegates preload without mounting the application', async () => {
-    const { app, host, loader } = createHarness();
-    const resolved = await host.preload({ name: 'checkout' });
+    const { app, host, loader, resolver } = createHarness();
+    const resolved = await host.preload(
+      { name: 'checkout' },
+      { operationId: 'checkout-preload', traceId: 'navigation-trace' },
+    );
 
     expect(resolved.version).toBe('2.0.0');
     expect(loader.preload).toHaveBeenCalledOnce();
+    expect(resolver.resolve.mock.calls.at(-1)?.[1].operation).toMatchObject({
+      intent: 'preload',
+      operationId: 'checkout-preload',
+      traceId: 'navigation-trace',
+    });
+    expect(loader.preload.mock.calls[0]?.[1]).toMatchObject({
+      intent: 'preload',
+      operationId: 'checkout-preload',
+      traceId: 'navigation-trace',
+    });
     expect(loader.load).not.toHaveBeenCalled();
+    expect(app.mount).not.toHaveBeenCalled();
+  });
+
+  it('correlates direct loads without inventing an application identity', async () => {
+    const { app, host, loader, resolver } = createHarness();
+
+    const loaded = await host.load(
+      { name: 'checkout' },
+      { operationId: 'checkout-load', traceId: 'request-trace' },
+    );
+
+    expect(loaded.app).toBe(app);
+    expect(resolver.resolve.mock.calls[0]?.[1].operation).toMatchObject({
+      hostId: 'host-test',
+      intent: 'load',
+      operationId: 'checkout-load',
+      traceId: 'request-trace',
+    });
+    expect(resolver.resolve.mock.calls[0]?.[1].operation).not.toHaveProperty('identity');
+    expect(loader.load.mock.calls[0]?.[1]).toMatchObject({
+      hostId: 'host-test',
+      intent: 'load',
+      operationId: 'checkout-load',
+      traceId: 'request-trace',
+    });
+    expect(loader.load.mock.calls[0]?.[1]).not.toHaveProperty('identity');
     expect(app.mount).not.toHaveBeenCalled();
   });
 

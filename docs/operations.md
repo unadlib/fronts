@@ -6,6 +6,30 @@ Every host has a `hostId`; every application has an `instanceId` and `traceId`. 
 monotonic sequence number, timestamp, current snapshot, and state duration. Errors additionally
 carry a stable Fronts error code and phase.
 
+Every public host action also creates one immutable operation envelope. The same `operationId`,
+`hostId`, `traceId`, intent, cancellation signal, and—when an application instance exists—trusted
+identity flow through the resolver, loader, and container extension boundaries. Callers may supply
+`operationId`/`traceId`, or let the host create them.
+
+```ts
+const deployment = await host.preload(
+  { name: 'checkout', channel: 'canary' },
+  { operationId: 'navigation:42:preload', traceId: 'navigation:42' },
+);
+```
+
+The intent is one of `resolve`, `load`, `preload`, `mount`, or `replace`. Resolve/load/preload are
+not application instances, so their operation context deliberately has no `identity`; mount and
+replace contexts have a required identity and trace. Resolver policy fields remain in
+`ResolveContext`, while its `operation` property carries correlation data. `AppLoader` receives the
+operation context directly, and `ContainerPrepareContext.operation` is the application-scoped
+variant. This composition keeps phase-specific inputs separate without losing end-to-end
+correlation.
+
+Treat identity in these contexts as host-issued authority. Do not accept an application-supplied
+identity for capability authorization or audit attribution. `operationId` identifies one host
+action; `traceId` may intentionally link several actions, such as preload followed by mount.
+
 Phases are deliberately application-oriented:
 
 - resolve
@@ -141,7 +165,7 @@ gap between bundler fixtures and production behavior.
 Record these fields together when available:
 
 ```text
-hostId, traceId, instanceId, app name, resolved version, expose,
+hostId, operationId, operation intent, traceId, instanceId, app name, resolved version, expose,
 container type, registry deploymentId/policy revision,
 MF instance name, MF remote name/entry, Fronts phase/error code
 ```

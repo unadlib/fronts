@@ -7,6 +7,7 @@ import {
   createShadowContainer,
   frontsErrorCodes,
   type ApplicationIdentity,
+  type ApplicationHostOperationContext,
   type ContainerAdapter,
   type FrontsError,
 } from '../src/index.js';
@@ -17,10 +18,28 @@ const identity: ApplicationIdentity = {
   version: '2.0.0',
 };
 
+function createOperationContext(signal = new AbortController().signal): {
+  operation: ApplicationHostOperationContext;
+  signal: AbortSignal;
+} {
+  return {
+    operation: {
+      hostId: 'container-test-host',
+      identity,
+      intent: 'mount',
+      operationId: 'container-test-operation',
+      signal,
+      traceId: 'container-test-trace',
+    },
+    signal,
+  };
+}
+
 describe('application containers', () => {
   it('creates an owned DOM boundary and disposes it idempotently', async () => {
     const parent = document.createElement('main');
     const prepared = await createDomContainer().prepare({
+      ...createOperationContext(),
       identity,
       request: {
         attributes: { 'aria-label': 'Checkout' },
@@ -28,7 +47,6 @@ describe('application containers', () => {
         tagName: 'section',
         type: 'dom',
       },
-      signal: new AbortController().signal,
       target: parent,
     });
 
@@ -47,9 +65,9 @@ describe('application containers', () => {
   it('creates a real ShadowRoot while keeping an owned host boundary', async () => {
     const parent = document.createElement('main');
     const prepared = await createShadowContainer().prepare({
+      ...createOperationContext(),
       identity,
       request: { delegatesFocus: true, mode: 'open', type: 'shadow' },
-      signal: new AbortController().signal,
       target: parent,
     });
 
@@ -68,9 +86,9 @@ describe('application containers', () => {
 
     expect(() =>
       createDomContainer().prepare({
+        ...createOperationContext(controller.signal),
         identity,
         request: { type: 'dom' },
-        signal: controller.signal,
         target: parent,
       }),
     ).toThrowError(
@@ -99,9 +117,9 @@ describe('application containers', () => {
     expect(registry.has('native-shell')).toBe(true);
     await expect(
       registry.prepare({
+        ...createOperationContext(),
         identity,
         request: { type: 'native-shell' },
-        signal: new AbortController().signal,
         target: parent,
       }),
     ).resolves.toMatchObject({ type: 'native-shell' });

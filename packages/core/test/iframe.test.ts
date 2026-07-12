@@ -7,6 +7,7 @@ import {
   getFrontsApp,
   normalizeAppRef,
   type AppLoader,
+  type ApplicationHostOperationContext,
   type ApplicationIdentity,
   type FrontsError,
   type ResolvedApp,
@@ -35,14 +36,28 @@ interface Services {
 const identity: ApplicationIdentity = {
   instanceId: 'checkout-frame',
   name: 'checkout',
+  traceId: 'checkout-frame-trace',
   version: '2.0.0',
 };
+
+function createOperation(signal = new AbortController().signal): ApplicationHostOperationContext {
+  return {
+    hostId: 'iframe-test-host',
+    identity,
+    intent: 'mount',
+    operationId: 'iframe-test-operation',
+    signal,
+    traceId: 'checkout-frame-trace',
+  };
+}
 
 describe('secure iframe execution', () => {
   it('creates an origin-bound iframe container with an isolated channel', async () => {
     const target = document.createElement('main');
+    const operation = createOperation();
     const prepared = await createIframeContainer().prepare({
       identity,
+      operation,
       request: {
         sandbox: ['allow-scripts'],
         src: 'https://frame.example.test/app',
@@ -50,7 +65,7 @@ describe('secure iframe execution', () => {
         title: 'Checkout',
         type: 'iframe',
       },
-      signal: new AbortController().signal,
+      signal: operation.signal,
       target,
     });
     const iframe = prepared.element as HTMLIFrameElement;
@@ -70,15 +85,17 @@ describe('secure iframe execution', () => {
   });
 
   it('does not grant same-origin authority by default', async () => {
+    const operation = createOperation();
     const prepared = await createIframeContainer().prepare({
       identity,
+      operation,
       request: {
         src: 'https://frame.example.test/app',
         targetOrigin: 'https://frame.example.test',
         title: 'Checkout',
         type: 'iframe',
       },
-      signal: new AbortController().signal,
+      signal: operation.signal,
       target: document.createElement('main'),
     });
     const iframe = prepared.element as HTMLIFrameElement;
@@ -90,18 +107,21 @@ describe('secure iframe execution', () => {
 
   it('forbids wildcard and mismatched iframe origins', () => {
     const target = document.createElement('main');
-    const prepare = (targetOrigin: string) =>
-      createIframeContainer().prepare({
+    const prepare = (targetOrigin: string) => {
+      const operation = createOperation();
+      return createIframeContainer().prepare({
         identity,
+        operation,
         request: {
           src: 'https://frame.example.test/app',
           targetOrigin,
           title: 'Checkout',
           type: 'iframe',
         },
-        signal: new AbortController().signal,
+        signal: operation.signal,
         target,
       });
+    };
 
     expect(() => prepare('*')).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
@@ -245,8 +265,9 @@ describe('secure iframe execution', () => {
       handshakeTimeoutMs: 100,
       requestTimeoutMs: 100,
     });
+    const proxyOperation = createOperation();
     const proxyApp = getFrontsApp<Props, Services>(
-      await proxyLoader.load(resolved, { signal: new AbortController().signal }),
+      await proxyLoader.load(resolved, proxyOperation),
     );
     const controller = new AbortController();
     const handle = await proxyApp.mount({

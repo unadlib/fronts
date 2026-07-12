@@ -21,9 +21,15 @@ import {
   assertResolvedApp,
   normalizeAppRef,
   type NormalizedAppRef,
+  type ResolutionPolicyContext,
   type ResolveContext,
   type ResolvedApp,
 } from '../resolver/index.js';
+import type {
+  ApplicationHostOperationContext,
+  DetachedHostOperationContext,
+  HostOperationIntent,
+} from '../operation/index.js';
 import { createServiceScope, type ServiceScope } from '../services/index.js';
 import { MountedApplicationImpl } from './instance.js';
 import type {
@@ -45,6 +51,8 @@ import { asFrontsError, linkAbortSignal, raceWithAbort, waitUntilReady } from '.
 
 interface ApplicationRecord<Source> {
   identity: ApplicationIdentity;
+  readonly intent: ApplicationHostOperationContext['intent'];
+  readonly operationId: string;
   readonly ref: NormalizedAppRef;
   state: AppInstanceState;
   readonly createdAt: number;
@@ -157,6 +165,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   readonly #now: () => number;
   readonly #readyTimeoutMs: number;
   #instanceSequence = 0;
+  #operationSequence = 0;
   #eventSequence = 0;
   #disposed = false;
 
@@ -183,25 +192,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     const normalized = normalizeAppRef(ref);
     const controller = new AbortController();
     const unlink = linkAbortSignal(options.signal, controller);
+    const operation = this.#createDetachedOperation(
+      'resolve',
+      normalized,
+      controller.signal,
+      options,
+    );
 
     try {
-      const result = await raceWithAbort(
-        this.#options.resolver.resolve(
-          normalized,
-          this.#resolveContext(options, controller.signal),
-        ),
-        controller.signal,
-        'resolve',
-      );
-      assertResolvedApp<Source>(result, normalized);
-      return { ...result, ref: normalized };
-    } catch (error) {
-      throw asFrontsError(
-        error,
-        frontsErrorCodes.resolutionFailed,
-        `Failed to resolve application "${normalized.name}".`,
-        'resolve',
-      );
+      return await this.#resolveResolved(normalized, options, operation);
     } finally {
       unlink();
     }
@@ -211,11 +210,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     ref: Parameters<FrontsHost<Source, Services>['load']>[0],
     options: HostResolveOptions = {},
   ): Promise<LoadedApp<Props, Services, Source>> {
-    const resolved = await this.resolve(ref, options);
+    this.#assertAvailable();
+    const normalized = normalizeAppRef(ref);
     const controller = new AbortController();
     const unlink = linkAbortSignal(options.signal, controller);
+    const operation = this.#createDetachedOperation('load', normalized, controller.signal, options);
     try {
-      return await this.#loadResolved<Props>(resolved, controller.signal);
+      const resolved = await this.#resolveResolved(normalized, options, operation);
+      return await this.#loadResolved<Props>(resolved, operation);
     } finally {
       unlink();
     }
@@ -225,15 +227,23 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     ref: Parameters<FrontsHost<Source, Services>['preload']>[0],
     options: HostResolveOptions = {},
   ): Promise<ResolvedApp<Source>> {
-    const resolved = await this.resolve(ref, options);
+    this.#assertAvailable();
+    const normalized = normalizeAppRef(ref);
     const controller = new AbortController();
     const unlink = linkAbortSignal(options.signal, controller);
+    const operation = this.#createDetachedOperation(
+      'preload',
+      normalized,
+      controller.signal,
+      options,
+    );
     try {
+      const resolved = await this.#resolveResolved(normalized, options, operation);
       if (this.#options.loader.preload === undefined) {
-        await this.#loadResolved(resolved, controller.signal);
+        await this.#loadResolved(resolved, operation);
       } else {
         await raceWithAbort(
-          this.#options.loader.preload(resolved, { signal: controller.signal }),
+          this.#options.loader.preload(resolved, operation),
           controller.signal,
           'load',
         );
@@ -243,7 +253,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       throw asFrontsError(
         error,
         frontsErrorCodes.loadFailed,
-        `Failed to preload application "${resolved.ref.name}".`,
+        `Failed to preload application "${normalized.name}".`,
         'load',
       );
     } finally {
@@ -255,7 +265,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     options: MountAppOptions<Props, Request>,
   ): Promise<MountedApplication<Props, Source>> {
     this.#assertAvailable();
-    const task = this.#mount(options);
+    return this.#scheduleMount(options, 'mount');
+  }
+
+  #scheduleMount<Props, Request extends ContainerRequest>(
+    options: MountAppOptions<Props, Request>,
+    intent: ApplicationHostOperationContext['intent'],
+  ): Promise<MountedApplication<Props, Source>> {
+    const task = this.#mount(options, intent);
     this.#pending.add(task);
     void task.finally(() => this.#pending.delete(task)).catch(() => undefined);
     return task;
@@ -301,7 +318,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     try {
       let replacement: MountedApplication<Props, Source> | undefined;
       try {
-        replacement = await this.mount({ ...options, target: slot });
+        replacement = await this.#scheduleMount({ ...options, target: slot }, 'replace');
         if (options.signal !== undefined) {
           throwIfAborted(options.signal, 'ready');
         }
@@ -457,6 +474,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
   async #mount<Props, Request extends ContainerRequest>(
     options: MountAppOptions<Props, Request>,
+    intent: ApplicationHostOperationContext['intent'],
   ): Promise<MountedApplication<Props, Source>> {
     const ref = normalizeAppRef(options.ref);
     const instanceId = options.instanceId ?? this.#createInstanceId(ref);
@@ -479,10 +497,25 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         `${this.id}:${instanceId}`,
       'traceId',
     );
+    const initialIdentity: ApplicationIdentity = {
+      expose: ref.expose,
+      instanceId,
+      name: ref.name,
+      traceId,
+    };
+    let operation = this.#createApplicationOperation(
+      intent,
+      ref,
+      initialIdentity,
+      controller.signal,
+      options.operationId,
+    );
     const record: ApplicationRecord<Source> = {
       controller,
       createdAt: now,
-      identity: { expose: ref.expose, instanceId, name: ref.name, traceId },
+      identity: initialIdentity,
+      intent,
+      operationId: operation.operationId,
       ref,
       state: 'resolving',
       updatedAt: now,
@@ -500,10 +533,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     try {
       const resolveOptions = options.resolve ?? {};
       const resolved = await raceWithAbort(
-        this.#options.resolver.resolve(
-          ref,
-          this.#resolveContext(resolveOptions, controller.signal),
-        ),
+        this.#options.resolver.resolve(ref, this.#resolveContext(resolveOptions, operation)),
         controller.signal,
         'resolve',
       );
@@ -516,10 +546,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         traceId,
         ...(resolved.version === undefined ? {} : { version: resolved.version }),
       };
+      operation = { ...operation, identity: record.identity };
 
       phase = 'load';
       this.#transition(record, 'loading', phase);
-      const loaded = await this.#loadResolved<Props>(record.resolved, controller.signal, loader);
+      const loaded = await this.#loadResolved<Props>(record.resolved, operation, loader);
       const app = loaded.app;
 
       phase = 'mount';
@@ -538,6 +569,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       container = await raceWithAbort(
         this.#containers.prepare({
           identity: record.identity,
+          operation,
           request: containerRequest,
           signal: controller.signal,
           target: options.target,
@@ -630,11 +662,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
   async #loadResolved<Props>(
     resolved: ResolvedApp<Source>,
-    signal: AbortSignal,
+    operation: ApplicationHostOperationContext | DetachedHostOperationContext,
     loader = this.#options.loader,
   ): Promise<LoadedApp<Props, Services, Source>> {
     try {
-      const loaded = await raceWithAbort(loader.load(resolved, { signal }), signal, 'load');
+      const loaded = await raceWithAbort(
+        loader.load(resolved, operation),
+        operation.signal,
+        'load',
+      );
       return { app: getFrontsApp<Props, Services>(loaded), resolved };
     } catch (error) {
       throw asFrontsError(
@@ -646,14 +682,89 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
   }
 
-  #resolveContext(options: HostResolveOptions, signal: AbortSignal): ResolveContext {
+  async #resolveResolved(
+    ref: NormalizedAppRef,
+    options: ResolutionPolicyContext,
+    operation: ApplicationHostOperationContext | DetachedHostOperationContext,
+  ): Promise<ResolvedApp<Source>> {
+    try {
+      const result = await raceWithAbort(
+        this.#options.resolver.resolve(ref, this.#resolveContext(options, operation)),
+        operation.signal,
+        'resolve',
+      );
+      assertResolvedApp<Source>(result, ref);
+      return { ...result, ref };
+    } catch (error) {
+      throw asFrontsError(
+        error,
+        frontsErrorCodes.resolutionFailed,
+        `Failed to resolve application "${ref.name}".`,
+        'resolve',
+      );
+    }
+  }
+
+  #resolveContext(
+    options: ResolutionPolicyContext,
+    operation: ApplicationHostOperationContext | DetachedHostOperationContext,
+  ): ResolveContext {
     return {
-      signal,
+      operation,
+      signal: operation.signal,
       ...(options.environment === undefined ? {} : { environment: options.environment }),
       ...(options.tenant === undefined ? {} : { tenant: options.tenant }),
       ...(options.cohort === undefined ? {} : { cohort: options.cohort }),
       ...(options.metadata === undefined ? {} : { metadata: options.metadata }),
     };
+  }
+
+  #createDetachedOperation(
+    intent: DetachedHostOperationContext['intent'],
+    ref: NormalizedAppRef,
+    signal: AbortSignal,
+    options: Pick<HostResolveOptions, 'operationId' | 'traceId'>,
+  ): DetachedHostOperationContext {
+    return {
+      hostId: this.id,
+      intent,
+      operationId: this.#createOperationId(intent, ref, options.operationId),
+      signal,
+      ...(options.traceId === undefined
+        ? {}
+        : { traceId: normalizeRuntimeId(options.traceId, 'traceId') }),
+    };
+  }
+
+  #createApplicationOperation(
+    intent: ApplicationHostOperationContext['intent'],
+    ref: NormalizedAppRef,
+    identity: ApplicationIdentity,
+    signal: AbortSignal,
+    operationId?: string,
+  ): ApplicationHostOperationContext {
+    return {
+      hostId: this.id,
+      identity,
+      intent,
+      operationId: this.#createOperationId(intent, ref, operationId),
+      signal,
+      traceId: normalizeRuntimeId(identity.traceId, 'traceId'),
+    };
+  }
+
+  #createOperationId(
+    intent: HostOperationIntent,
+    ref: NormalizedAppRef,
+    operationId?: string,
+  ): string {
+    this.#operationSequence += 1;
+    return normalizeRuntimeId(
+      operationId ??
+        this.#options.createOperationId?.(intent, ref) ??
+        `${this.id}:${intent}:${this.#operationSequence}`,
+      'operationId',
+    );
   }
 
   #createInstanceId(ref: NormalizedAppRef): string {
@@ -689,6 +800,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     return {
       createdAt: record.createdAt,
       identity: record.identity,
+      intent: record.intent,
+      operationId: record.operationId,
       ref: record.ref,
       state: record.state,
       updatedAt: record.updatedAt,

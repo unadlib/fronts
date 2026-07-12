@@ -9,13 +9,23 @@ import {
   frontsErrorCodes,
   normalizeAppRef,
   type AppResolver,
+  type DetachedHostOperationContext,
   type FrontsError,
   type ResolveContext,
 } from '../src/index.js';
 
+const signal = new AbortController().signal;
+const operation: DetachedHostOperationContext = {
+  hostId: 'resolver-test-host',
+  intent: 'resolve',
+  operationId: 'resolver-test-operation',
+  signal,
+  traceId: 'resolver-test-trace',
+};
 const context: ResolveContext = {
   environment: 'production',
-  signal: new AbortController().signal,
+  operation,
+  signal,
   tenant: 'acme',
 };
 
@@ -182,6 +192,7 @@ describe('application resolution', () => {
 
     await expect(
       resolver.resolve(normalizeAppRef({ name: 'checkout' }), {
+        operation: { ...operation, signal: controller.signal },
         signal: controller.signal,
       }),
     ).rejects.toEqual(

@@ -9,6 +9,7 @@ export type {
   AppRef,
   AppResolver,
   NormalizedAppRef,
+  ResolutionPolicyContext,
   ResolveContext,
   ResolveFunction,
   ResolvedApp,

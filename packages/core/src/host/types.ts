@@ -8,18 +8,17 @@ import type {
   PreparedContainer,
 } from '../container/index.js';
 import type { FrontsError, FrontsPhase } from '../errors.js';
+import type { HostOperationContext, HostOperationIntent } from '../operation/index.js';
 import type {
   AppRef,
   AppResolver,
   NormalizedAppRef,
-  ResolveContext,
+  ResolutionPolicyContext,
   ResolvedApp,
 } from '../resolver/index.js';
 import type { CapabilityPolicy, ServiceScope } from '../services/index.js';
 
-export interface AppLoadContext {
-  readonly signal: AbortSignal;
-}
+export type AppLoadContext = HostOperationContext;
 
 export interface AppLoader<Source> {
   load(resolved: ResolvedApp<Source>, context: AppLoadContext): MaybePromise<unknown>;
@@ -31,11 +30,13 @@ export interface LoadedApp<Props = unknown, Services extends object = object, So
   readonly resolved: ResolvedApp<Source>;
 }
 
-export type HostResolveOptions = Omit<ResolveContext, 'signal'> & {
+export type HostResolveOptions = ResolutionPolicyContext & {
+  readonly operationId?: string;
   readonly signal?: AbortSignal;
+  readonly traceId?: string;
 };
 
-export type MountResolveOptions = Omit<ResolveContext, 'signal'>;
+export type MountResolveOptions = ResolutionPolicyContext;
 
 export interface MountAppOptions<
   Props,
@@ -46,6 +47,7 @@ export interface MountAppOptions<
   readonly props: Props;
   readonly container?: Request;
   readonly instanceId?: string;
+  readonly operationId?: string;
   readonly readyTimeoutMs?: number;
   readonly resolve?: MountResolveOptions;
   readonly signal?: AbortSignal;
@@ -74,6 +76,8 @@ export type AppInstanceState =
 export interface ApplicationInstanceSnapshot<Source = unknown> {
   readonly identity: ApplicationIdentity;
   readonly ref: NormalizedAppRef;
+  readonly intent: Extract<HostOperationIntent, 'mount' | 'replace'>;
+  readonly operationId: string;
   readonly state: AppInstanceState;
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -135,6 +139,7 @@ export interface FrontsHostOptions<Source, Services extends object> {
   readonly containerLoaders?: Readonly<Record<string, AppLoader<Source>>>;
   readonly readyTimeoutMs?: number;
   readonly createInstanceId?: (ref: NormalizedAppRef) => string;
+  readonly createOperationId?: (intent: HostOperationIntent, ref: NormalizedAppRef) => string;
   readonly createTraceId?: (ref: NormalizedAppRef, instanceId: string) => string;
   readonly hostId?: string;
   readonly now?: () => number;

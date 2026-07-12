@@ -1,4 +1,5 @@
 import type { MaybePromise } from '../app/index.js';
+import type { HostOperationContext } from '../operation/index.js';
 
 export interface AppRef {
   readonly name: string;
@@ -14,12 +15,16 @@ export interface NormalizedAppRef {
   readonly channel?: string;
 }
 
-export interface ResolveContext {
-  readonly signal: AbortSignal;
+export interface ResolutionPolicyContext {
   readonly environment?: string;
   readonly tenant?: string;
   readonly cohort?: string;
   readonly metadata?: Readonly<Record<string, unknown>>;
+}
+
+export interface ResolveContext extends ResolutionPolicyContext {
+  readonly operation: HostOperationContext;
+  readonly signal: AbortSignal;
 }
 
 export interface ResolvedApp<Source = unknown> {

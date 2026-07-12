@@ -55,8 +55,9 @@ contain a CDN URL.
 
 ### `ResolveContext`
 
-Request policy inputs: environment, tenant, cohort, metadata, and cancellation signal. The host
-does not interpret them; a resolver or registry owns selection policy.
+Request policy inputs: environment, tenant, cohort, and metadata, plus an immutable host operation
+envelope. The host does not interpret policy fields; a resolver or registry owns selection policy.
+The operation envelope carries correlation and cancellation across extension boundaries.
 
 ### `ResolvedApp<Source>`
 
@@ -66,12 +67,14 @@ version, and optional metadata. This object is the handoff between policy and lo
 ### `AppLoader<Source>`
 
 A transport adapter with `load()` and optional `preload()`. A loader returns an unknown module;
-the host validates the Fronts application protocol before mounting it.
+the host validates the Fronts application protocol before mounting it. Its context identifies the
+host action and includes an application identity only for mount/replace transactions.
 
 ### `ContainerAdapter`
 
 Prepares an execution target and owns its cleanup. A container can also select a different loader;
 iframe execution uses this to ensure code is loaded inside the child realm instead of the parent.
+Preparation receives the same application operation envelope used for resolution and loading.
 
 ### `FrontsApp`
 
@@ -110,7 +113,7 @@ harder to reason about. See the official [runtime plugin guide](https://module-f
 
 The host executes these phases in order:
 
-1. Normalize the reference and create identity/trace IDs.
+1. Normalize the reference and create operation, identity, and trace IDs.
 2. Resolve the deployment.
 3. Choose the default or container-specific loader and load the module.
 4. Validate protocol name/version and application shape.

@@ -67,6 +67,12 @@ export type {
   ReplacementResult,
   RetainedContainerSnapshot,
 } from './host/index.js';
+export type {
+  ApplicationHostOperationContext,
+  DetachedHostOperationContext,
+  HostOperationContext,
+  HostOperationIntent,
+} from './operation/index.js';
 export {
   MemoryResolutionCache,
   assertResolvedApp,
@@ -86,6 +92,7 @@ export type {
   RegistryResolverOptions,
   ResolutionCache,
   ResolutionCacheEntry,
+  ResolutionPolicyContext,
   ResolveContext,
   ResolveFunction,
   ResolvedApp,

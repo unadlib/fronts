@@ -1,4 +1,10 @@
-import { defineApp, frontsErrorCodes, normalizeAppRef, type FrontsError } from '@fronts/core';
+import {
+  defineApp,
+  frontsErrorCodes,
+  normalizeAppRef,
+  type DetachedHostOperationContext,
+  type FrontsError,
+} from '@fronts/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -34,6 +40,19 @@ function createResolved(source: ModuleFederationSource) {
   };
 }
 
+function createOperation(
+  intent: DetachedHostOperationContext['intent'],
+  signal = new AbortController().signal,
+): DetachedHostOperationContext {
+  return {
+    hostId: 'mf-adapter-test-host',
+    intent,
+    operationId: `mf-adapter-test-${intent}`,
+    signal,
+    traceId: 'mf-adapter-test-trace',
+  };
+}
+
 describe('Module Federation runtime adapter', () => {
   it('registers a manifest remote and loads the requested expose', async () => {
     const runtime = createRuntime();
@@ -46,9 +65,9 @@ describe('Module Federation runtime adapter', () => {
     });
     const adapter = createModuleFederationAdapter({ instance: runtime.instance });
 
-    await expect(
-      adapter.load(createResolved(source), { signal: new AbortController().signal }),
-    ).resolves.toEqual({ default: app });
+    await expect(adapter.load(createResolved(source), createOperation('load'))).resolves.toEqual({
+      default: app,
+    });
     expect(runtime.registerRemotes).toHaveBeenCalledWith([source.remote], undefined);
     expect(runtime.loadRemote).toHaveBeenCalledWith('checkout_2_0_0/application', {
       from: 'runtime',
@@ -64,7 +83,7 @@ describe('Module Federation runtime adapter', () => {
     );
     const adapter = createModuleFederationAdapter({ instance: runtime.instance });
 
-    await adapter.load(createResolved(source), { signal: new AbortController().signal });
+    await adapter.load(createResolved(source), createOperation('load'));
     expect(runtime.registerRemotes).toHaveBeenCalledWith([source.remote], { force: true });
   });
 
@@ -84,9 +103,7 @@ describe('Module Federation runtime adapter', () => {
       preload: { depsRemote: false, resourceCategory: 'all' },
     });
 
-    await adapter.preload?.(createResolved(source), {
-      signal: new AbortController().signal,
-    });
+    await adapter.preload?.(createResolved(source), createOperation('preload'));
     expect(runtime.preloadRemote).toHaveBeenCalledWith([
       {
         depsRemote: false,
@@ -119,9 +136,7 @@ describe('Module Federation runtime adapter', () => {
       name: 'checkout',
     });
 
-    await expect(
-      adapter.load(createResolved(source), { signal: new AbortController().signal }),
-    ).rejects.toEqual(
+    await expect(adapter.load(createResolved(source), createOperation('load'))).rejects.toEqual(
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.loadFailed }),
     );
   });
@@ -137,7 +152,7 @@ describe('Module Federation runtime adapter', () => {
     });
 
     await expect(
-      adapter.load(createResolved(source), { signal: controller.signal }),
+      adapter.load(createResolved(source), createOperation('load', controller.signal)),
     ).rejects.toEqual(
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.aborted }),
     );

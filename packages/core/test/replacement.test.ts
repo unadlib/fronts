@@ -65,13 +65,13 @@ function createReplacementHarness(options: {
   };
   const host = createFrontsHost({ loader, resolver });
 
-  return { host, nextMount, nextUnmount, oldMount, oldUnmount };
+  return { host, loader, nextMount, nextUnmount, oldMount, oldUnmount };
 }
 
 describe('ready-first application replacement', () => {
   it('keeps the old release live until the replacement is ready and then commits it', async () => {
     const readiness = deferred();
-    const { host, nextMount, nextUnmount, oldUnmount } = createReplacementHarness({
+    const { host, loader, nextMount, nextUnmount, oldUnmount } = createReplacementHarness({
       nextReady: readiness.promise,
     });
     const target = document.createElement('main');
@@ -84,9 +84,11 @@ describe('ready-first application replacement', () => {
 
     const replacement = host.replace('checkout-current', {
       instanceId: 'checkout-next',
+      operationId: 'checkout-replacement',
       props: { label: 'canary' },
       ref: { name: 'checkout', range: '2' },
       target,
+      traceId: 'checkout-replacement-trace',
     });
     await vi.waitFor(() => expect(nextMount).toHaveBeenCalledOnce());
 
@@ -98,6 +100,14 @@ describe('ready-first application replacement', () => {
 
     readiness.resolve();
     const result = await replacement;
+    expect(loader.load).toHaveBeenLastCalledWith(
+      expect.objectContaining({ source: { release: 'v2' } }),
+      expect.objectContaining({
+        intent: 'replace',
+        operationId: 'checkout-replacement',
+        traceId: 'checkout-replacement-trace',
+      }),
+    );
     expect(result.application.identity).toMatchObject({
       instanceId: 'checkout-next',
       version: '2.0.0',

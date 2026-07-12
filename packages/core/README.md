@@ -66,6 +66,7 @@ The main entry exports:
 - static, registry, cached, and fallback resolvers
 - DOM and Shadow DOM containers
 - capability-scoped services
+- correlated operation contexts for resolvers, loaders, and containers
 - typed errors, lifecycle events, replacement, and leak audit
 
 Additional entry points:

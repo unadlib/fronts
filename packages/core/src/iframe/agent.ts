@@ -16,6 +16,7 @@ export interface IframeAgentOptions<Source> {
   readonly loader: AppLoader<Source>;
   readonly target: Element | ShadowRoot;
   readonly allowedOrigins: readonly string[];
+  readonly hostId?: string;
   readonly window?: Window;
   readonly parent?: MessageEventSource;
   readonly requestTimeoutMs?: number;
@@ -106,7 +107,14 @@ function createSession<Source, Props = unknown>(
 
   const loaded = (async () => {
     const module = await raceWithAbort(
-      options.loader.load(message.resolved, { signal: controller.signal }),
+      options.loader.load(message.resolved, {
+        hostId: options.hostId ?? 'fronts-iframe-agent',
+        identity: message.identity,
+        intent: 'mount',
+        operationId: message.channelId,
+        signal: controller.signal,
+        traceId: message.identity.traceId ?? message.channelId,
+      }),
       controller.signal,
       'load',
     );

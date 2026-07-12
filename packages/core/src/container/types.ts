@@ -1,4 +1,5 @@
 import type { ApplicationIdentity, MaybePromise, MountTarget } from '../app/index.js';
+import type { ApplicationHostOperationContext } from '../operation/index.js';
 
 export type ContainerHostTarget = Element | ShadowRoot;
 
@@ -26,6 +27,7 @@ export type BuiltInContainerRequest = DomContainerRequest | ShadowContainerReque
 
 export interface ContainerPrepareContext<Request extends ContainerRequest = ContainerRequest> {
   readonly identity: ApplicationIdentity;
+  readonly operation: ApplicationHostOperationContext;
   readonly request: Request;
   readonly signal: AbortSignal;
   readonly target: ContainerHostTarget;
