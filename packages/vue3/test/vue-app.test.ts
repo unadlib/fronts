@@ -353,6 +353,52 @@ describe('Vue host adapter', () => {
     expect(view.text()).not.toContain('stale update failed');
   });
 
+  it('waits for prior teardown before remounting the same host slot', async () => {
+    const first = createMountedApplication();
+    const second = createMountedApplication();
+    let finishUnmount!: () => void;
+    const firstUnmount = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishUnmount = resolve;
+        }),
+    );
+    const firstInstance = {
+      ...first.instance,
+      identity: { ...first.instance.identity, instanceId: 'shared-slot' },
+      unmount: firstUnmount,
+    };
+    const secondInstance = {
+      ...second.instance,
+      identity: { ...second.instance.identity, instanceId: 'shared-slot' },
+    };
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(firstInstance).mockResolvedValueOnce(secondInstance),
+    } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: {
+        app: { name: 'checkout' },
+        appProps: { value: 'first' },
+        host,
+        instanceId: 'shared-slot',
+        mountKey: 1,
+      },
+    });
+    await flushPromises();
+    expect(host.mount).toHaveBeenCalledOnce();
+    expect(view.attributes('data-fronts-vue-status')).toBe('ready');
+
+    await view.setProps({ appProps: { value: 'second' }, mountKey: 2 });
+    await flushPromises();
+    expect(firstUnmount).toHaveBeenCalledOnce();
+    expect(host.mount).toHaveBeenCalledOnce();
+
+    finishUnmount();
+    await flushPromises();
+    expect(host.mount).toHaveBeenCalledTimes(2);
+    view.unmount();
+  });
+
   it('can be embedded under an existing Vue application', () => {
     const Host = defineComponent({
       render: () => h('p', 'Host remains framework-owned'),

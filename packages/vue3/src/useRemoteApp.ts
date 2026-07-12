@@ -55,6 +55,7 @@ export function useRemoteApp<
   const instance = shallowRef<MountedApplication<Props, Source> | null>(null);
   let propsVersion = 0;
   let appliedPropsVersion = 0;
+  let teardown: Promise<void> = Promise.resolve();
 
   const updateMounted = (
     mounted: MountedApplication<Props, Source>,
@@ -114,22 +115,31 @@ export function useRemoteApp<
       error.value = null;
       instance.value = null;
 
-      const mount = options.host.mount<Props, Request>({
-        props: options.appProps,
-        ref: options.app,
-        signal: controller.signal,
-        target: element,
-        ...(options.container === undefined ? {} : { container: options.container }),
-        ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
-        ...(options.readyTimeoutMs === undefined ? {} : { readyTimeoutMs: options.readyTimeoutMs }),
-        ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
-        ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
-      });
+      const previousTeardown = teardown;
+      const mount = previousTeardown
+        .catch(() => undefined)
+        .then(() => {
+          if (disposed) {
+            return null;
+          }
+          return options.host.mount<Props, Request>({
+            props: options.appProps,
+            ref: options.app,
+            signal: controller.signal,
+            target: element,
+            ...(options.container === undefined ? {} : { container: options.container }),
+            ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
+            ...(options.readyTimeoutMs === undefined
+              ? {}
+              : { readyTimeoutMs: options.readyTimeoutMs }),
+            ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
+            ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
+          });
+        });
 
       void mount.then(
         (mounted) => {
-          if (disposed) {
-            void mounted.unmount().catch(() => undefined);
+          if (mounted === null || disposed) {
             return;
           }
           current = mounted;
@@ -158,9 +168,11 @@ export function useRemoteApp<
         if (instance.value === mounted) {
           instance.value = null;
         }
-        if (mounted !== null) {
-          void mounted.unmount().catch(() => undefined);
-        }
+        teardown = mount
+          .then(async (resolved) => {
+            await (resolved ?? mounted)?.unmount();
+          })
+          .catch(() => undefined);
       });
     },
     { flush: 'post', immediate: true },
