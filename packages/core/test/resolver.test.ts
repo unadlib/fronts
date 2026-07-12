@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   MemoryResolutionCache,
+  assertResolvedApp,
   createCachedResolver,
   createFallbackResolver,
   createRegistryResolver,
@@ -43,6 +44,25 @@ describe('application resolution', () => {
       }),
     );
     expect(() => normalizeAppRef({ name: 'check out' })).toThrowError();
+  });
+
+  it('rejects mismatched and malformed resolution decisions', () => {
+    const ref = normalizeAppRef({ channel: 'stable', name: 'checkout', range: '^2' });
+    const mismatchedRef = normalizeAppRef({ channel: 'stable', name: 'account', range: '^2' });
+
+    for (const resolution of [
+      { ref: mismatchedRef, source: 'account.js' },
+      { source: 'checkout.js' },
+      { ref, source: 'checkout.js', version: 2 },
+      { metadata: [], ref, source: 'checkout.js' },
+    ]) {
+      expect(() => assertResolvedApp(resolution, ref)).toThrowError(
+        expect.objectContaining<Partial<FrontsError>>({
+          code: frontsErrorCodes.resolutionFailed,
+          phase: 'resolve',
+        }),
+      );
+    }
   });
 
   it('selects static releases using application and rollout context', async () => {

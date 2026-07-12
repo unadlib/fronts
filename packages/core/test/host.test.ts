@@ -46,7 +46,9 @@ function createHarness(
     version: '2.0.0',
   };
   const resolver = {
-    resolve: vi.fn<AppResolver<Source>['resolve']>().mockResolvedValue(resolved),
+    resolve: vi
+      .fn<AppResolver<Source>['resolve']>()
+      .mockImplementation((ref) => ({ ...resolved, ref })),
   };
   const loader = {
     load: vi.fn<AppLoader<Source>['load']>().mockResolvedValue({ default: app }),
