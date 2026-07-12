@@ -11,6 +11,10 @@ function isTrimmedString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '' && value === value.trim();
 }
 
+function hasOwn(value: object, property: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, property);
+}
+
 function invalidSourceField(field: string): FrontsError {
   return new FrontsError(
     frontsErrorCodes.loadFailed,
@@ -31,11 +35,17 @@ export function assertModuleFederationSource(
   }
 
   const remote = source.remote;
-  if (!isTrimmedString(remote.name) || /\s/.test(remote.name)) {
+  if (!hasOwn(remote, 'name') || !isTrimmedString(remote.name) || /\s/.test(remote.name)) {
     throw invalidSourceField('remote.name');
   }
-  const hasEntry = 'entry' in remote;
-  const hasVersion = 'version' in remote;
+  const hasEntry = hasOwn(remote, 'entry');
+  const hasVersion = hasOwn(remote, 'version');
+  if ('entry' in remote && !hasEntry) {
+    throw invalidSourceField('remote.entry');
+  }
+  if ('version' in remote && !hasVersion) {
+    throw invalidSourceField('remote.version');
+  }
   if (hasEntry && !isTrimmedString(remote.entry)) {
     throw invalidSourceField('remote.entry');
   }
@@ -49,30 +59,40 @@ export function assertModuleFederationSource(
       { details: { field: 'remote' }, phase: 'load' },
     );
   }
-  if (remote.alias !== undefined && (!isTrimmedString(remote.alias) || /\s/.test(remote.alias))) {
+  if (
+    remote.alias !== undefined &&
+    (!hasOwn(remote, 'alias') || !isTrimmedString(remote.alias) || /\s/.test(remote.alias))
+  ) {
     throw invalidSourceField('remote.alias');
   }
   if (
     remote.shareScope !== undefined &&
-    !(
-      isTrimmedString(remote.shareScope) ||
-      (Array.isArray(remote.shareScope) &&
-        remote.shareScope.length > 0 &&
-        remote.shareScope.every(isTrimmedString))
-    )
+    (!hasOwn(remote, 'shareScope') ||
+      !(
+        isTrimmedString(remote.shareScope) ||
+        (Array.isArray(remote.shareScope) &&
+          remote.shareScope.length > 0 &&
+          remote.shareScope.every(isTrimmedString))
+      ))
   ) {
     throw invalidSourceField('remote.shareScope');
   }
-  if (remote.type !== undefined && !isTrimmedString(remote.type)) {
+  if (remote.type !== undefined && (!hasOwn(remote, 'type') || !isTrimmedString(remote.type))) {
     throw invalidSourceField('remote.type');
   }
-  if (remote.entryGlobalName !== undefined && !isTrimmedString(remote.entryGlobalName)) {
+  if (
+    remote.entryGlobalName !== undefined &&
+    (!hasOwn(remote, 'entryGlobalName') || !isTrimmedString(remote.entryGlobalName))
+  ) {
     throw invalidSourceField('remote.entryGlobalName');
   }
-  if (source.force !== undefined && typeof source.force !== 'boolean') {
+  if (
+    source.force !== undefined &&
+    (!hasOwn(source, 'force') || typeof source.force !== 'boolean')
+  ) {
     throw invalidSourceField('force');
   }
-  if (source.preload !== undefined && !isRecord(source.preload)) {
+  if (source.preload !== undefined && (!hasOwn(source, 'preload') || !isRecord(source.preload))) {
     throw invalidSourceField('preload');
   }
 }

@@ -214,6 +214,53 @@ describe('Module Federation runtime adapter', () => {
     );
   });
 
+  it.each([
+    [
+      'remote.entry',
+      {
+        remote: Object.assign(Object.create({ entry: 'checkout.js' }) as object, {
+          name: 'checkout',
+        }),
+      },
+    ],
+    [
+      'remote.version',
+      {
+        remote: Object.assign(Object.create({ version: '2.0.0' }) as object, {
+          name: 'checkout',
+        }),
+      },
+    ],
+    [
+      'remote.alias',
+      {
+        remote: Object.assign(Object.create({ alias: 'checkout-alias' }) as object, {
+          entry: 'checkout.js',
+          name: 'checkout',
+        }),
+      },
+    ],
+    [
+      'force',
+      Object.assign(Object.create({ force: true }) as object, {
+        remote: { entry: 'checkout.js', name: 'checkout' },
+      }),
+    ],
+  ] as const)('rejects inherited %s fields before touching the runtime', async (field, source) => {
+    const runtime = createRuntime();
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+
+    await expect(
+      adapter.load(createResolved(source as ModuleFederationSource), createOperation('load')),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      details: { field },
+      phase: 'load',
+    });
+    expect(runtime.registerRemotes).not.toHaveBeenCalled();
+    expect(runtime.loadRemote).not.toHaveBeenCalled();
+  });
+
   it('honors cancellation before touching the global federation runtime', async () => {
     const runtime = createRuntime();
     const adapter = createModuleFederationAdapter({ instance: runtime.instance });

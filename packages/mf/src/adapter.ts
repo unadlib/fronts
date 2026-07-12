@@ -20,8 +20,12 @@ const registeredDeployments = new WeakMap<
 
 function createRemoteFingerprint(remote: Remote): string {
   return JSON.stringify([
-    'entry' in remote ? remote.entry : null,
-    'version' in remote ? remote.version : null,
+    'entry' in remote && Object.prototype.hasOwnProperty.call(remote, 'entry')
+      ? remote.entry
+      : null,
+    'version' in remote && Object.prototype.hasOwnProperty.call(remote, 'version')
+      ? remote.version
+      : null,
     remote.alias ?? null,
     remote.shareScope ?? null,
     remote.type ?? null,
