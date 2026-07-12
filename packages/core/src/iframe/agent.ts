@@ -14,6 +14,7 @@ import {
   type ResolvedApp,
 } from '../resolver/index.js';
 import {
+  FRONTS_IFRAME_PROTOCOL,
   isIframeConnectMessage,
   parseIframeCapabilities,
   serializeIframeError,
@@ -40,6 +41,14 @@ export interface IframeAgent {
 
 interface AgentSession {
   readonly stop: () => Promise<void>;
+}
+
+function isIframeConnectCandidate(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const message = value as { readonly protocol?: unknown; readonly type?: unknown };
+  return message.protocol === FRONTS_IFRAME_PROTOCOL && message.type === 'connect';
 }
 
 function assertSessionIdentity<Source>(
@@ -329,6 +338,9 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
   let stopPromise: Promise<void> | undefined;
 
   const receive = (event: MessageEvent<unknown>) => {
+    if (!isIframeConnectCandidate(event.data)) {
+      return;
+    }
     if (stopped || !allowedOrigins.has(event.origin) || event.source !== expectedParent) {
       closePorts(event.ports);
       return;

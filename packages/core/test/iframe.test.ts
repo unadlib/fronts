@@ -536,6 +536,37 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('does not close ports transferred by unrelated window protocols', async () => {
+    const agent = createIframeAgent({
+      allowedOrigins: ['https://shell.example.test'],
+      loader: { load: vi.fn() },
+      parent: window,
+      target: document.createElement('main'),
+      window,
+    });
+    const unrelated = new MessageChannel();
+    let received: unknown;
+    unrelated.port1.addEventListener('message', (event: MessageEvent<unknown>) => {
+      received = event.data;
+    });
+    unrelated.port1.start();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { protocol: 'another.runtime', type: 'connect' },
+        origin: 'https://other.example.test',
+        ports: [unrelated.port1],
+        source: window,
+      }),
+    );
+    unrelated.port2.postMessage('still connected');
+
+    await vi.waitFor(() => expect(received).toBe('still connected'));
+    unrelated.port1.close();
+    unrelated.port2.close();
+    await agent.stop();
+  });
+
   it('rejects iframe identities that disagree with the resolved application', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'mismatched-identity';
