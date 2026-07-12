@@ -1,0 +1,27 @@
+:root {
+  color: #183029;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.producer-page,
+.account-card {
+  padding: 1.5rem;
+}
+
+.account-card {
+  background: #eafbf4;
+  border: 1px solid #9bd8c2;
+  border-radius: 1rem;
+}
+
+.eyebrow {
+  color: #197456;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

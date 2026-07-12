@@ -1,0 +1,15 @@
+{
+  "name": "@fronts-example/legacy-remote",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "clean": "rm -rf dist",
+    "dev": "rsbuild dev",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.1.4"
+  }
+}

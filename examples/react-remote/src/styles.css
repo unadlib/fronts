@@ -1,0 +1,36 @@
+:root {
+  color: #172033;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.producer-page,
+.checkout-card {
+  padding: 1.5rem;
+}
+
+.checkout-card {
+  background: #eef4ff;
+  border: 1px solid #b9ccf5;
+  border-radius: 1rem;
+}
+
+.eyebrow {
+  color: #315ca8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+button {
+  background: #244d95;
+  border: 0;
+  border-radius: 0.5rem;
+  color: white;
+  cursor: pointer;
+  padding: 0.65rem 0.9rem;
+}

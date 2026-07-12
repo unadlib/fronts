@@ -1,0 +1,14 @@
+:root {
+  background: #fff8e8;
+  color: #432f0a;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+#isolated-applications {
+  min-height: 100vh;
+  padding: 1rem;
+}

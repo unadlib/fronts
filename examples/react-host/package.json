@@ -1,0 +1,26 @@
+{
+  "name": "@fronts-example/react-host",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "clean": "rm -rf dist",
+    "dev": "rsbuild dev",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fronts/core": "workspace:^",
+    "@fronts/mf": "workspace:^",
+    "@fronts/react": "workspace:^",
+    "@module-federation/runtime": "^2.7.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.1.4",
+    "@rsbuild/plugin-react": "^2.1.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
+  }
+}

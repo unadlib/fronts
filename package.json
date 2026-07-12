@@ -14,6 +14,7 @@
     "build": "pnpm -r --if-present build",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "clean": "pnpm -r --if-present clean",
+    "dev:examples": "pnpm --parallel --filter './examples/*' dev",
     "format": "prettier --write .",
     "lint": "eslint . && prettier --check .",
     "test": "vitest run --passWithNoTests",
