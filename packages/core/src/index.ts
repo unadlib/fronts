@@ -21,6 +21,22 @@ export type {
   ServiceKey,
 } from './app/index.js';
 export {
+  ContainerRegistry,
+  createContainerRegistry,
+  createDomContainer,
+  createShadowContainer,
+} from './container/index.js';
+export type {
+  BuiltInContainerRequest,
+  ContainerAdapter,
+  ContainerHostTarget,
+  ContainerPrepareContext,
+  ContainerRequest,
+  DomContainerRequest,
+  PreparedContainer,
+  ShadowContainerRequest,
+} from './container/index.js';
+export {
   FrontsError,
   createAbortedError,
   frontsErrorCodes,
