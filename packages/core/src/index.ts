@@ -70,3 +70,10 @@ export type {
   StaticResolution,
   StaticResolutionMatch,
 } from './resolver/index.js';
+export { createServiceScope } from './services/index.js';
+export type {
+  CapabilityPolicy,
+  CapabilityPolicyContext,
+  CreateServiceScopeOptions,
+  ServiceScope,
+} from './services/index.js';
