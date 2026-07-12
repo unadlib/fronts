@@ -96,5 +96,15 @@ describe('Fronts application protocol', () => {
         code: frontsErrorCodes.invalidApp,
       }),
     );
+
+    for (const method of ['activate', 'deactivate', 'update'] as const) {
+      expect(() => assertAppHandle({ [method]: true, unmount: vi.fn() })).toThrowError(
+        expect.objectContaining<Partial<FrontsError>>({
+          code: frontsErrorCodes.invalidApp,
+          details: { method },
+          phase: 'mount',
+        }),
+      );
+    }
   });
 });

@@ -91,4 +91,14 @@ export function assertAppHandle<Props = unknown>(
       { phase: 'mount' },
     );
   }
+
+  for (const method of ['activate', 'deactivate', 'update'] as const) {
+    if (value[method] !== undefined && typeof value[method] !== 'function') {
+      throw new FrontsError(
+        frontsErrorCodes.invalidApp,
+        `AppHandle.${method} must be a function when provided.`,
+        { details: { method }, phase: 'mount' },
+      );
+    }
+  }
 }
