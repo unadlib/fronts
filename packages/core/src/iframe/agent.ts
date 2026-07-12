@@ -197,7 +197,12 @@ function createSession<Source, Props = unknown>(
   );
   const root = options.target.ownerDocument.createElement('div');
   root.dataset.frontsAgentInstance = identity.instanceId;
-  options.target.append(root);
+  try {
+    options.target.append(root);
+  } catch (error) {
+    root.remove();
+    throw error;
+  }
   let peer: IframeRpcPeer;
   try {
     peer = new IframeRpcPeer(port, {

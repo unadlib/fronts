@@ -742,6 +742,56 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('rolls back an iframe agent root when append fails after insertion', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'failed-agent-root-append';
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    const target = document.createElement('main');
+    const append = target.append.bind(target);
+    vi.spyOn(target, 'append').mockImplementation((...nodes) => {
+      append(...nodes);
+      throw new Error('agent target rejected the root after insertion');
+    });
+    const load = vi.fn<AppLoader<Source>['load']>();
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load },
+      parent: window,
+      target,
+      window,
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    let fatal: unknown;
+    parentPeer.on('fronts.fatal', (error) => {
+      fatal = error;
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+
+    await vi.waitFor(() => expect(fatal).toMatchObject({ name: 'Error' }));
+    expect(agent.sessions).toBe(0);
+    expect(load).not.toHaveBeenCalled();
+    expect(target.children).toHaveLength(0);
+    parentPeer.close();
+    await agent.stop();
+  });
+
   it('does not close ports transferred by unrelated window protocols', async () => {
     const agent = createIframeAgent({
       allowedOrigins: ['https://shell.example.test'],
