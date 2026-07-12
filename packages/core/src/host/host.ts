@@ -615,13 +615,24 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           },
         );
       }
-      replacementRecord.deploymentSlot = slot;
-      slot.dataset.frontsDeployment = 'committed';
-      slot.dataset.frontsInstance = replacement.identity.instanceId;
-      slot.hidden = false;
-      slot.inert = false;
-      slot.removeAttribute('aria-hidden');
-      slot.style.display = 'contents';
+      try {
+        replacementRecord.deploymentSlot = slot;
+        slot.dataset.frontsDeployment = 'committed';
+        slot.dataset.frontsInstance = replacement.identity.instanceId;
+        slot.hidden = false;
+        slot.inert = false;
+        slot.removeAttribute('aria-hidden');
+        slot.style.display = 'contents';
+      } catch (error) {
+        await replacement.unmount().catch(() => undefined);
+        slot.remove();
+        throw asFrontsError(
+          error,
+          frontsErrorCodes.containerFailed,
+          `Failed to commit replacement container for "${replacement.identity.instanceId}".`,
+          'container',
+        );
+      }
 
       let previousCleanupError: FrontsError | undefined;
       try {

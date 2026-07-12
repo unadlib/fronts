@@ -255,6 +255,51 @@ describe('ready-first application replacement', () => {
     expect(host.audit().idle).toBe(true);
   });
 
+  it('rolls back the replacement when staging commit fails', async () => {
+    const { host, nextUnmount, oldUnmount } = createReplacementHarness({});
+    const target = document.createElement('main');
+    const current = await host.mount({
+      instanceId: 'checkout-current',
+      props: { label: 'stable' },
+      ref: { name: 'checkout', range: '1' },
+      target,
+    });
+    const append = target.append.bind(target);
+    vi.spyOn(target, 'append').mockImplementation((...nodes) => {
+      append(...nodes);
+      const slot = nodes[0];
+      if (slot instanceof HTMLElement) {
+        vi.spyOn(slot, 'removeAttribute').mockImplementation(() => {
+          throw new Error('staging slot rejected commit');
+        });
+      }
+    });
+
+    await expect(
+      host.replace('checkout-current', {
+        instanceId: 'checkout-next',
+        props: { label: 'canary' },
+        ref: { name: 'checkout', range: '2' },
+        target,
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.containerFailed,
+      phase: 'container',
+    });
+
+    expect(current.state).toBe('ready');
+    expect(host.get('checkout-current')).toBe(current);
+    expect(host.get('checkout-next')).toBeUndefined();
+    expect(oldUnmount).not.toHaveBeenCalled();
+    expect(nextUnmount).toHaveBeenCalledOnce();
+    expect(target.textContent).toBe('old:stable');
+    expect(target.querySelector('[data-fronts-deployment]')).toBeNull();
+    expect(host.audit().replacementTransactions).toEqual([]);
+
+    await current.unmount();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('commits a ready replacement even when previous-version cleanup reports an error', async () => {
     const cleanupFailure = new Error('old framework root would not unmount');
     const { host } = createReplacementHarness({
