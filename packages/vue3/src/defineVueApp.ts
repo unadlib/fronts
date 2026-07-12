@@ -91,7 +91,14 @@ export function defineVueApp<
         pending?.reject(error);
         pending = undefined;
       };
-      await options.configure?.(app, { ...vueContext, props: context.props });
+      try {
+        await options.configure?.(app, { ...vueContext, props: context.props });
+      } catch (error) {
+        if (mountTarget !== context.target) {
+          mountTarget.remove();
+        }
+        throw error;
+      }
 
       const waitForRender = (): Promise<void> => {
         const deferred = createDeferred();
@@ -119,7 +126,27 @@ export function defineVueApp<
         pending?.reject(error);
         pending = undefined;
         ready.catch(() => undefined);
-        mountTarget.remove();
+        let cleanupError: unknown;
+        try {
+          app.unmount();
+        } catch (unmountError) {
+          cleanupError = unmountError;
+        }
+        if (mountTarget === context.target) {
+          mountTarget.replaceChildren();
+        } else {
+          mountTarget.remove();
+        }
+        if (cleanupError !== undefined) {
+          throw new FrontsError(
+            frontsErrorCodes.mountFailed,
+            `Vue application "${context.identity.name}" failed to mount and clean up.`,
+            {
+              cause: new AggregateError([error, cleanupError]),
+              phase: 'mount',
+            },
+          );
+        }
         throw error;
       }
 

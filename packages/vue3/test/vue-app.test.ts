@@ -1,5 +1,13 @@
 import { flushPromises, mount as mountVue } from '@vue/test-utils';
-import { defineComponent, h, inject, nextTick, type ComponentPublicInstance } from 'vue';
+import {
+  defineComponent,
+  h,
+  inject,
+  nextTick,
+  type App,
+  type ComponentPublicInstance,
+  type createApp,
+} from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -104,6 +112,62 @@ describe('Vue application adapter', () => {
     expect(configure).toHaveBeenCalledOnce();
     expect(target.textContent).toBe('/checkout');
     await handle.unmount();
+  });
+
+  it('removes an owned Shadow wrapper when configuration fails', async () => {
+    const failure = new Error('router configuration failed');
+    const target = document.createElement('div').attachShadow({ mode: 'open' });
+    const app = defineVueApp<Props, Services>({
+      configure: async () => {
+        throw failure;
+      },
+      root: ContextConsumer,
+    });
+
+    await expect(
+      app.mount({
+        identity,
+        props: { value: 'failed' },
+        services: { locale: { language: 'en-US' } },
+        signal: new AbortController().signal,
+        target,
+      }),
+    ).rejects.toBe(failure);
+    expect(target.childElementCount).toBe(0);
+  });
+
+  it('preserves the external target when Vue mounting throws', async () => {
+    const failure = new Error('Vue mount failed');
+    const parent = document.createElement('main');
+    const target = document.createElement('div');
+    parent.append(target);
+    const unmount = vi.fn();
+    const vueApp = {
+      config: {},
+      mount() {
+        target.append(document.createElement('span'));
+        throw failure;
+      },
+      provide: vi.fn(),
+      unmount,
+    } as unknown as App;
+    const app = defineVueApp<Props, Services>({
+      createApp: (() => vueApp) as typeof createApp,
+      root: ContextConsumer,
+    });
+
+    await expect(
+      app.mount({
+        identity,
+        props: { value: 'failed' },
+        services: { locale: { language: 'en-US' } },
+        signal: new AbortController().signal,
+        target,
+      }),
+    ).rejects.toBe(failure);
+    expect(unmount).toHaveBeenCalledOnce();
+    expect(parent.firstElementChild).toBe(target);
+    expect(target.children).toHaveLength(0);
   });
 
   it('owns and removes an inner mount element for Shadow DOM targets', async () => {
