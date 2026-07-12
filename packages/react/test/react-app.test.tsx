@@ -339,6 +339,45 @@ describe('React host adapter', () => {
     expect(await screen.findByText('Failed: registry unavailable')).toBeTruthy();
   });
 
+  it('keeps remote state stable when React host observers throw', async () => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = { ref, source: { entry: 'checkout.json' } };
+    const instance: MountedApplication<Props, Source> = {
+      abort: vi.fn(async () => undefined),
+      activate: vi.fn(async () => undefined),
+      deactivate: vi.fn(async () => undefined),
+      identity,
+      ready: Promise.resolve(),
+      ref,
+      resolved,
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+    };
+    const observerFailure = new Error('observer failed');
+    const onReady = vi.fn(() => {
+      throw observerFailure;
+    });
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<Source, Services>;
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        host={host}
+        onReady={onReady}
+      />,
+    );
+
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(instance));
+    expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+      'ready',
+    );
+    view.unmount();
+    await waitFor(() => expect(instance.unmount).toHaveBeenCalledOnce());
+  });
+
   it('ignores late update failures from an instance replaced by remount', async () => {
     const ref = normalizeAppRef({ name: 'checkout' });
     const resolved: ResolvedApp<Source> = { ref, source: { entry: 'checkout.json' } };
