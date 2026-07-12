@@ -47,7 +47,15 @@ function appendQuery(endpoint: string | URL, request: RegistryRequestContext): s
   }
 
   const serialized = String(endpoint);
-  return `${serialized}${serialized.includes('?') ? '&' : '?'}${query.toString()}`;
+  const hashIndex = serialized.indexOf('#');
+  const base = hashIndex === -1 ? serialized : serialized.slice(0, hashIndex);
+  const fragment = hashIndex === -1 ? '' : serialized.slice(hashIndex);
+  const separator = base.includes('?')
+    ? base.endsWith('?') || base.endsWith('&')
+      ? ''
+      : '&'
+    : '?';
+  return `${base}${separator}${query.toString()}${fragment}`;
 }
 
 function decodeRegistryPayload<Source>(payload: unknown): ResolvedAppInit<Source> {

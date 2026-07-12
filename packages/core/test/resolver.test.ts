@@ -95,6 +95,25 @@ describe('application resolution', () => {
     expect(init).toMatchObject({ method: 'GET' });
   });
 
+  it('places registry policy parameters before an endpoint fragment', async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ source: { entry: 'checkout.json' } }), { status: 200 }),
+      );
+    const resolver = createRegistryResolver({
+      endpoint: '/resolve?fixed=true#registry-fragment',
+      fetch: request,
+    });
+
+    await resolver.resolve(normalizeAppRef({ name: 'checkout' }), context);
+
+    const url = String(request.mock.calls[0]?.[0]);
+    expect(url).toBe(
+      '/resolve?fixed=true&expose=.%2Fapplication&name=checkout&environment=production&tenant=acme#registry-fragment',
+    );
+  });
+
   it('wraps registry HTTP failures as resolution errors', async () => {
     const resolver = createRegistryResolver({
       endpoint: '/resolve',
