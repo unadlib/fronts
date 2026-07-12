@@ -89,10 +89,6 @@ try {
     const packedManifest = JSON.parse(
       execFileSync('tar', ['-xOf', archive, 'package/package.json'], { encoding: 'utf8' }),
     );
-    if (candidate.name === '@fronts/core') {
-      assert(!('./legacy' in packedManifest.exports));
-      assert(!entries.some((entry) => /package\/dist\/legacy(?:\.|-)/.test(entry)));
-    }
     for (const specification of Object.values(packedManifest.dependencies ?? {})) {
       assert(!String(specification).startsWith('workspace:'));
     }

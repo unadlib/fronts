@@ -71,5 +71,5 @@ pnpm version-packages
 ```
 
 Review the resulting stable versions and changelogs in a pull request. Do not publish `latest`
-until migration, security, browser, package-consumer, and rollback gates have passed on the final
+until compatibility, security, browser, package-consumer, and rollback gates have passed on the final
 candidate.

@@ -1,4 +1,4 @@
-# Decision record: rebuild Fronts as an application runtime
+# Decision record: Fronts 2.0 as an application runtime
 
 Status: accepted for the 2.0 alpha
 
@@ -6,13 +6,10 @@ Date reviewed: 2026-07-13
 
 ## 结论
 
-有必要写 Fronts 2.0，但成立条件已经和六年前完全不同。
-
-Fronts 0.x 当年的论点是“Module Federation 只有模块装载，缺少完整微前端 Runtime”。到
-Module Federation 2.7，这个前提已经不成立：官方已经提供独立 Runtime、Manifest/Snapshot、
-预加载、Runtime Plugin、动态类型、Chrome DevTools，以及 React/Vue Bridge。若 Fronts 2.0
-继续包装 `remoteEntry`、自建 shared 解析、重写 bundler plugin，或者把 React 远程组件换一个
-名字，就没有独立价值，而且会成为官方 Runtime 的脆弱分叉。
+Fronts 2.0 有独立价值，但它不能重复 Module Federation 已经成熟的能力。Module Federation
+2.7 已经提供独立 Runtime、Manifest/Snapshot、预加载、Runtime Plugin、动态类型、Chrome
+DevTools，以及 React/Vue Bridge。若 Fronts 2.0 继续包装 `remoteEntry`、自建 shared 解析、
+重写 bundler plugin，或者把 React 远程组件换一个名字，就会成为官方 Runtime 的脆弱分叉。
 
 仍然存在的空白位于更高一层：企业宿主需要把“一个远程模块”提升为“一个可治理的应用实例”。
 这包含统一生命周期、版本与租户策略、不同隔离容器、最小权限宿主能力、替换事务、失败回滚和
@@ -70,7 +67,7 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 | 按环境、租户、cohort、channel 动态选版本         | Fronts resolver + 外部 registry |
 | DOM、Shadow DOM、iframe 采用统一 Host API        | Fronts containers               |
 | 宿主 API 必须按应用声明和策略裁剪                | Fronts service scopes           |
-| 新版本需 ready 后原子切换、失败自动保留旧版本    | Fronts replacement transaction  |
+| 候选部署需 ready 后原子切换、失败保留当前部署    | Fronts replacement transaction  |
 
 ## 采用的产品边界
 
@@ -81,7 +78,7 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 3. 将逻辑应用引用解析为不可变部署结果。
 4. DOM、Shadow DOM、iframe 容器及按容器选择 loader。
 5. 宿主服务按应用声明、宿主 policy 和实例生命周期授予。
-6. readiness-gated replace、失败回滚和旧实例清理结果。
+6. readiness-gated replace、失败回滚和当前实例清理结果。
 7. 生命周期事件、错误分段、审计和泄漏检测。
 8. React 和 Vue 3 的边界适配。
 
@@ -97,21 +94,11 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 
 - 新 bundler plugin 或新的 shared dependency resolver；
 - 修改 MF 全局 Snapshot 或导入 `runtime-core` 私有路径；
-- 自动抓取、迁移或清除第三方 CSS；
+- 自动抓取、重排或清除第三方 CSS；
 - 完整 JavaScript sandbox；
 - registry/deployment SaaS、控制台或 router 替代品；
 - SSR/RSC 应用编排；
 - 隐式全局事件总线。
-
-## 为什么不是继续维护 0.x
-
-0.x 将 bundler 配置、远端发现、全局变量、CSS 注入和 React hooks 交织在一起。它依赖
-`window.__FRONTS__*`，用脚本注册和全局状态通信，Shadow/Web Component 路径包含动态代码，
-生命周期主要等价于“render 返回 cleanup”。在 MF 2 已经成为成熟底座之后，继续兼容这些内部
-结构会把所有历史偶然性固化为新 API。
-
-2.0 因此从协议重建，并且不提供 0.x runtime compatibility。旧应用需要在本仓库之外完成协议
-升级，不能通过旧全局变量或脚本注册机制进入 2.0 Host。
 
 ## 成功标准
 
