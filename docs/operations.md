@@ -119,6 +119,10 @@ reports:
 - retained owned containers;
 - overall `idle` state.
 
+Direct `resolve()`, `load()`, and `preload()` calls are pending host operations too. They participate
+in the audit count and are aborted when the host is disposed, even though they do not create an
+application instance.
+
 Use `host.assertIdle()` after tests, route teardown, or shell shutdown. A failure is evidence of an
 application/container lifecycle leak and should fail CI.
 
@@ -127,8 +131,9 @@ await host.dispose();
 host.assertIdle();
 ```
 
-`dispose()` aborts/unmounts instances and releases host resources. Transport-specific objects with
-their own lifetime should also be disposed by the composition root.
+`dispose()` aborts direct operations, aborts/unmounts instances, waits for their cleanup, and
+releases host resources. Transport-specific objects with their own lifetime should also be disposed
+by the composition root.
 
 ## Replacement runbook
 

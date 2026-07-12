@@ -247,6 +247,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   readonly #listeners = new Set<HostEventListener<Source>>();
   readonly #records = new Map<string, ApplicationRecord<Source>>();
   readonly #instances = new Map<string, MountedApplication<unknown, Source>>();
+  readonly #detachedControllers = new Set<AbortController>();
   readonly #pending = new Set<Promise<unknown>>();
   readonly #replacing = new Set<string>();
   readonly #now: () => number;
@@ -277,20 +278,9 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<ResolvedApp<Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    const controller = new AbortController();
-    const unlink = linkAbortSignal(options.signal, controller);
-    const operation = this.#createDetachedOperation(
-      'resolve',
-      normalized,
-      controller.signal,
-      options,
+    return this.#scheduleDetachedOperation('resolve', normalized, options, (operation) =>
+      this.#resolveResolved(normalized, options, operation),
     );
-
-    try {
-      return await this.#resolveResolved(normalized, options, operation);
-    } finally {
-      unlink();
-    }
   }
 
   async load<Props = unknown>(
@@ -299,15 +289,10 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<LoadedApp<Props, Services, Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    const controller = new AbortController();
-    const unlink = linkAbortSignal(options.signal, controller);
-    const operation = this.#createDetachedOperation('load', normalized, controller.signal, options);
-    try {
+    return this.#scheduleDetachedOperation('load', normalized, options, async (operation) => {
       const resolved = await this.#resolveResolved(normalized, options, operation);
-      return await this.#loadResolved<Props>(resolved, operation);
-    } finally {
-      unlink();
-    }
+      return this.#loadResolved<Props>(resolved, operation);
+    });
   }
 
   async preload(
@@ -316,36 +301,28 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   ): Promise<ResolvedApp<Source>> {
     this.#assertAvailable();
     const normalized = normalizeAppRef(ref);
-    const controller = new AbortController();
-    const unlink = linkAbortSignal(options.signal, controller);
-    const operation = this.#createDetachedOperation(
-      'preload',
-      normalized,
-      controller.signal,
-      options,
-    );
-    try {
-      const resolved = await this.#resolveResolved(normalized, options, operation);
-      if (this.#options.loader.preload === undefined) {
-        await this.#loadResolved(resolved, operation);
-      } else {
-        await raceWithAbort(
-          this.#options.loader.preload(resolved, operation),
-          controller.signal,
+    return this.#scheduleDetachedOperation('preload', normalized, options, async (operation) => {
+      try {
+        const resolved = await this.#resolveResolved(normalized, options, operation);
+        if (this.#options.loader.preload === undefined) {
+          await this.#loadResolved(resolved, operation);
+        } else {
+          await raceWithAbort(
+            this.#options.loader.preload(resolved, operation),
+            operation.signal,
+            'load',
+          );
+        }
+        return resolved;
+      } catch (error) {
+        throw asFrontsError(
+          error,
+          frontsErrorCodes.loadFailed,
+          `Failed to preload application "${normalized.name}".`,
           'load',
         );
       }
-      return resolved;
-    } catch (error) {
-      throw asFrontsError(
-        error,
-        frontsErrorCodes.loadFailed,
-        `Failed to preload application "${normalized.name}".`,
-        'load',
-      );
-    } finally {
-      unlink();
-    }
+    });
   }
 
   mount<Props, Request extends ContainerRequest>(
@@ -367,6 +344,27 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     this.#pending.add(task);
     void task.finally(() => this.#pending.delete(task)).catch(() => undefined);
     return task;
+  }
+
+  #scheduleDetachedOperation<Value>(
+    intent: DetachedHostOperationContext['intent'],
+    ref: NormalizedAppRef,
+    options: HostResolveOptions,
+    run: (operation: DetachedHostOperationContext) => Promise<Value>,
+  ): Promise<Value> {
+    const controller = new AbortController();
+    const unlink = linkAbortSignal(options.signal, controller);
+    this.#detachedControllers.add(controller);
+    const task = Promise.resolve().then(async () => {
+      try {
+        const operation = this.#createDetachedOperation(intent, ref, controller.signal, options);
+        return await run(operation);
+      } finally {
+        unlink();
+        this.#detachedControllers.delete(controller);
+      }
+    });
+    return this.#trackPending(task);
   }
 
   async #drainPending(): Promise<void> {
@@ -558,6 +556,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     for (const record of this.#records.values()) {
       if (!record.controller.signal.aborted) {
         record.controller.abort('Fronts host disposed');
+      }
+    }
+    for (const controller of this.#detachedControllers) {
+      if (!controller.signal.aborted) {
+        controller.abort('Fronts host disposed');
       }
     }
 

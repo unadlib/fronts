@@ -457,6 +457,32 @@ describe('Fronts host runtime', () => {
     expect(app.mount).not.toHaveBeenCalled();
   });
 
+  it('audits and aborts detached resolve, load and preload operations during disposal', async () => {
+    const { host, resolver } = createHarness();
+    const signals: AbortSignal[] = [];
+    resolver.resolve.mockImplementation((_ref, context) => {
+      signals.push(context.signal);
+      return new Promise(() => undefined);
+    });
+
+    const operations = [
+      host.resolve({ name: 'checkout' }),
+      host.load({ name: 'checkout' }),
+      host.preload({ name: 'checkout' }),
+    ];
+    await vi.waitFor(() => expect(signals).toHaveLength(3));
+    expect(host.audit()).toMatchObject({ idle: false, pendingOperations: 3 });
+    const failures = operations.map(async (operation) => {
+      await expect(operation).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+    });
+
+    await host.dispose();
+    await Promise.all(failures);
+
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
+    expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
+  });
+
   it('selects an isolated loader for a configured container type', async () => {
     const harness = createHarness();
     const { loader: defaultLoader, resolved, resolver } = harness;
