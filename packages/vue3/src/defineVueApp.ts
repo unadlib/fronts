@@ -82,7 +82,12 @@ export function defineVueApp<
           ? context.target.ownerDocument.createElement('div')
           : context.target;
       if (context.target instanceof ShadowRoot) {
-        context.target.append(mountTarget);
+        try {
+          context.target.append(mountTarget);
+        } catch (error) {
+          mountTarget.remove();
+          throw error;
+        }
       }
       let disposed = false;
       let pending: Deferred | undefined;

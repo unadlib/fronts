@@ -137,6 +137,28 @@ describe('Vue application adapter', () => {
     expect(target.childElementCount).toBe(0);
   });
 
+  it('removes a Shadow wrapper when append fails after insertion', async () => {
+    const failure = new Error('shadow target rejected the wrapper');
+    const target = document.createElement('div').attachShadow({ mode: 'open' });
+    const append = target.append.bind(target);
+    vi.spyOn(target, 'append').mockImplementation((...nodes) => {
+      append(...nodes);
+      throw failure;
+    });
+    const app = defineVueApp<Props, Services>({ root: ContextConsumer });
+
+    await expect(
+      app.mount({
+        identity,
+        props: { value: 'failed' },
+        services: { locale: { language: 'en-US' } },
+        signal: new AbortController().signal,
+        target,
+      }),
+    ).rejects.toBe(failure);
+    expect(target.childElementCount).toBe(0);
+  });
+
   it('does not mount after cancellation during asynchronous configuration', async () => {
     let finishConfigure!: () => void;
     const configure = new Promise<void>((resolve) => {
