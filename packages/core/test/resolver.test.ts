@@ -78,6 +78,33 @@ describe('application resolution', () => {
     }
   });
 
+  it.each([
+    Object.assign(Object.create({ source: 'checkout.js' }) as object, {
+      ref: normalizeAppRef({ name: 'checkout' }),
+    }),
+    {
+      ref: Object.create(normalizeAppRef({ name: 'checkout' })) as object,
+      source: 'checkout.js',
+    },
+    Object.assign(Object.create({ version: '2.0.0' }) as object, {
+      ref: normalizeAppRef({ name: 'checkout' }),
+      source: 'checkout.js',
+    }),
+    Object.assign(Object.create({ metadata: { deployment: 'checkout-v2' } }) as object, {
+      ref: normalizeAppRef({ name: 'checkout' }),
+      source: 'checkout.js',
+    }),
+  ])('rejects inherited resolution contract fields', (resolution) => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+
+    expect(() => assertResolvedApp(resolution, ref)).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.resolutionFailed,
+        phase: 'resolve',
+      }),
+    );
+  });
+
   it('selects static releases using application and rollout context', async () => {
     const resolver = createStaticResolver([
       {

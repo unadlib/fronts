@@ -5,14 +5,22 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function hasOwn(value: object, property: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, property);
+}
+
 function matchesRef(value: unknown, expected: NormalizedAppRef): boolean {
   if (!isRecord(value)) {
     return false;
   }
   return (
+    hasOwn(value, 'name') &&
+    hasOwn(value, 'expose') &&
     value.name === expected.name &&
     value.expose === expected.expose &&
+    (value.range === undefined || hasOwn(value, 'range')) &&
     value.range === expected.range &&
+    (value.channel === undefined || hasOwn(value, 'channel')) &&
     value.channel === expected.channel
   );
 }
@@ -72,7 +80,7 @@ export function assertResolvedApp<Source>(
   value: unknown,
   expectedRef: NormalizedAppRef,
 ): asserts value is ResolvedApp<Source> {
-  if (!isRecord(value) || !('source' in value)) {
+  if (!isRecord(value) || !hasOwn(value, 'source')) {
     throw new FrontsError(
       frontsErrorCodes.resolutionFailed,
       `Resolver returned an invalid result for "${expectedRef.name}".`,
@@ -97,7 +105,8 @@ export function assertResolvedApp<Source>(
   }
   if (
     result.version !== undefined &&
-    (typeof result.version !== 'string' ||
+    (!hasOwn(value, 'version') ||
+      typeof result.version !== 'string' ||
       result.version.trim() === '' ||
       result.version !== result.version.trim())
   ) {
@@ -107,7 +116,7 @@ export function assertResolvedApp<Source>(
       { details: { version: result.version }, phase: 'resolve' },
     );
   }
-  if (result.metadata !== undefined && !isRecord(result.metadata)) {
+  if (result.metadata !== undefined && (!hasOwn(value, 'metadata') || !isRecord(result.metadata))) {
     throw new FrontsError(
       frontsErrorCodes.resolutionFailed,
       `Resolver returned invalid metadata for "${expectedRef.name}".`,
