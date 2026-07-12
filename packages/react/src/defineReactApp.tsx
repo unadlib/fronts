@@ -127,7 +127,11 @@ export function defineReactApp<
                   pending = undefined;
                   deferred.reject(error);
                 }
-                options.onError?.(error, info);
+                try {
+                  options.onError?.(error, info);
+                } catch {
+                  // Observer failures must not replace or rethrow the application render failure.
+                }
               },
             },
             createElement(

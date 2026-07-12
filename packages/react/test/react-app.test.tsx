@@ -177,6 +177,42 @@ describe('React application adapter', () => {
     act(() => void handle?.unmount());
   });
 
+  it('keeps the render failure authoritative when the React error observer throws', async () => {
+    const renderFailure = new Error('render failed');
+    const observerFailure = new Error('error observer failed');
+    const Broken = () => {
+      throw renderFailure;
+    };
+    const onError = vi.fn(() => {
+      throw observerFailure;
+    });
+    const app = defineReactApp<Record<string, never>, object>({
+      fallback: <p>Application unavailable</p>,
+      onError,
+      root: Broken,
+    });
+    const target = document.createElement('div');
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+    let ready: Promise<void> | undefined;
+
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: {},
+        services: {},
+        signal: new AbortController().signal,
+        target,
+      });
+      ready = Promise.resolve(handle.ready);
+      void ready.catch(() => undefined);
+    });
+
+    await expect(ready).rejects.toBe(renderFailure);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(target.textContent).toBe('Application unavailable');
+    act(() => void handle?.unmount());
+  });
+
   it('recovers a failed update on the next render and remains unmountable', async () => {
     const failure = new Error('render failed');
     const Recoverable = ({ value }: Props) => {
