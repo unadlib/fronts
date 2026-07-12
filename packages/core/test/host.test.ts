@@ -198,7 +198,7 @@ describe('Fronts host runtime', () => {
   });
 
   it('rejects invalid readiness timeouts even when an app has no ready promise', async () => {
-    const { host } = createHarness();
+    const { app, host, loader, resolver } = createHarness();
 
     await expect(
       host.mount({
@@ -208,6 +208,26 @@ describe('Fronts host runtime', () => {
         target: document.createElement('main'),
       }),
     ).rejects.toEqual(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.readyTimeout,
+        phase: 'ready',
+      }),
+    );
+    expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(loader.load).not.toHaveBeenCalled();
+    expect(app.mount).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid host readiness timeout during construction', () => {
+    const { loader, resolver } = createHarness();
+
+    expect(() =>
+      createFrontsHost({
+        loader,
+        readyTimeoutMs: -1,
+        resolver,
+      }),
+    ).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({
         code: frontsErrorCodes.readyTimeout,
         phase: 'ready',

@@ -118,6 +118,17 @@ function normalizeRuntimeId(
   return value.trim();
 }
 
+function validateReadyTimeout(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new FrontsError(
+      frontsErrorCodes.readyTimeout,
+      'readyTimeoutMs must be a finite, non-negative duration.',
+      { phase: 'ready' },
+    );
+  }
+  return value;
+}
+
 function createIdentityEnvelope(identity: ApplicationIdentity): ApplicationIdentity {
   return Object.freeze({ ...identity });
 }
@@ -362,7 +373,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       'mount',
     );
     this.#now = options.now ?? Date.now;
-    this.#readyTimeoutMs = options.readyTimeoutMs ?? 10_000;
+    this.#readyTimeoutMs = validateReadyTimeout(options.readyTimeoutMs ?? 10_000);
     if (options.observer !== undefined) {
       this.#listeners.add(options.observer);
     }
@@ -731,7 +742,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       traceId: requestedTraceId,
     } = options;
     const ref = normalizeAppRef(requestedRef);
-    const readyTimeoutMs = requestedReadyTimeoutMs ?? this.#readyTimeoutMs;
+    const readyTimeoutMs = validateReadyTimeout(requestedReadyTimeoutMs ?? this.#readyTimeoutMs);
     const resolution = createResolutionPolicyEnvelope(requestedResolution ?? {});
     const instanceId = normalizeRuntimeId(
       requestedInstanceId ?? this.#createInstanceId(ref),
