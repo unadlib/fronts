@@ -365,6 +365,38 @@ describe('secure iframe execution', () => {
     peer.close();
   });
 
+  it('closes an RPC peer when request responses cannot be delivered', async () => {
+    let receive!: (event: MessageEvent<unknown>) => void;
+    const port = {
+      addEventListener: vi.fn((_type: string, listener: (event: MessageEvent<unknown>) => void) => {
+        receive = listener;
+      }),
+      close: vi.fn(),
+      postMessage: vi.fn(() => {
+        throw new Error('message port transport failed');
+      }),
+      removeEventListener: vi.fn(),
+      start: vi.fn(),
+    } as unknown as MessagePort;
+    const channelId = 'failed-response-transport';
+    const peer = new IframeRpcPeer(port, { channelId });
+
+    receive({
+      data: {
+        channelId,
+        id: 'remote:1',
+        method: 'missing.method',
+        params: undefined,
+        protocol: FRONTS_IFRAME_PROTOCOL,
+        protocolVersion: FRONTS_IFRAME_PROTOCOL_VERSION,
+        type: 'request',
+      },
+    } as MessageEvent<unknown>);
+
+    await vi.waitFor(() => expect(peer.closed).toBe(true));
+    expect(port.close).toHaveBeenCalledOnce();
+  });
+
   it('ignores malformed iframe RPC wire messages', async () => {
     const channelId = 'malformed-rpc';
     const channel = new MessageChannel();

@@ -338,7 +338,13 @@ export class IframeRpcPeer {
     const message = event.data;
     switch (message.type) {
       case 'request':
-        void this.#handleRequest(message);
+        void this.#handleRequest(message).catch((error: unknown) => {
+          try {
+            this.#close(error, true);
+          } catch {
+            // A fire-and-forget request dispatch must never create an unhandled rejection.
+          }
+        });
         break;
       case 'response':
         this.#handleResponse(message);
