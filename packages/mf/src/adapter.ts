@@ -1,5 +1,5 @@
 import { FrontsError, frontsErrorCodes, throwIfAborted, type ResolvedApp } from '@fronts/core';
-import type { PreloadRemoteArgs } from '@module-federation/runtime/types';
+import type { PreloadRemoteArgs, Remote } from '@module-federation/runtime/types';
 
 import { assertModuleFederationSource, toModuleFederationId } from './source.js';
 import type {
@@ -13,7 +13,14 @@ function registerRemote(
   options: ModuleFederationAdapterOptions,
 ): void {
   const force = resolved.source.force ?? options.force ?? false;
-  options.instance.registerRemotes([resolved.source.remote], force ? { force: true } : undefined);
+  const configuredRemote = resolved.source.remote;
+  const runtimeRemote: Remote = {
+    ...configuredRemote,
+    ...(Array.isArray(configuredRemote.shareScope)
+      ? { shareScope: [...configuredRemote.shareScope] }
+      : {}),
+  };
+  options.instance.registerRemotes([runtimeRemote], force ? { force: true } : undefined);
 }
 
 function createPreloadOptions(

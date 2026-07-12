@@ -42,7 +42,16 @@ export function createModuleFederationSource(
   remote: Remote,
   options: Omit<ModuleFederationSource, 'remote'> = {},
 ): ModuleFederationSource {
-  const source = { ...options, remote };
+  const source = Object.freeze({
+    ...options,
+    ...(options.preload === undefined ? {} : { preload: Object.freeze({ ...options.preload }) }),
+    remote: Object.freeze({
+      ...remote,
+      ...(Array.isArray(remote.shareScope)
+        ? { shareScope: Object.freeze([...remote.shareScope]) }
+        : {}),
+    }) as Remote,
+  });
   assertModuleFederationSource(source);
   return source;
 }

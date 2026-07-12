@@ -69,6 +69,7 @@ describe('Module Federation runtime adapter', () => {
       default: app,
     });
     expect(runtime.registerRemotes).toHaveBeenCalledWith([source.remote], undefined);
+    expect(runtime.registerRemotes.mock.calls[0]?.[0]?.[0]).not.toBe(source.remote);
     expect(runtime.loadRemote).toHaveBeenCalledWith('checkout_2_0_0/application', {
       from: 'runtime',
     });
@@ -121,6 +122,32 @@ describe('Module Federation runtime adapter', () => {
     expect(toModuleFederationId(source, normalizeAppRef({ name: 'checkout' }))).toBe(
       'checkout/application',
     );
+  });
+
+  it('protects resolved sources from caller and runtime remote mutation', async () => {
+    const runtime = createRuntime();
+    runtime.loadRemote.mockResolvedValue({ module: true });
+    runtime.registerRemotes.mockImplementation((remotes) => {
+      const registered = remotes[0];
+      if (registered !== undefined && 'entry' in registered) {
+        registered.entry = 'https://runtime.example.test/normalized.js';
+        registered.shareScope = 'runtime-default';
+        registered.type = 'module';
+      }
+    });
+    const inputRemote = {
+      entry: './checkout.js',
+      name: 'checkout',
+    };
+    const source = createModuleFederationSource(inputRemote);
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+
+    inputRemote.entry = './forged.js';
+    await adapter.load(createResolved(source), createOperation('load'));
+
+    expect(source.remote).toEqual({ entry: './checkout.js', name: 'checkout' });
+    expect(Object.isFrozen(source)).toBe(true);
+    expect(Object.isFrozen(source.remote)).toBe(true);
   });
 
   it('rejects malformed sources and null module results with stable Fronts errors', async () => {
