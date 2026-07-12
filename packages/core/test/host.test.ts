@@ -394,6 +394,30 @@ describe('Fronts host runtime', () => {
     },
   );
 
+  it.each([
+    [{ environment: 42 }, 'environment'],
+    [{ tenant: null }, 'tenant'],
+    [{ cohort: {} }, 'cohort'],
+    [{ metadata: [] }, 'metadata'],
+  ] as const)('rejects invalid resolution policy field $field', async (resolve, field) => {
+    const { host, resolver } = createHarness();
+
+    await expect(
+      host.mount({
+        props: { value: 'invalid-policy' },
+        ref: { name: 'checkout' },
+        resolve: resolve as never,
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.resolutionFailed,
+      details: { property: field },
+      phase: 'resolve',
+    });
+    expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('maps loader errors to the load phase without leaving a container behind', async () => {
     const { events, host, loader } = createHarness();
     loader.load.mockRejectedValueOnce(new Error('remote entry unavailable'));

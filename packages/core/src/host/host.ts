@@ -139,6 +139,29 @@ function createResolutionPolicyEnvelope(
   options: ResolutionPolicyContext,
 ): Readonly<ResolutionPolicyContext> {
   const { cohort, environment, metadata, tenant } = options;
+  for (const [property, value] of [
+    ['environment', environment],
+    ['tenant', tenant],
+    ['cohort', cohort],
+  ] as const) {
+    if (value !== undefined && typeof value !== 'string') {
+      throw new FrontsError(
+        frontsErrorCodes.resolutionFailed,
+        `Resolution policy ${property} must be a string when provided.`,
+        { details: { property }, phase: 'resolve' },
+      );
+    }
+  }
+  if (
+    metadata !== undefined &&
+    (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata))
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.resolutionFailed,
+      'Resolution policy metadata must be an object when provided.',
+      { details: { property: 'metadata' }, phase: 'resolve' },
+    );
+  }
   return Object.freeze({
     ...(environment === undefined ? {} : { environment }),
     ...(tenant === undefined ? {} : { tenant }),
