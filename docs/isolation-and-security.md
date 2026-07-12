@@ -85,6 +85,8 @@ COOP/COEP, cookie attributes, and server headers remain deployment responsibilit
 
 The iframe container defaults to `sandbox="allow-scripts"`. `allow-same-origin` is available only
 through an explicit sandbox option and should normally be paired with a dedicated child origin.
+Generic iframe `attributes` cannot override dedicated options (`src`, `sandbox`, `allow`, and the
+other typed fields), Fronts-owned `data-fronts-*` state, or inline `on*` event handlers.
 
 ## Capability-scoped services
 

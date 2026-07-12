@@ -63,6 +63,7 @@ describe('secure iframe execution', () => {
       identity,
       operation,
       request: {
+        attributes: { 'aria-label': 'Checkout application', id: 'checkout-iframe' },
         sandbox: ['allow-scripts'],
         src: 'https://frame.example.test/app',
         targetOrigin: 'https://frame.example.test',
@@ -75,6 +76,8 @@ describe('secure iframe execution', () => {
     const iframe = prepared.element as HTMLIFrameElement;
 
     expect(iframe.src).toBe('https://frame.example.test/app');
+    expect(iframe.getAttribute('aria-label')).toBe('Checkout application');
+    expect(iframe.id).toBe('checkout-iframe');
     expect(iframe.title).toBe('Checkout');
     expect(iframe.sandbox.contains('allow-scripts')).toBe(true);
     expect(iframe.sandbox.contains('allow-same-origin')).toBe(false);
@@ -108,6 +111,36 @@ describe('secure iframe execution', () => {
     expect(iframe.sandbox.contains('allow-same-origin')).toBe(false);
     await prepared.dispose();
   });
+
+  it.each(['sandbox', 'srcdoc', 'allow', 'onload', 'data-fronts-channel'])(
+    'rejects the controlled iframe attribute %s',
+    (attribute) => {
+      const operation = createOperation();
+      const target = document.createElement('main');
+
+      expect(() =>
+        createIframeContainer().prepare({
+          identity,
+          operation,
+          request: {
+            attributes: { [attribute]: 'unsafe-value' },
+            src: 'https://frame.example.test/app',
+            targetOrigin: 'https://frame.example.test',
+            title: 'Checkout',
+            type: 'iframe',
+          },
+          signal: operation.signal,
+          target,
+        }),
+      ).toThrowError(
+        expect.objectContaining<Partial<FrontsError>>({
+          code: frontsErrorCodes.iframeProtocol,
+          details: { attribute },
+        }),
+      );
+      expect(target.children).toHaveLength(0);
+    },
+  );
 
   it('forbids wildcard and mismatched iframe origins', () => {
     const target = document.createElement('main');

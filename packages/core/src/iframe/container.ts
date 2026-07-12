@@ -16,6 +16,33 @@ export interface IframeContainerRequest extends ContainerRequest {
   readonly attributes?: Readonly<Record<string, string>>;
 }
 
+const controlledIframeAttributes = new Set([
+  'allow',
+  'class',
+  'loading',
+  'name',
+  'referrerpolicy',
+  'sandbox',
+  'src',
+  'srcdoc',
+  'title',
+]);
+
+function assertCustomIframeAttribute(name: string): void {
+  const normalized = name.toLowerCase();
+  if (
+    controlledIframeAttributes.has(normalized) ||
+    normalized.startsWith('data-fronts-') ||
+    normalized.startsWith('on')
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      `Iframe attribute "${name}" is reserved by Fronts and cannot be set through attributes.`,
+      { details: { attribute: name }, phase: 'container' },
+    );
+  }
+}
+
 function createChannelId(): string {
   if (typeof globalThis.crypto?.randomUUID !== 'function') {
     throw new FrontsError(
@@ -59,6 +86,7 @@ export function createIframeContainer(): ContainerAdapter<IframeContainerRequest
 
       const iframe = target.ownerDocument.createElement('iframe');
       for (const [name, value] of Object.entries(request.attributes ?? {})) {
+        assertCustomIframeAttribute(name);
         iframe.setAttribute(name, value);
       }
       iframe.className = request.className ?? '';
