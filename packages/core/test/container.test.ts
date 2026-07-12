@@ -130,6 +130,47 @@ describe('application containers', () => {
     );
   });
 
+  it('rejects and rolls back invalid prepared container results', async () => {
+    const parent = document.createElement('main');
+    document.body.append(parent);
+    const dispose = vi.fn(() => undefined);
+    const registry = new ContainerRegistry([
+      {
+        type: 'invalid',
+        prepare() {
+          const element = document.createElement('section');
+          parent.append(element);
+          return {
+            dispose: () => {
+              dispose();
+              element.remove();
+            },
+            element,
+            ownsElement: true,
+            target: element,
+            type: 'wrong-type',
+          };
+        },
+      },
+    ]);
+
+    await expect(
+      registry.prepare({
+        ...createOperationContext(),
+        identity,
+        request: { type: 'invalid' },
+        target: parent,
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.containerFailed,
+      details: { expectedType: 'invalid', receivedType: 'wrong-type' },
+      phase: 'container',
+    });
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(parent.children).toHaveLength(0);
+    parent.remove();
+  });
+
   it('ships DOM and Shadow adapters in the default registry', () => {
     const registry = createContainerRegistry();
     expect(registry.has('dom')).toBe(true);

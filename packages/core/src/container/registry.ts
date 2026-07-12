@@ -8,6 +8,74 @@ import type {
   PreparedContainer,
 } from './types.js';
 
+function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isElementNode(value: unknown): value is Element {
+  return isRecord(value) && value.nodeType === 1;
+}
+
+function isMountTarget(value: unknown): boolean {
+  return (
+    isElementNode(value) || (isRecord(value) && value.nodeType === 11 && isElementNode(value.host))
+  );
+}
+
+function assertPreparedContainer(
+  value: unknown,
+  expectedType: string,
+): asserts value is PreparedContainer {
+  if (
+    !isRecord(value) ||
+    value.type !== expectedType ||
+    !isElementNode(value.element) ||
+    !isMountTarget(value.target) ||
+    typeof value.dispose !== 'function' ||
+    (value.ownsElement !== undefined && typeof value.ownsElement !== 'boolean')
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.containerFailed,
+      `Container "${expectedType}" returned an invalid prepared container.`,
+      {
+        details: {
+          expectedType,
+          receivedType: isRecord(value) ? value.type : undefined,
+        },
+        phase: 'container',
+      },
+    );
+  }
+}
+
+async function cleanupInvalidContainer(value: unknown): Promise<readonly unknown[]> {
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  const errors: unknown[] = [];
+  try {
+    if (typeof value.dispose === 'function') {
+      await Reflect.apply(value.dispose, value, []);
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+
+  try {
+    if (
+      value.ownsElement === true &&
+      isElementNode(value.element) &&
+      value.element.parentNode !== null
+    ) {
+      value.element.remove();
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  return errors;
+}
+
 export class ContainerRegistry {
   readonly #adapters = new Map<string, ContainerAdapter>();
 
@@ -36,26 +104,46 @@ export class ContainerRegistry {
   async prepare<Request extends ContainerRequest>(
     context: ContainerPrepareContext<Request>,
   ): Promise<PreparedContainer> {
-    throwIfAborted(context.signal, 'container');
-    const adapter = this.#adapters.get(context.request.type);
+    const signal = context.signal;
+    throwIfAborted(signal, 'container');
+    const requestedType = context.request.type;
+    const adapter = this.#adapters.get(requestedType);
     if (adapter === undefined) {
       throw new FrontsError(
         frontsErrorCodes.containerFailed,
-        `No container adapter named "${context.request.type}" is registered.`,
-        { details: { type: context.request.type }, phase: 'container' },
+        `No container adapter named "${requestedType}" is registered.`,
+        { details: { type: requestedType }, phase: 'container' },
       );
     }
 
     try {
-      return await adapter.prepare(context);
+      const prepared: unknown = await adapter.prepare(context);
+      try {
+        assertPreparedContainer(prepared, requestedType);
+        return prepared;
+      } catch (error) {
+        const cleanupErrors = await cleanupInvalidContainer(prepared);
+        if (cleanupErrors.length > 0) {
+          throw new FrontsError(
+            frontsErrorCodes.containerFailed,
+            `Container "${requestedType}" returned an invalid result and failed rollback.`,
+            {
+              cause: new AggregateError([error, ...cleanupErrors]),
+              details: { cleanupFailureCount: cleanupErrors.length },
+              phase: 'container',
+            },
+          );
+        }
+        throw error;
+      }
     } catch (error) {
-      throwIfAborted(context.signal, 'container');
+      throwIfAborted(signal, 'container');
       if (error instanceof FrontsError) {
         throw error;
       }
       throw new FrontsError(
         frontsErrorCodes.containerFailed,
-        `Container "${context.request.type}" failed to prepare.`,
+        `Container "${requestedType}" failed to prepare.`,
         { cause: error, phase: 'container' },
       );
     }
