@@ -1017,6 +1017,49 @@ describe('Fronts host runtime', () => {
     await instance.unmount();
   });
 
+  it('snapshots container requests without inheriting caller-controlled fields', async () => {
+    let preparedRequest: ContainerRequest | undefined;
+    const adapter: ContainerAdapter = {
+      type: 'prototype-safe',
+      prepare(context) {
+        preparedRequest = context.request;
+        const element = document.createElement('section');
+        context.target.append(element);
+        return {
+          dispose: () => element.remove(),
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'prototype-safe',
+        };
+      },
+    };
+    const { loader, resolver } = createHarness();
+    const host = createFrontsHost({ containers: [adapter], loader, resolver, services });
+    const request = Object.create(null) as ContainerRequest;
+    Object.defineProperty(request, '__proto__', {
+      enumerable: true,
+      value: { forged: true },
+    });
+    Object.defineProperty(request, 'type', {
+      enumerable: true,
+      value: 'prototype-safe',
+    });
+
+    const instance = await host.mount({
+      container: request,
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    expect(Object.getPrototypeOf(preparedRequest)).toBeNull();
+    expect(Object.isFrozen(preparedRequest)).toBe(true);
+    expect((preparedRequest as ContainerRequest & { forged?: boolean }).forged).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(preparedRequest, '__proto__')).toBe(true);
+    await instance.unmount();
+  });
+
   it('audits and aborts detached resolve, load and preload operations during disposal', async () => {
     const { host, resolver } = createHarness();
     const signals: AbortSignal[] = [];

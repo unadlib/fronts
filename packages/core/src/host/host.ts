@@ -213,7 +213,7 @@ function createContainerRequestEnvelope<Request extends ContainerRequest>(
       );
     }
 
-    const envelope: Record<string, unknown> = {};
+    const envelope = Object.create(null) as Record<string, unknown>;
     for (const [key, value] of Object.entries(request)) {
       envelope[key] = value;
     }
