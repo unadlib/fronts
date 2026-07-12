@@ -41,18 +41,21 @@ Treat identity in these contexts as host-issued authority. Do not accept an appl
 identity for capability authorization or audit attribution. `operationId` identifies one host
 action; `traceId` may intentionally link several actions, such as preload followed by mount.
 
-Phases are deliberately application-oriented:
+The public `FrontsPhase` values are deliberately application-oriented:
 
 - resolve
 - load
-- validate
-- prepare
+- container
 - mount
 - ready
 - update
-- activate/deactivate
+- activate
+- deactivate
 - unmount
-- replace/audit
+
+Protocol validation is attributed to the load or mount boundary that encountered it. Replacement
+is a transaction composed from these phases, while audit is a synchronous report rather than an
+error phase.
 
 Module Federation runtime hooks provide lower-level manifest, remote entry, expose, shared, and
 resource events. Correlate the two streams at the `@fronts/mf` load boundary; do not duplicate all

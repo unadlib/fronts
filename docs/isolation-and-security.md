@@ -28,9 +28,10 @@ move styles injected into the parent document. See the official
 
 ## DOM container
 
-The DOM adapter creates an owned child element with validated tag name, class, attributes, and
-application identity data. The application mounts inside it. Unmount destroys the application
-first, then removes the owned element.
+The DOM adapter creates an owned child element with the configured tag name, class, attributes,
+and Fronts application identity data. Browser DOM APIs validate those values; Fronts does not
+claim a same-realm security allowlist for generic DOM attributes. The application mounts inside
+the element. Unmount destroys the application first, then removes the owned element.
 
 DOM mode is appropriate only when producer code is trusted to share the page. The application can
 still access `window`, `document`, cookies available to the page, and other DOM outside its target.
@@ -63,13 +64,15 @@ Iframe mode divides responsibility:
 Required controls:
 
 - exact `targetOrigin`; wildcard origins are rejected;
-- sender `origin` and `source` validation on both sides;
+- transfer of a dedicated MessagePort only in that connect message, plus child-side validation of
+  its sender `origin` and `source`;
 - an allowlist of parent origins in the agent;
 - explicit iframe `sandbox` and `allow` policy chosen by the host;
 - one-time capability negotiation after the child application is loaded;
 - negotiated capability and method validation on every host invocation;
 - serializable arguments/results only;
-- bounded connection and lifecycle timeouts;
+- finite, configurable connection and lifecycle timeout values (`0` explicitly disables a
+  deadline);
 - channel teardown and pending-promise rejection on dispose.
 
 The iframe agent creates its own Module Federation instance. This prevents the parent from

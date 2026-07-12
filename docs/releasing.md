@@ -29,7 +29,7 @@ pnpm test:e2e
 ```
 
 `pnpm check` performs formatting/lint, a topological clean build, tarball consumption checks,
-TypeScript checks, all 72+ unit/integration tests, and enforced coverage thresholds.
+TypeScript checks, all unit/integration tests, and enforced coverage thresholds.
 
 `pnpm verify:packages` packs each public workspace, rejects missing README/LICENSE/dist or leaked
 source/test directories, installs the four tarballs in an isolated temporary consumer, and imports

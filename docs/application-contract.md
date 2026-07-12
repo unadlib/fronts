@@ -36,11 +36,12 @@ interface MountContext<Props, Services extends object> {
 
 Invariants:
 
-- `identity.instanceId` is unique within a host until the instance is destroyed.
-- `props` is a snapshot. Producers must not mutate it or retain it as mutable shared state.
+- `identity.instanceId` is unique while its mount transaction or retained instance record exists.
+- the `props` reference is captured when the mount transaction starts, but Fronts does not clone or
+  freeze the caller's object. Callers and producers must treat it as read-only shared input.
 - `services` contains only declared and authorized capabilities.
 - `signal` aborts when mounting is cancelled or the instance is force-aborted.
-- `target` is owned by the selected container for the lifetime of this mount.
+- `target` is supplied and controlled by the selected container for the lifetime of this mount.
 - a producer must render only inside its target unless a declared platform capability explicitly
   permits another effect.
 
@@ -69,7 +70,7 @@ readiness succeeds.
 
 Updates an existing mounted application without changing identity, deployment, target, or service
 scope. Implementations should resolve after the framework commits the update. When unsupported,
-the host reports a typed invalid-state error instead of silently remounting.
+the host reports a typed lifecycle failure instead of silently remounting.
 
 ### `activate()` and `deactivate()`
 
@@ -95,11 +96,13 @@ resolving → loading → preparing → mounting → ready
                                              ▼
                                       unmounting → destroyed
 
-Any pending phase ── failure/abort ──► failed | aborted ── cleanup ──► destroyed
+Any pending phase ── failure/abort + rollback ──► failed | aborted (terminal)
 ```
 
 Operations are serialized per instance. Calls that are invalid for the current state reject with
-a `FrontsError`; they are never silently queued across destruction.
+a `FrontsError`; they are never silently queued across destruction. Clean failed/aborted
+transactions release their host record after rollback; incomplete cleanup remains visible to
+`host.audit()` without inventing a later `destroyed` transition.
 
 ## Cancellation
 
@@ -122,8 +125,9 @@ export default defineApp<Props, HostServices>({
 ```
 
 Declaration is necessary but not sufficient. The host's `capabilityPolicy` evaluates each key for
-the concrete application identity. Undeclared or denied services are absent. A service scope is
-revoked on cleanup, so retained method proxies fail rather than continuing to affect the host.
+the concrete application identity. A declared capability that is unavailable or denied rejects an
+ordinary application mount; undeclared services never enter its facade. A service scope is revoked
+on cleanup, so retained method proxies fail rather than continuing to affect the host.
 
 Static `services` remain the simplest host configuration. When a capability must be bound to one
 application instance, use `createServices` as an instance-level provider:

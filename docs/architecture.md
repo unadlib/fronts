@@ -122,12 +122,13 @@ The host executes these phases in order:
 5. Create instance-bound services when configured, authorize declared capabilities, and create a
    revocable service scope.
 6. Prepare the container.
-7. Call `mount()` with immutable props, scoped services, target, identity, and abort signal.
+7. Call `mount()` with the captured read-only props reference, scoped services, target, identity,
+   and abort signal.
 8. Wait for the application `ready` promise with a deadline.
 9. Publish the instance as usable.
 
-Failure unwinds acquired resources in reverse order. The original error remains primary; cleanup
-errors are reported through typed Fronts errors and events.
+Failure unwinds every acquired resource in deterministic lifecycle order. The original error
+remains primary; cleanup errors are reported through typed Fronts errors and events.
 
 ## Replacement transaction
 

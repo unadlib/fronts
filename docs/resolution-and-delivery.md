@@ -94,7 +94,9 @@ The adapter:
 2. derives `remoteName/expose` from source and normalized reference;
 3. calls `loadRemote(id, { from: 'runtime' })`;
 4. maps null or thrown results to a Fronts load error;
-5. uses `preloadRemote()` when the host requests preload.
+5. uses `preloadRemote()` when the host requests preload;
+6. rejects reuse of a remote name for a different source or known resolved version on the same MF
+   instance unless force replacement is explicit.
 
 Manifest is preferred over a raw remote entry because MF can discover expose assets, shared
 metadata, type files, and preload resources. The official
@@ -110,7 +112,8 @@ Recommended registry behavior:
 - calculate cohort allocation deterministically from authenticated subject + experiment salt;
 - return a concrete version and immutable asset URL;
 - record the policy revision/deployment ID in metadata;
-- never reuse a mutable remote name for two loaded deployments in one MF instance;
+- never reuse a mutable remote name for two loaded deployments in one MF instance (the Fronts MF
+  adapter also guards registrations it has observed on that instance);
 - keep the old artifact available for at least the rollback window.
 
 Fronts does not prescribe the registry's database or rollout algorithm. That is deployment-plane
