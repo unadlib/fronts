@@ -10,6 +10,7 @@ import {
 
 import {
   FrontsError,
+  createAbortedError,
   defineApp,
   frontsErrorCodes,
   throwIfAborted,
@@ -57,6 +58,30 @@ function createDeferred(): Deferred {
   return { promise, reject, resolve };
 }
 
+function raceConfigurationWithAbort(
+  configuration: PromiseLike<void> | void,
+  signal: AbortSignal,
+): Promise<void> {
+  throwIfAborted(signal, 'mount');
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      callback();
+    };
+    const onAbort = (): void => finish(() => reject(createAbortedError('mount', signal.reason)));
+    signal.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve(configuration).then(
+      () => finish(resolve),
+      (error: unknown) => finish(() => reject(error)),
+    );
+  });
+}
+
 export function defineVueApp<
   Props extends object = Record<string, never>,
   Services extends object = object,
@@ -93,7 +118,10 @@ export function defineVueApp<
       let pending: Deferred | undefined;
 
       try {
-        await options.configure?.(app, { ...vueContext, props: context.props });
+        await raceConfigurationWithAbort(
+          options.configure?.(app, { ...vueContext, props: context.props }),
+          context.signal,
+        );
         throwIfAborted(context.signal, 'mount');
       } catch (error) {
         if (mountTarget !== context.target) {

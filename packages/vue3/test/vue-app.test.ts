@@ -245,7 +245,6 @@ describe('Vue application adapter', () => {
       target,
     });
     controller.abort('configuration cancelled');
-    finishConfigure();
 
     await expect(mounting).rejects.toMatchObject({
       code: frontsErrorCodes.aborted,
@@ -253,6 +252,10 @@ describe('Vue application adapter', () => {
     });
     expect(vueApp.mount).not.toHaveBeenCalled();
     expect(target.childElementCount).toBe(0);
+
+    finishConfigure();
+    await flushPromises();
+    expect(vueApp.mount).not.toHaveBeenCalled();
   });
 
   it('preserves the external target when Vue mounting throws', async () => {
