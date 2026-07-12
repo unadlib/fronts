@@ -115,7 +115,9 @@ export function defineReactApp<
         };
         try {
           const application =
-            options.render?.(renderContext) ?? createElement(options.root, props as Props);
+            options.render === undefined
+              ? createElement(options.root, props as Props)
+              : options.render(renderContext);
           const content = createElement(
             ReactAppErrorBoundary,
             {

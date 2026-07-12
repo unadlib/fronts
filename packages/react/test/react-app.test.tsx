@@ -120,6 +120,31 @@ describe('React application adapter', () => {
     act(() => void handle?.unmount());
   });
 
+  it('respects an intentionally empty custom render result', async () => {
+    const Root = vi.fn(() => <p>Default root</p>);
+    const app = defineReactApp<Record<string, never>, object>({
+      render: () => null,
+      root: Root,
+    });
+    const target = document.createElement('div');
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: {},
+        services: {},
+        signal: new AbortController().signal,
+        target,
+      });
+    });
+
+    await handle?.ready;
+    expect(Root).not.toHaveBeenCalled();
+    expect(target.textContent).toBe('');
+    act(() => void handle?.unmount());
+  });
+
   it('rolls back the React root when initial render composition throws', () => {
     const failure = new Error('provider composition failed');
     const root = { render: vi.fn(), unmount: vi.fn() };
