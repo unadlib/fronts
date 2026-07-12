@@ -204,14 +204,30 @@ export function createIframeProxyLoader<Source, Services extends object = object
             );
           }
 
-          const channel = (options.createMessageChannel ?? (() => new MessageChannel()))();
-          const peer = new IframeRpcPeer(channel.port1, {
-            channelId,
-            idPrefix: 'host',
-            ...(options.requestTimeoutMs === undefined
-              ? {}
-              : { requestTimeoutMs: options.requestTimeoutMs }),
-          });
+          let channel: MessageChannel | undefined;
+          let peer: IframeRpcPeer;
+          try {
+            channel = (options.createMessageChannel ?? (() => new MessageChannel()))();
+            peer = new IframeRpcPeer(channel.port1, {
+              channelId,
+              idPrefix: 'host',
+              ...(options.requestTimeoutMs === undefined
+                ? {}
+                : { requestTimeoutMs: options.requestTimeoutMs }),
+            });
+          } catch (error) {
+            try {
+              channel?.port1.close();
+            } catch {
+              // The channel construction failure remains authoritative.
+            }
+            try {
+              channel?.port2.close();
+            } catch {
+              // The channel construction failure remains authoritative.
+            }
+            throw error;
+          }
           const offeredCapabilities = capabilities.filter((capability) =>
             Object.prototype.hasOwnProperty.call(context.services, capability),
           );

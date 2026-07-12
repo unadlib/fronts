@@ -694,6 +694,46 @@ describe('secure iframe execution', () => {
     iframe.remove();
   });
 
+  it('closes both proxy ports when RPC peer construction fails', async () => {
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
+    const channel = {
+      port1: {
+        addEventListener: vi.fn(() => {
+          throw new Error('message port listener registration failed');
+        }),
+        close: closeFirst,
+        postMessage: vi.fn(),
+        removeEventListener: vi.fn(),
+        start: vi.fn(),
+      },
+      port2: {
+        close: closeSecond,
+      },
+    } as unknown as MessageChannel;
+    const resolved = createResolved();
+    const proxyApp = getFrontsApp<Props, object>(
+      await createIframeProxyLoader<Source, object, Props>({
+        createMessageChannel: () => channel,
+      }).load(resolved, createOperation()),
+    );
+    const iframe = document.createElement('iframe');
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    iframe.dataset.frontsTargetOrigin = 'https://frame.example.test';
+
+    expect(() =>
+      proxyApp.mount({
+        identity,
+        props: { value: 'first' },
+        services: {},
+        signal: new AbortController().signal,
+        target: iframe,
+      }),
+    ).toThrow('message port listener registration failed');
+    expect(closeFirst).toHaveBeenCalledOnce();
+    expect(closeSecond).toHaveBeenCalledOnce();
+  });
+
   it('reports malformed iframe connections without leaking a session', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'malformed-connect';
