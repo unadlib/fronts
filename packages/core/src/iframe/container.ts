@@ -27,6 +27,7 @@ const controlledIframeAttributes = new Set([
   'srcdoc',
   'title',
 ]);
+const requiredSandboxTokens = ['allow-same-origin', 'allow-scripts'] as const;
 
 function assertCustomIframeAttribute(name: string): void {
   const normalized = name.toLowerCase();
@@ -54,7 +55,7 @@ function createChannelId(): string {
   return globalThis.crypto.randomUUID();
 }
 
-function validateOrigin(src: string, targetOrigin: string, baseUrl: string): void {
+function validateOrigin(src: string, targetOrigin: string, baseUrl: string): URL {
   if (targetOrigin === '*') {
     throw new FrontsError(
       frontsErrorCodes.iframeProtocol,
@@ -68,6 +69,7 @@ function validateOrigin(src: string, targetOrigin: string, baseUrl: string): voi
     if (expected.origin !== targetOrigin || source.origin !== expected.origin) {
       throw new Error('origin mismatch');
     }
+    return source;
   } catch (error) {
     throw new FrontsError(
       frontsErrorCodes.iframeProtocol,
@@ -77,14 +79,77 @@ function validateOrigin(src: string, targetOrigin: string, baseUrl: string): voi
   }
 }
 
+function getDocumentOrigin(document: Document): string | undefined {
+  try {
+    const origin = document.defaultView?.location.origin ?? new URL(document.URL).origin;
+    return origin === 'null' ? undefined : origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function validateSandbox(
+  value: unknown,
+  sourceOrigin: string,
+  document: Document,
+): readonly string[] {
+  const configured = value ?? requiredSandboxTokens;
+  if (!Array.isArray(configured)) {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      'Iframe sandbox must be an array of individual tokens.',
+      { phase: 'container' },
+    );
+  }
+
+  const tokens = new Set<string>();
+  for (const token of configured as unknown[]) {
+    if (
+      typeof token !== 'string' ||
+      token.trim() === '' ||
+      token !== token.trim() ||
+      /\s/.test(token)
+    ) {
+      throw new FrontsError(
+        frontsErrorCodes.iframeProtocol,
+        `Invalid iframe sandbox token "${String(token)}".`,
+        { phase: 'container' },
+      );
+    }
+    tokens.add(token);
+  }
+
+  for (const required of requiredSandboxTokens) {
+    if (!tokens.has(required)) {
+      throw new FrontsError(
+        frontsErrorCodes.iframeProtocol,
+        `Iframe sandbox must include "${required}" for the origin-bound agent transport.`,
+        { details: { required }, phase: 'container' },
+      );
+    }
+  }
+
+  const parentOrigin = getDocumentOrigin(document);
+  if (parentOrigin !== undefined && sourceOrigin === parentOrigin) {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      'Iframe agents must use a dedicated origin different from the host document.',
+      { details: { origin: sourceOrigin }, phase: 'container' },
+    );
+  }
+  return Object.freeze([...tokens]);
+}
+
 export function createIframeContainer(): ContainerAdapter<IframeContainerRequest> {
   return {
     type: 'iframe',
     prepare({ identity, request, signal, target }): PreparedContainer {
       throwIfAborted(signal, 'container');
-      validateOrigin(request.src, request.targetOrigin, target.ownerDocument.baseURI);
+      const document = target.ownerDocument;
+      const source = validateOrigin(request.src, request.targetOrigin, document.baseURI);
+      const sandbox = validateSandbox(request.sandbox, source.origin, document);
 
-      const iframe = target.ownerDocument.createElement('iframe');
+      const iframe = document.createElement('iframe');
       for (const [name, value] of Object.entries(request.attributes ?? {})) {
         assertCustomIframeAttribute(name);
         iframe.setAttribute(name, value);
@@ -97,7 +162,7 @@ export function createIframeContainer(): ContainerAdapter<IframeContainerRequest
       if (request.allow !== undefined) {
         iframe.allow = request.allow;
       }
-      for (const token of request.sandbox ?? ['allow-scripts']) {
+      for (const token of sandbox) {
         iframe.sandbox.add(token);
       }
 

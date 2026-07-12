@@ -67,7 +67,9 @@ Required controls:
 - transfer of a dedicated MessagePort only in that connect message, plus child-side validation of
   its sender `origin` and `source`;
 - an allowlist of parent origins in the agent;
-- explicit iframe `sandbox` and `allow` policy chosen by the host;
+- an iframe sandbox that preserves the dedicated child origin so the connect message can retain
+  an exact `targetOrigin`;
+- an explicit `allow` policy chosen by the host;
 - one-time capability negotiation after the child application is loaded;
 - negotiated capability and method validation on every host invocation;
 - serializable arguments/results only;
@@ -81,13 +83,17 @@ therefore scoped to the child runtime, trading some duplication for realm isolat
 
 ### Sandbox and origin choice
 
-For untrusted content, serve the agent from a dedicated origin and avoid combining
-`allow-scripts` with `allow-same-origin` when the child could otherwise become same-origin with the
-parent. Grant browser permissions (`allow`) individually. Content Security Policy, Trusted Types,
-COOP/COEP, cookie attributes, and server headers remain deployment responsibilities.
+The origin-bound agent transport requires both `allow-scripts` and `allow-same-origin`: an opaque
+sandbox origin cannot receive a connect message addressed to the deployment's exact origin, and
+Fronts will not weaken that bootstrap to `targetOrigin="*"`. Fronts therefore requires the agent to
+be served from a dedicated origin different from the host document and rejects sandbox options
+that omit either token. On a cross-origin deployment, `allow-same-origin` preserves the child's own
+origin; it does not grant access to the parent origin. Never move that configuration onto the host
+origin, where script plus preserved origin can let the child escape sandbox restrictions.
 
-The iframe container defaults to `sandbox="allow-scripts"`. `allow-same-origin` is available only
-through an explicit sandbox option and should normally be paired with a dedicated child origin.
+The iframe container defaults to `sandbox="allow-same-origin allow-scripts"`. Grant additional
+browser permissions (`allow`) and sandbox tokens individually. Content Security Policy, Trusted
+Types, COOP/COEP, cookie attributes, and server headers remain deployment responsibilities.
 Generic iframe `attributes` cannot override dedicated options (`src`, `sandbox`, `allow`, and the
 other typed fields), Fronts-owned `data-fronts-*` state, or inline `on*` event handlers.
 

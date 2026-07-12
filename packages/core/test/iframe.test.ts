@@ -67,7 +67,7 @@ describe('secure iframe execution', () => {
       operation,
       request: {
         attributes: { 'aria-label': 'Checkout application', id: 'checkout-iframe' },
-        sandbox: ['allow-scripts'],
+        sandbox: ['allow-same-origin', 'allow-scripts'],
         src: 'https://frame.example.test/app',
         targetOrigin: 'https://frame.example.test',
         title: 'Checkout',
@@ -83,7 +83,7 @@ describe('secure iframe execution', () => {
     expect(iframe.id).toBe('checkout-iframe');
     expect(iframe.title).toBe('Checkout');
     expect(iframe.sandbox.contains('allow-scripts')).toBe(true);
-    expect(iframe.sandbox.contains('allow-same-origin')).toBe(false);
+    expect(iframe.sandbox.contains('allow-same-origin')).toBe(true);
     expect(iframe.dataset.frontsTargetOrigin).toBe('https://frame.example.test');
     expect(iframe.dataset.frontsChannel).toMatch(/^[\da-f-]{20,}$/i);
     expect(prepared.target).toBe(iframe);
@@ -94,7 +94,7 @@ describe('secure iframe execution', () => {
     expect(target.children).toHaveLength(0);
   });
 
-  it('does not grant same-origin authority by default', async () => {
+  it('preserves the dedicated child origin required by the secure handshake', async () => {
     const operation = createOperation();
     const prepared = await createIframeContainer().prepare({
       identity,
@@ -111,8 +111,65 @@ describe('secure iframe execution', () => {
     const iframe = prepared.element as HTMLIFrameElement;
 
     expect(iframe.sandbox.contains('allow-scripts')).toBe(true);
-    expect(iframe.sandbox.contains('allow-same-origin')).toBe(false);
+    expect(iframe.sandbox.contains('allow-same-origin')).toBe(true);
     await prepared.dispose();
+  });
+
+  it.each([
+    { required: 'allow-same-origin', sandbox: ['allow-scripts'] },
+    { required: 'allow-scripts', sandbox: ['allow-same-origin'] },
+  ])('rejects an iframe agent sandbox without $required', ({ required, sandbox }) => {
+    const target = document.createElement('main');
+    const operation = createOperation();
+
+    expect(() =>
+      createIframeContainer().prepare({
+        identity,
+        operation,
+        request: {
+          sandbox,
+          src: 'https://frame.example.test/app',
+          targetOrigin: 'https://frame.example.test',
+          title: 'Checkout',
+          type: 'iframe',
+        },
+        signal: operation.signal,
+        target,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.iframeProtocol,
+        details: { required },
+      }),
+    );
+    expect(target.children).toHaveLength(0);
+  });
+
+  it('rejects an iframe agent deployed on the host origin', () => {
+    const target = document.createElement('main');
+    const operation = createOperation();
+    const documentOrigin = document.defaultView?.location.origin ?? new URL(document.URL).origin;
+
+    expect(() =>
+      createIframeContainer().prepare({
+        identity,
+        operation,
+        request: {
+          src: `${documentOrigin}/frame`,
+          targetOrigin: documentOrigin,
+          title: 'Checkout',
+          type: 'iframe',
+        },
+        signal: operation.signal,
+        target,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.iframeProtocol,
+        details: { origin: documentOrigin },
+      }),
+    );
+    expect(target.children).toHaveLength(0);
   });
 
   it.each(['sandbox', 'srcdoc', 'allow', 'onload', 'data-fronts-channel'])(
