@@ -1,0 +1,6 @@
+coverage/
+dist/
+node_modules/
+old/
+.pnpm-store/
+pnpm-lock.yaml
