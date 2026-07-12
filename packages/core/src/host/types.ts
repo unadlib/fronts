@@ -51,6 +51,11 @@ export interface MountAppOptions<
   readonly signal?: AbortSignal;
 }
 
+export type ReplaceAppOptions<
+  Props,
+  Request extends ContainerRequest = BuiltInContainerRequest,
+> = MountAppOptions<Props, Request>;
+
 export type AppInstanceState =
   | 'resolving'
   | 'loading'
@@ -109,6 +114,12 @@ export interface MountedApplication<Props = unknown, Source = unknown> {
   abort(reason?: unknown): Promise<void>;
 }
 
+export interface ReplacementResult<Props = unknown, Source = unknown> {
+  readonly application: MountedApplication<Props, Source>;
+  readonly previous: ApplicationIdentity;
+  readonly previousCleanupError?: FrontsError;
+}
+
 export interface FrontsHostOptions<Source, Services extends object> {
   readonly resolver: AppResolver<Source>;
   readonly loader: AppLoader<Source>;
@@ -132,6 +143,10 @@ export interface FrontsHost<Source, Services extends object> {
   mount<Props, Request extends ContainerRequest = BuiltInContainerRequest>(
     options: MountAppOptions<Props, Request>,
   ): Promise<MountedApplication<Props, Source>>;
+  replace<Props, Request extends ContainerRequest = BuiltInContainerRequest>(
+    currentInstanceId: string,
+    options: ReplaceAppOptions<Props, Request>,
+  ): Promise<ReplacementResult<Props, Source>>;
   get(instanceId: string): MountedApplication<unknown, Source> | undefined;
   inspect(): readonly ApplicationInstanceSnapshot<Source>[];
   subscribe(listener: HostEventListener<Source>): () => void;

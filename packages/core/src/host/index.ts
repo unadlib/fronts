@@ -17,4 +17,6 @@ export type {
   MountAppOptions,
   MountedApplication,
   MountResolveOptions,
+  ReplaceAppOptions,
+  ReplacementResult,
 } from './types.js';

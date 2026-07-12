@@ -62,6 +62,8 @@ export type {
   MountResolveOptions,
   MountedApplication,
   MountedApplicationCallbacks,
+  ReplaceAppOptions,
+  ReplacementResult,
 } from './host/index.js';
 export {
   MemoryResolutionCache,

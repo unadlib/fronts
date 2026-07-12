@@ -37,6 +37,8 @@ import type {
   LoadedApp,
   MountAppOptions,
   MountedApplication,
+  ReplaceAppOptions,
+  ReplacementResult,
 } from './types.js';
 import { asFrontsError, linkAbortSignal, raceWithAbort, waitUntilReady } from './utils.js';
 
@@ -48,8 +50,10 @@ interface ApplicationRecord<Source> {
   updatedAt: number;
   readonly controller: AbortController;
   containerType?: string;
+  containerElement?: Element;
   resolved?: ResolvedApp<Source>;
   error?: FrontsError;
+  deploymentSlot?: HTMLElement;
 }
 
 const allowedTransitions: Readonly<Record<AppInstanceState, readonly AppInstanceState[]>> = {
@@ -123,6 +127,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   readonly #records = new Map<string, ApplicationRecord<Source>>();
   readonly #instances = new Map<string, MountedApplication<unknown, Source>>();
   readonly #pending = new Set<Promise<unknown>>();
+  readonly #replacing = new Set<string>();
   readonly #now: () => number;
   readonly #readyTimeoutMs: number;
   #sequence = 0;
@@ -226,6 +231,102 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     this.#pending.add(task);
     void task.finally(() => this.#pending.delete(task)).catch(() => undefined);
     return task;
+  }
+
+  async replace<Props, Request extends ContainerRequest>(
+    currentInstanceId: string,
+    options: ReplaceAppOptions<Props, Request>,
+  ): Promise<ReplacementResult<Props, Source>> {
+    this.#assertAvailable();
+    const current = this.#instances.get(currentInstanceId);
+    if (current === undefined) {
+      throw new FrontsError(
+        frontsErrorCodes.instanceNotFound,
+        `No mounted Fronts application has instance id "${currentInstanceId}".`,
+        { phase: 'mount' },
+      );
+    }
+    if (!['ready', 'active', 'inactive'].includes(current.state)) {
+      throw new FrontsError(
+        frontsErrorCodes.invalidState,
+        `Cannot replace application "${currentInstanceId}" while it is ${current.state}.`,
+        { details: { instanceId: currentInstanceId, state: current.state }, phase: 'mount' },
+      );
+    }
+    if (this.#replacing.has(currentInstanceId)) {
+      throw new FrontsError(
+        frontsErrorCodes.invalidState,
+        `Application "${currentInstanceId}" already has a replacement in progress.`,
+        { details: { instanceId: currentInstanceId }, phase: 'mount' },
+      );
+    }
+
+    this.#replacing.add(currentInstanceId);
+    const slot = options.target.ownerDocument.createElement('div');
+    slot.dataset.frontsDeployment = 'staging';
+    slot.dataset.frontsReplaces = currentInstanceId;
+    slot.hidden = true;
+    slot.inert = true;
+    slot.setAttribute('aria-hidden', 'true');
+    options.target.append(slot);
+
+    try {
+      let replacement: MountedApplication<Props, Source> | undefined;
+      try {
+        replacement = await this.mount({ ...options, target: slot });
+        if (options.signal !== undefined) {
+          throwIfAborted(options.signal, 'ready');
+        }
+      } catch (error) {
+        await replacement?.unmount().catch(() => undefined);
+        slot.remove();
+        throw error;
+      }
+
+      const replacementRecord = this.#records.get(replacement.identity.instanceId);
+      if (
+        replacementRecord?.containerElement === undefined ||
+        !slot.contains(replacementRecord.containerElement)
+      ) {
+        await replacement.unmount().catch(() => undefined);
+        slot.remove();
+        throw new FrontsError(
+          frontsErrorCodes.containerFailed,
+          `Replacement container for "${replacement.identity.instanceId}" escaped its deployment slot.`,
+          {
+            details: { instanceId: replacement.identity.instanceId },
+            phase: 'container',
+          },
+        );
+      }
+      replacementRecord.deploymentSlot = slot;
+      slot.dataset.frontsDeployment = 'committed';
+      slot.dataset.frontsInstance = replacement.identity.instanceId;
+      slot.hidden = false;
+      slot.inert = false;
+      slot.removeAttribute('aria-hidden');
+      slot.style.display = 'contents';
+
+      let previousCleanupError: FrontsError | undefined;
+      try {
+        await current.unmount();
+      } catch (error) {
+        previousCleanupError = asFrontsError(
+          error,
+          frontsErrorCodes.lifecycleFailed,
+          `Previous application "${currentInstanceId}" failed to clean up after replacement.`,
+          'unmount',
+        );
+      }
+
+      return {
+        application: replacement,
+        previous: current.identity,
+        ...(previousCleanupError === undefined ? {} : { previousCleanupError }),
+      };
+    } finally {
+      this.#replacing.delete(currentInstanceId);
+    }
   }
 
   get(instanceId: string): MountedApplication<unknown, Source> | undefined {
@@ -354,6 +455,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         controller.signal,
         'container',
       );
+      record.containerElement = container.element;
 
       phase = 'mount';
       this.#transition(record, 'mounting', phase);
@@ -390,7 +492,10 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           scope: scope as ServiceScope<Partial<Services>>,
         },
         {
-          onDisposed: () => this.#instances.delete(instanceId),
+          onDisposed: () => {
+            this.#instances.delete(instanceId);
+            record.deploymentSlot?.remove();
+          },
           reportError: (error) => this.#reportError(record, error, error.phase ?? phase),
           transition: (state) => this.#transition(record, state, phaseForState(state)),
           unlinkSignal,
