@@ -431,7 +431,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     ref: Parameters<FrontsHost<Source, Services>['resolve']>[0],
     options: HostResolveOptions = {},
   ): Promise<ResolvedApp<Source>> {
-    this.#assertAvailable();
+    this.#assertAvailable('resolve');
     const normalized = normalizeAppRef(ref);
     const requestOptions = createHostResolveOptionsEnvelope(options);
     return this.#scheduleDetachedOperation('resolve', normalized, requestOptions, (operation) =>
@@ -443,7 +443,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     ref: Parameters<FrontsHost<Source, Services>['load']>[0],
     options: HostResolveOptions = {},
   ): Promise<LoadedApp<Props, Services, Source>> {
-    this.#assertAvailable();
+    this.#assertAvailable('load');
     const normalized = normalizeAppRef(ref);
     const requestOptions = createHostResolveOptionsEnvelope(options);
     return this.#scheduleDetachedOperation(
@@ -461,7 +461,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     ref: Parameters<FrontsHost<Source, Services>['preload']>[0],
     options: HostResolveOptions = {},
   ): Promise<ResolvedApp<Source>> {
-    this.#assertAvailable();
+    this.#assertAvailable('load');
     const normalized = normalizeAppRef(ref);
     const requestOptions = createHostResolveOptionsEnvelope(options);
     return this.#scheduleDetachedOperation(
@@ -496,7 +496,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   mount<Props, Request extends ContainerRequest>(
     options: MountAppOptions<Props, Request>,
   ): Promise<MountedApplication<Props, Source>> {
-    this.#assertAvailable();
+    this.#assertAvailable('mount');
     return this.#scheduleMount(options, 'mount');
   }
 
@@ -545,7 +545,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     currentInstanceId: string,
     options: ReplaceAppOptions<Props, Request>,
   ): Promise<ReplacementResult<Props, Source>> {
-    this.#assertAvailable();
+    this.#assertAvailable('mount');
     return await this.#trackReplacement(this.#replace(currentInstanceId, options));
   }
 
@@ -1389,9 +1389,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
   }
 
-  #assertAvailable(): void {
+  #assertAvailable(phase: FrontsPhase): void {
     if (this.#disposed) {
-      throw new FrontsError(frontsErrorCodes.hostDisposed, 'The Fronts host has been disposed.');
+      throw new FrontsError(frontsErrorCodes.hostDisposed, 'The Fronts host has been disposed.', {
+        phase,
+      });
     }
   }
 }

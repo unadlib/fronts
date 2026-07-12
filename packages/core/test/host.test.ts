@@ -11,6 +11,7 @@ import {
   type ContainerAdapter,
   type ContainerRequest,
   type FrontsError,
+  type FrontsPhase,
   type HostEvent,
   type ServiceProviderContext,
 } from '../src/index.js';
@@ -1099,8 +1100,34 @@ describe('Fronts host runtime', () => {
 
     await host.dispose();
     await host.dispose();
-    await expect(host.resolve({ name: 'checkout' })).rejects.toEqual(
-      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.hostDisposed }),
-    );
+    const disposedOperations: readonly (readonly [() => unknown, FrontsPhase])[] = [
+      [() => host.resolve({ name: 'checkout' }), 'resolve'],
+      [() => host.load({ name: 'checkout' }), 'load'],
+      [() => host.preload({ name: 'checkout' }), 'load'],
+      [
+        () =>
+          host.mount({
+            props: { value: 'disposed' },
+            ref: { name: 'checkout' },
+            target: document.createElement('main'),
+          }),
+        'mount',
+      ],
+      [
+        () =>
+          host.replace('checkout', {
+            props: { value: 'disposed' },
+            ref: { name: 'checkout' },
+            target: document.createElement('main'),
+          }),
+        'mount',
+      ],
+    ];
+    for (const [operation, phase] of disposedOperations) {
+      await expect(Promise.resolve().then(() => operation())).rejects.toMatchObject({
+        code: frontsErrorCodes.hostDisposed,
+        phase,
+      });
+    }
   });
 });
