@@ -101,6 +101,28 @@ describe('application containers', () => {
     expect(parent.children).toHaveLength(0);
   });
 
+  it.each([
+    ['dom', createDomContainer()],
+    ['shadow', createShadowContainer()],
+  ] as const)('rolls back a partially appended %s boundary', (_type, adapter) => {
+    const parent = document.createElement('main');
+    const append = parent.append.bind(parent);
+    vi.spyOn(parent, 'append').mockImplementation((...nodes) => {
+      append(...nodes);
+      throw new Error('target rejected the boundary after insertion');
+    });
+
+    expect(() =>
+      adapter.prepare({
+        ...createOperationContext(),
+        identity,
+        request: { type: adapter.type } as never,
+        target: parent,
+      }),
+    ).toThrow('target rejected the boundary after insertion');
+    expect(parent.children).toHaveLength(0);
+  });
+
   it('supports custom adapters through a collision-safe registry', async () => {
     const adapter: ContainerAdapter = {
       type: 'native-shell',

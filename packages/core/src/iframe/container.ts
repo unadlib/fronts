@@ -183,7 +183,12 @@ export function createIframeContainer<Source = unknown>(): ContainerAdapter<
         { once: true },
       );
       iframe.src = request.src;
-      target.append(iframe);
+      try {
+        target.append(iframe);
+      } catch (error) {
+        iframe.remove();
+        throw error;
+      }
 
       return {
         dispose: createElementDisposer(iframe),

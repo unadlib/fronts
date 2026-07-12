@@ -104,6 +104,33 @@ describe('secure iframe execution', () => {
     expect(target.children).toHaveLength(0);
   });
 
+  it('rolls back an iframe boundary when append fails after insertion', () => {
+    const target = document.createElement('main');
+    const append = target.append.bind(target);
+    vi.spyOn(target, 'append').mockImplementation((...nodes) => {
+      append(...nodes);
+      throw new Error('target rejected the iframe after insertion');
+    });
+    const operation = createOperation();
+
+    expect(() =>
+      createIframeContainer().prepare({
+        identity,
+        operation,
+        request: {
+          src: 'https://frame.example.test/app',
+          targetOrigin: 'https://frame.example.test',
+          title: 'Checkout',
+          type: 'iframe',
+        },
+        resolved: createResolved(),
+        signal: operation.signal,
+        target,
+      }),
+    ).toThrow('target rejected the iframe after insertion');
+    expect(target.children).toHaveLength(0);
+  });
+
   it('preserves the dedicated child origin required by the secure handshake', async () => {
     const operation = createOperation();
     const prepared = await createIframeContainer().prepare({

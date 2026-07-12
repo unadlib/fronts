@@ -25,8 +25,13 @@ export function createContainerElement(
   element.dataset.frontsApp = identity.name;
   element.dataset.frontsContainer = type;
   element.dataset.frontsInstance = identity.instanceId;
-  target.append(element);
-  return element;
+  try {
+    target.append(element);
+    return element;
+  } catch (error) {
+    element.remove();
+    throw error;
+  }
 }
 
 export function createElementDisposer(element: Element): () => void {
