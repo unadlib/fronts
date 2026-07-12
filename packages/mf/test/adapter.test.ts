@@ -159,4 +159,64 @@ describe('Module Federation runtime adapter', () => {
     expect(runtime.registerRemotes).not.toHaveBeenCalled();
     expect(runtime.loadRemote).not.toHaveBeenCalled();
   });
+
+  it('maps remote registration failures without attempting a load', async () => {
+    const runtime = createRuntime();
+    const registrationFailure = new Error('remote name collision');
+    runtime.registerRemotes.mockImplementation(() => {
+      throw registrationFailure;
+    });
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+    const source = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout.js',
+      name: 'checkout',
+    });
+
+    await expect(adapter.load(createResolved(source), createOperation('load'))).rejects.toEqual(
+      expect.objectContaining<Partial<FrontsError>>({
+        cause: registrationFailure,
+        code: frontsErrorCodes.loadFailed,
+        phase: 'load',
+      }),
+    );
+    expect(runtime.loadRemote).not.toHaveBeenCalled();
+  });
+
+  it('does not continue loading when registration cancels the operation', async () => {
+    const runtime = createRuntime();
+    const controller = new AbortController();
+    runtime.registerRemotes.mockImplementation(() => {
+      controller.abort('registration policy cancelled');
+    });
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+    const source = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout.js',
+      name: 'checkout',
+    });
+
+    await expect(
+      adapter.load(createResolved(source), createOperation('load', controller.signal)),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted, phase: 'load' });
+    expect(runtime.loadRemote).not.toHaveBeenCalled();
+  });
+
+  it('validates the expose before registering a remote', async () => {
+    const runtime = createRuntime();
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+    const source = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout.js',
+      name: 'checkout',
+    });
+    const resolved = {
+      ...createResolved(source),
+      ref: normalizeAppRef({ expose: './', name: 'checkout' }),
+    };
+
+    await expect(adapter.load(resolved, createOperation('load'))).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      phase: 'load',
+    });
+    expect(runtime.registerRemotes).not.toHaveBeenCalled();
+    expect(runtime.loadRemote).not.toHaveBeenCalled();
+  });
 });

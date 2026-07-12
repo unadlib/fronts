@@ -12,7 +12,6 @@ function registerRemote(
   resolved: ResolvedApp<ModuleFederationSource>,
   options: ModuleFederationAdapterOptions,
 ): void {
-  assertModuleFederationSource(resolved.source);
   const force = resolved.source.force ?? options.force ?? false;
   options.instance.registerRemotes([resolved.source.remote], force ? { force: true } : undefined);
 }
@@ -36,10 +35,13 @@ export function createModuleFederationAdapter(
   return {
     async load(resolved, context): Promise<unknown> {
       throwIfAborted(context.signal, 'load');
-      registerRemote(resolved, options);
-      const id = toModuleFederationId(resolved.source, resolved.ref);
+      let id = resolved.ref.name;
 
       try {
+        assertModuleFederationSource(resolved.source);
+        id = toModuleFederationId(resolved.source, resolved.ref);
+        registerRemote(resolved, options);
+        throwIfAborted(context.signal, 'load');
         const loaded = await options.instance.loadRemote<unknown>(id, { from: 'runtime' });
         throwIfAborted(context.signal, 'load');
         if (loaded === null) {
@@ -65,10 +67,15 @@ export function createModuleFederationAdapter(
 
     async preload(resolved, context): Promise<void> {
       throwIfAborted(context.signal, 'load');
-      registerRemote(resolved, options);
+      let remoteName = resolved.ref.name;
 
       try {
-        await options.instance.preloadRemote([createPreloadOptions(resolved, options)]);
+        assertModuleFederationSource(resolved.source);
+        remoteName = resolved.source.remote.name;
+        const preloadOptions = createPreloadOptions(resolved, options);
+        registerRemote(resolved, options);
+        throwIfAborted(context.signal, 'load');
+        await options.instance.preloadRemote([preloadOptions]);
         throwIfAborted(context.signal, 'load');
       } catch (error) {
         throwIfAborted(context.signal, 'load');
@@ -80,7 +87,7 @@ export function createModuleFederationAdapter(
           `Module Federation failed to preload "${resolved.ref.name}".`,
           {
             cause: error,
-            details: { remote: resolved.source.remote.name },
+            details: { remote: remoteName },
             phase: 'load',
           },
         );
