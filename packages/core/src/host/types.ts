@@ -5,6 +5,7 @@ import type {
   ContainerHostTarget,
   ContainerRegistry,
   ContainerRequest,
+  ContainerRequestResolver,
   PreparedContainer,
 } from '../container/index.js';
 import type { FrontsError, FrontsPhase } from '../errors.js';
@@ -41,11 +42,12 @@ export type MountResolveOptions = ResolutionPolicyContext;
 export interface MountAppOptions<
   Props,
   Request extends ContainerRequest = BuiltInContainerRequest,
+  Source = unknown,
 > {
   readonly ref: AppRef;
   readonly target: ContainerHostTarget;
   readonly props: Props;
-  readonly container?: Request;
+  readonly container?: Request | ContainerRequestResolver<Source, Request>;
   readonly instanceId?: string;
   readonly operationId?: string;
   readonly readyTimeoutMs?: number;
@@ -57,7 +59,8 @@ export interface MountAppOptions<
 export type ReplaceAppOptions<
   Props,
   Request extends ContainerRequest = BuiltInContainerRequest,
-> = MountAppOptions<Props, Request>;
+  Source = unknown,
+> = MountAppOptions<Props, Request, Source>;
 
 export type AppInstanceState =
   | 'resolving'
@@ -173,11 +176,11 @@ export interface FrontsHost<Source, Services extends object> {
   ): Promise<LoadedApp<Props, Services, Source>>;
   preload(ref: AppRef, options?: HostResolveOptions): Promise<ResolvedApp<Source>>;
   mount<Props, Request extends ContainerRequest = BuiltInContainerRequest>(
-    options: MountAppOptions<Props, Request>,
+    options: MountAppOptions<Props, Request, Source>,
   ): Promise<MountedApplication<Props, Source>>;
   replace<Props, Request extends ContainerRequest = BuiltInContainerRequest>(
     currentInstanceId: string,
-    options: ReplaceAppOptions<Props, Request>,
+    options: ReplaceAppOptions<Props, Request, Source>,
   ): Promise<ReplacementResult<Props, Source>>;
   get(instanceId: string): MountedApplication<unknown, Source> | undefined;
   inspect(): readonly ApplicationInstanceSnapshot<Source>[];

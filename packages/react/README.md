@@ -58,6 +58,9 @@ import { RemoteApp } from '@fronts/react';
 The package also exports `useRemoteApp()` for headless integration and hooks for application
 identity, abort signal, and scoped host services.
 
+The `container` option accepts either a static container request or an async resolver that can
+derive the request from the resolved deployment before Fronts selects its loader.
+
 This adapter is for applications participating in the Fronts host ABI. If an MF-only React
 architecture only needs framework/router integration, evaluate the official
 `@module-federation/bridge-react` package first.

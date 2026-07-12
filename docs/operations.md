@@ -13,10 +13,12 @@ identity flow through the resolver, loader, and container extension boundaries. 
 
 Core snapshots and freezes host-owned references, operation contexts, identities, resolution
 policy, and resolved deployment envelopes. Opaque transport source objects, application props,
-services, abort signals, and DOM targets retain their domain-specific ownership.
-Mount captures the props and target references plus a frozen container request before asynchronous
-resolution; built-in `attributes` and iframe `sandbox` collections are copied as part of that
-request snapshot.
+services, abort signals, and DOM targets retain their domain-specific ownership. Mount captures
+the props and target references plus either a frozen static container request or a container
+resolver reference before asynchronous resolution. A dynamic container resolver runs after the
+deployment is resolved and before loader selection; its result is immediately snapshotted.
+Built-in `attributes` and iframe `sandbox` collections are copied as part of either request
+snapshot.
 
 Runtime IDs are trimmed and must be non-empty strings. Invalid identifiers are rejected before
 resolution with the error code and phase of the requested operation; custom ID factories are
@@ -34,8 +36,9 @@ not application instances, so their operation context deliberately has no `ident
 replace contexts have a required identity and trace. Resolver policy fields remain in
 `ResolveContext`, while its `operation` property carries correlation data. `AppLoader` receives the
 operation context directly, and `ContainerPrepareContext.operation` is the application-scoped
-variant. This composition keeps phase-specific inputs separate without losing end-to-end
-correlation.
+variant. Container planning and preparation also receive the frozen `ResolvedApp`, so deployment
+metadata can choose an execution boundary without a second resolution. This composition keeps
+phase-specific inputs separate without losing end-to-end correlation.
 
 Treat identity in these contexts as host-issued authority. Do not accept an application-supplied
 identity for capability authorization or audit attribution. `operationId` identifies one host

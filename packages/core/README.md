@@ -65,6 +65,7 @@ The main entry exports:
 - `createFrontsHost()` and mounted-instance controls
 - static, registry, cached, and fallback resolvers
 - DOM and Shadow DOM containers
+- resolution-aware container planning before loader selection
 - static and instance-provided capability-scoped services
 - correlated operation contexts for resolvers, loaders, and containers
 - typed errors, lifecycle events, replacement, and leak audit

@@ -9,7 +9,9 @@ import {
   type AppLoader,
   type AppResolver,
   type ContainerAdapter,
+  type ContainerRequestResolver,
   type ContainerRequest,
+  type DomContainerRequest,
   type FrontsError,
   type FrontsPhase,
   type HostEvent,
@@ -31,6 +33,11 @@ interface Props {
 
 interface AbortableContainerRequest extends ContainerRequest {
   readonly type: 'abortable';
+}
+
+interface DeploymentContainerRequest extends ContainerRequest {
+  readonly marker: string;
+  readonly type: 'deployment';
 }
 
 const services: Services = {
@@ -119,6 +126,7 @@ describe('Fronts host runtime', () => {
       operationId: 'checkout-mount',
       traceId: 'checkout-trace',
     });
+    expect(containerPrepare.mock.calls[0]?.[0].resolved).toBe(instance.resolved);
     expect(mount).toHaveBeenCalledWith(
       expect.objectContaining({
         props: { value: 'first' },
@@ -143,6 +151,107 @@ describe('Fronts host runtime', () => {
     expect(target.children).toHaveLength(0);
     expect(instance.state).toBe('destroyed');
     expect(host.get('checkout-primary')).toBeUndefined();
+  });
+
+  it('plans containers from the resolved deployment before selecting a loader', async () => {
+    const unmount = vi.fn();
+    const app = defineApp<Props, Services>({ mount: () => ({ unmount }) });
+    const defaultLoad = vi.fn<AppLoader<Source>['load']>();
+    const deploymentLoad = vi.fn<AppLoader<Source>['load']>().mockResolvedValue({ default: app });
+    const plannedRequest: DeploymentContainerRequest = {
+      marker: 'frame-from-registry',
+      type: 'deployment',
+    };
+    const planner = vi.fn<ContainerRequestResolver<Source, DeploymentContainerRequest>>(
+      async (context) => {
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(Object.isFrozen(context.resolved)).toBe(true);
+        expect(context).toMatchObject({
+          identity: { name: 'checkout', version: '2.0.0' },
+          operation: { intent: 'mount' },
+          resolution: { tenant: 'acme' },
+          resolved: { source: { entry: 'https://example.test/mf-manifest.json' } },
+        });
+        return plannedRequest;
+      },
+    );
+    const prepare = vi.fn<ContainerAdapter<DeploymentContainerRequest, Source>['prepare']>(
+      ({ request, resolved, target }) => {
+        expect(request).not.toBe(plannedRequest);
+        expect(Object.isFrozen(request)).toBe(true);
+        expect(request.marker).toBe('frame-from-registry');
+        expect(resolved.source.entry).toBe('https://example.test/mf-manifest.json');
+        const element = target.ownerDocument.createElement('section');
+        target.append(element);
+        return {
+          dispose: () => element.remove(),
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'deployment',
+        };
+      },
+    );
+    const host = createFrontsHost<Source, Services>({
+      containerLoaders: { deployment: { load: deploymentLoad } },
+      containers: [{ prepare, type: 'deployment' }],
+      loader: { load: defaultLoad },
+      resolver: {
+        resolve: (ref) => ({
+          ref,
+          source: { entry: 'https://example.test/mf-manifest.json' },
+          version: '2.0.0',
+        }),
+      },
+      services,
+    });
+    const target = document.createElement('main');
+
+    const instance = await host.mount({
+      container: planner,
+      props: { value: 'planned' },
+      ref: { name: 'checkout' },
+      resolve: { tenant: 'acme' },
+      target,
+    });
+
+    expect(planner).toHaveBeenCalledOnce();
+    expect(defaultLoad).not.toHaveBeenCalled();
+    expect(deploymentLoad).toHaveBeenCalledOnce();
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(host.inspect()[0]).toMatchObject({ containerType: 'deployment' });
+    await instance.unmount();
+    expect(unmount).toHaveBeenCalledOnce();
+    expect(target.children).toHaveLength(0);
+  });
+
+  it('cancels asynchronous container planning before loading an application', async () => {
+    let finishPlanning!: (request: DomContainerRequest) => void;
+    const planned = new Promise<DomContainerRequest>((resolve) => {
+      finishPlanning = resolve;
+    });
+    const planner = vi.fn<ContainerRequestResolver<Source, DomContainerRequest>>(() => planned);
+    const { host, loader, resolver } = createHarness();
+    const controller = new AbortController();
+    const pending = host.mount({
+      container: planner,
+      props: { value: 'cancelled' },
+      ref: { name: 'checkout' },
+      signal: controller.signal,
+      target: document.createElement('main'),
+    });
+    await vi.waitFor(() => expect(planner).toHaveBeenCalledOnce());
+
+    controller.abort('deployment changed');
+    await expect(pending).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'container',
+    });
+    expect(resolver.resolve).toHaveBeenCalledOnce();
+    expect(loader.load).not.toHaveBeenCalled();
+    expect(host.audit().idle).toBe(true);
+
+    finishPlanning({ type: 'dom' });
   });
 
   it('serializes update, deactivate and activate lifecycle operations', async () => {

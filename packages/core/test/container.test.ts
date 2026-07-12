@@ -6,6 +6,7 @@ import {
   createDomContainer,
   createShadowContainer,
   frontsErrorCodes,
+  normalizeAppRef,
   type ApplicationIdentity,
   type ApplicationHostOperationContext,
   type ContainerAdapter,
@@ -20,8 +21,10 @@ const identity: ApplicationIdentity = {
 
 function createOperationContext(signal = new AbortController().signal): {
   operation: ApplicationHostOperationContext;
+  resolved: { ref: ReturnType<typeof normalizeAppRef>; source: { entry: string } };
   signal: AbortSignal;
 } {
+  const ref = normalizeAppRef({ name: 'checkout' });
   return {
     operation: {
       hostId: 'container-test-host',
@@ -31,6 +34,7 @@ function createOperationContext(signal = new AbortController().signal): {
       signal,
       traceId: 'container-test-trace',
     },
+    resolved: { ref, source: { entry: 'checkout.js' } },
     signal,
   };
 }

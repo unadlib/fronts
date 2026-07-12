@@ -1,18 +1,31 @@
 import { useState } from 'react';
 
+import type { ContainerRequestResolver } from '@fronts/core';
+import type { IframeContainerRequest } from '@fronts/core/iframe';
 import { RemoteApp } from '@fronts/react';
 
-import { host } from './runtime.js';
+import { host, type ExampleSource } from './runtime.js';
 
 const shadowContainer = { mode: 'open', type: 'shadow' } as const;
-const iframeContainer = {
-  className: 'isolated-frame',
-  sandbox: ['allow-same-origin', 'allow-scripts'],
-  src: 'http://127.0.0.1:4103',
-  targetOrigin: 'http://127.0.0.1:4103',
-  title: 'Isolated checkout application',
-  type: 'iframe',
-} as const;
+const iframeContainer: ContainerRequestResolver<ExampleSource, IframeContainerRequest> = ({
+  resolved,
+}) => {
+  const frame = resolved.metadata?.frame;
+  const src = typeof frame === 'object' && frame !== null ? Reflect.get(frame, 'src') : undefined;
+  const targetOrigin =
+    typeof frame === 'object' && frame !== null ? Reflect.get(frame, 'targetOrigin') : undefined;
+  if (typeof src !== 'string' || typeof targetOrigin !== 'string') {
+    throw new Error('The isolated deployment did not provide valid iframe metadata.');
+  }
+  return {
+    className: 'isolated-frame',
+    sandbox: ['allow-same-origin', 'allow-scripts'],
+    src,
+    targetOrigin,
+    title: 'Isolated checkout application',
+    type: 'iframe',
+  };
+};
 
 function Loading() {
   return <p className="status">Resolving, loading and waiting for readiness…</p>;

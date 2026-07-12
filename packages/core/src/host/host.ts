@@ -10,6 +10,7 @@ import {
   ContainerRegistry,
   createContainerRegistry,
   type ContainerRequest,
+  type ContainerRequestResolver,
 } from '../container/index.js';
 import {
   FrontsError,
@@ -494,14 +495,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   mount<Props, Request extends ContainerRequest>(
-    options: MountAppOptions<Props, Request>,
+    options: MountAppOptions<Props, Request, Source>,
   ): Promise<MountedApplication<Props, Source>> {
     this.#assertAvailable('mount');
     return this.#scheduleMount(options, 'mount');
   }
 
   #scheduleMount<Props, Request extends ContainerRequest>(
-    options: MountAppOptions<Props, Request>,
+    options: MountAppOptions<Props, Request, Source>,
     intent: ApplicationHostOperationContext['intent'],
   ): Promise<MountedApplication<Props, Source>> {
     const task = this.#mount(options, intent);
@@ -543,7 +544,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
   async replace<Props, Request extends ContainerRequest>(
     currentInstanceId: string,
-    options: ReplaceAppOptions<Props, Request>,
+    options: ReplaceAppOptions<Props, Request, Source>,
   ): Promise<ReplacementResult<Props, Source>> {
     this.#assertAvailable('mount');
     return await this.#trackReplacement(this.#replace(currentInstanceId, options));
@@ -557,7 +558,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 
   async #replace<Props, Request extends ContainerRequest>(
     currentInstanceId: string,
-    options: ReplaceAppOptions<Props, Request>,
+    options: ReplaceAppOptions<Props, Request, Source>,
   ): Promise<ReplacementResult<Props, Source>> {
     const replacementSignal = options.signal;
     const target = options.target;
@@ -779,7 +780,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   async #mount<Props, Request extends ContainerRequest>(
-    options: MountAppOptions<Props, Request>,
+    options: MountAppOptions<Props, Request, Source>,
     intent: ApplicationHostOperationContext['intent'],
   ): Promise<MountedApplication<Props, Source>> {
     const {
@@ -812,15 +813,17 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     const controller = new AbortController();
-    const containerRequest = createContainerRequestEnvelope(
-      requestedContainer === undefined ? ({ type: 'dom' } as Request) : requestedContainer,
-    );
-    const containerLoaders = this.#options.containerLoaders;
-    const loader =
-      containerLoaders !== undefined &&
-      Object.prototype.hasOwnProperty.call(containerLoaders, containerRequest.type)
-        ? (containerLoaders[containerRequest.type] ?? this.#options.loader)
-        : this.#options.loader;
+    let containerResolver: ContainerRequestResolver<Source, Request> | undefined;
+    let containerRequest: Request | undefined;
+    if (typeof requestedContainer === 'function') {
+      containerResolver = requestedContainer;
+    } else {
+      containerRequest = createContainerRequestEnvelope(
+        requestedContainer === undefined
+          ? ({ type: 'dom' } as Request)
+          : (requestedContainer as Request),
+      );
+    }
     const now = this.#readNow(Date.now());
     const traceId = normalizeRuntimeId(
       requestedTraceId ??
@@ -853,7 +856,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ref,
       state: 'resolving',
       updatedAt: now,
-      containerType: containerRequest.type,
+      ...(containerRequest === undefined ? {} : { containerType: containerRequest.type }),
     };
     this.#records.set(instanceId, record);
     this.#emitState(record, undefined, 'resolve', now, 0);
@@ -877,19 +880,51 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         'resolve',
       );
       assertResolvedApp<Source>(resolved, ref);
-      record.resolved = createResolvedEnvelope(resolved, ref);
+      const resolvedDeployment = createResolvedEnvelope(resolved, ref);
+      record.resolved = resolvedDeployment;
       record.identity = createIdentityEnvelope({
         expose: ref.expose,
         instanceId,
         name: ref.name,
         traceId,
-        ...(record.resolved.version === undefined ? {} : { version: record.resolved.version }),
+        ...(resolvedDeployment.version === undefined
+          ? {}
+          : { version: resolvedDeployment.version }),
       });
       operation = Object.freeze({ ...operation, identity: record.identity });
 
+      if (containerRequest === undefined) {
+        phase = 'container';
+        throwIfAborted(controller.signal, phase);
+        const planned = await raceWithAbort(
+          containerResolver?.(
+            Object.freeze({
+              identity: record.identity,
+              operation,
+              resolution,
+              resolved: resolvedDeployment,
+              signal: controller.signal,
+              target,
+            }),
+          ),
+          controller.signal,
+          phase,
+        );
+        containerRequest = createContainerRequestEnvelope(planned as Request);
+        throwIfAborted(controller.signal, phase);
+      }
+      const selectedContainerRequest = containerRequest;
+      record.containerType = selectedContainerRequest.type;
       phase = 'load';
+      const containerLoaders = this.#options.containerLoaders;
+      const loader =
+        containerLoaders !== undefined &&
+        Object.prototype.hasOwnProperty.call(containerLoaders, selectedContainerRequest.type)
+          ? (containerLoaders[selectedContainerRequest.type] ?? this.#options.loader)
+          : this.#options.loader;
+
       this.#transition(record, 'loading', phase);
-      const loaded = await this.#loadResolved<Props>(record.resolved, operation, loader);
+      const loaded = await this.#loadResolved<Props>(resolvedDeployment, operation, loader);
       const app = loaded.app;
 
       phase = 'mount';
@@ -897,7 +932,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         app.capabilities,
         record.identity,
       );
-      provision = await this.#provideServices(capabilities, resolution, record.resolved, operation);
+      provision = await this.#provideServices(
+        capabilities,
+        resolution,
+        resolvedDeployment,
+        operation,
+      );
       const negotiableCapabilities =
         Reflect.get(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL) === true;
       const scopedCapabilities = negotiableCapabilities
@@ -927,7 +967,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
             Object.freeze({
               identity: record.identity,
               operation,
-              request: containerRequest,
+              request: selectedContainerRequest,
+              resolved: resolvedDeployment,
               signal: controller.signal,
               target,
             }),

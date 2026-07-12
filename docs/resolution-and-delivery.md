@@ -85,6 +85,39 @@ Authentication headers, credentials, endpoint calculation, fetch implementation,
 decoding are injectable. The registry should authorize the caller and validate every policy input;
 the browser query is not trusted evidence of tenant or cohort membership.
 
+## Resolution-aware container planning
+
+A mount can derive its container only after the registry returns a concrete deployment. The
+planner runs inside the same transaction before Fronts selects a container-specific loader:
+
+```ts
+await host.mount({
+  ref: { name: 'checkout' },
+  target: document.querySelector('#slot')!,
+  props: { cartId: 'C-42' },
+  container: ({ identity, resolved }) => {
+    const frame = resolved.metadata?.frame;
+    if (typeof frame !== 'object' || frame === null) return { type: 'dom' };
+
+    const url = Reflect.get(frame, 'url');
+    const origin = Reflect.get(frame, 'origin');
+    if (typeof url !== 'string' || typeof origin !== 'string') {
+      throw new Error('Invalid iframe deployment metadata.');
+    }
+    return {
+      type: 'iframe',
+      src: url,
+      targetOrigin: origin,
+      title: identity.name,
+    };
+  },
+});
+```
+
+Validate registry metadata before constructing the request. Fronts snapshots the returned request,
+routes the selected type through `containerLoaders`, and later gives the same frozen
+`ResolvedApp` to `ContainerPrepareContext`.
+
 ## Module Federation source rules
 
 `@fronts/mf` accepts the official `Remote` shape: an entry-based remote or a version-based remote.

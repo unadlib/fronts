@@ -4,6 +4,7 @@ import type {
   AppRef,
   BuiltInContainerRequest,
   ContainerRequest,
+  ContainerRequestResolver,
   FrontsHost,
   MountResolveOptions,
   MountedApplication,
@@ -20,7 +21,7 @@ export interface UseRemoteAppOptions<
   readonly host: FrontsHost<Source, Services>;
   readonly app: AppRef;
   readonly appProps: Props;
-  readonly container?: Request;
+  readonly container?: Request | ContainerRequestResolver<Source, Request>;
   readonly instanceId?: string;
   readonly mountKey?: string | number;
   readonly readyTimeoutMs?: number;

@@ -44,7 +44,16 @@ const resolver = createStaticResolver<ExampleSource>([
   },
   {
     match: { name: 'isolated-checkout' },
-    resolve: { source: reactRemote, version: '2.0.0' },
+    resolve: {
+      metadata: {
+        frame: {
+          src: 'http://127.0.0.1:4103',
+          targetOrigin: 'http://127.0.0.1:4103',
+        },
+      },
+      source: reactRemote,
+      version: '2.0.0',
+    },
   },
 ]);
 

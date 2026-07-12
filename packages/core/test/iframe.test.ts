@@ -59,6 +59,14 @@ function createOperation(signal = new AbortController().signal): ApplicationHost
   };
 }
 
+function createResolved(): ResolvedApp<Source> {
+  return {
+    ref: normalizeAppRef({ name: 'checkout' }),
+    source: { entry: 'https://frame.example.test/app' },
+    version: '2.0.0',
+  };
+}
+
 describe('secure iframe execution', () => {
   it('creates an origin-bound iframe container with an isolated channel', async () => {
     const target = document.createElement('main');
@@ -74,6 +82,7 @@ describe('secure iframe execution', () => {
         title: 'Checkout',
         type: 'iframe',
       },
+      resolved: createResolved(),
       signal: operation.signal,
       target,
     });
@@ -106,6 +115,7 @@ describe('secure iframe execution', () => {
         title: 'Checkout',
         type: 'iframe',
       },
+      resolved: createResolved(),
       signal: operation.signal,
       target: document.createElement('main'),
     });
@@ -134,6 +144,7 @@ describe('secure iframe execution', () => {
           title: 'Checkout',
           type: 'iframe',
         },
+        resolved: createResolved(),
         signal: operation.signal,
         target,
       }),
@@ -161,6 +172,7 @@ describe('secure iframe execution', () => {
           title: 'Checkout',
           type: 'iframe',
         },
+        resolved: createResolved(),
         signal: operation.signal,
         target,
       }),
@@ -190,6 +202,7 @@ describe('secure iframe execution', () => {
             title: 'Checkout',
             type: 'iframe',
           },
+          resolved: createResolved(),
           signal: operation.signal,
           target,
         }),
@@ -216,6 +229,7 @@ describe('secure iframe execution', () => {
           title: 'Checkout',
           type: 'iframe',
         },
+        resolved: createResolved(),
         signal: operation.signal,
         target,
       });

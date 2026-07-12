@@ -1,5 +1,6 @@
 import type { ApplicationIdentity, MaybePromise, MountTarget } from '../app/index.js';
 import type { ApplicationHostOperationContext } from '../operation/index.js';
+import type { ResolutionPolicyContext, ResolvedApp } from '../resolver/index.js';
 
 export type ContainerHostTarget = Element | ShadowRoot;
 
@@ -25,10 +26,28 @@ export interface ShadowContainerRequest extends ContainerRequest {
 
 export type BuiltInContainerRequest = DomContainerRequest | ShadowContainerRequest;
 
-export interface ContainerPrepareContext<Request extends ContainerRequest = ContainerRequest> {
+export interface ContainerPlanContext<Source = unknown> {
+  readonly identity: ApplicationIdentity;
+  readonly operation: ApplicationHostOperationContext;
+  readonly resolution: Readonly<ResolutionPolicyContext>;
+  readonly resolved: ResolvedApp<Source>;
+  readonly signal: AbortSignal;
+  readonly target: ContainerHostTarget;
+}
+
+export type ContainerRequestResolver<
+  Source,
+  Request extends ContainerRequest = ContainerRequest,
+> = (context: ContainerPlanContext<Source>) => MaybePromise<Request>;
+
+export interface ContainerPrepareContext<
+  Request extends ContainerRequest = ContainerRequest,
+  Source = unknown,
+> {
   readonly identity: ApplicationIdentity;
   readonly operation: ApplicationHostOperationContext;
   readonly request: Request;
+  readonly resolved: ResolvedApp<Source>;
   readonly signal: AbortSignal;
   readonly target: ContainerHostTarget;
 }
@@ -42,7 +61,10 @@ export interface PreparedContainer {
   dispose(): MaybePromise<void>;
 }
 
-export interface ContainerAdapter<Request extends ContainerRequest = ContainerRequest> {
+export interface ContainerAdapter<
+  Request extends ContainerRequest = ContainerRequest,
+  Source = unknown,
+> {
   readonly type: Request['type'];
-  prepare(context: ContainerPrepareContext<Request>): MaybePromise<PreparedContainer>;
+  prepare(context: ContainerPrepareContext<Request, Source>): MaybePromise<PreparedContainer>;
 }

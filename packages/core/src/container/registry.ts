@@ -101,7 +101,9 @@ export class ContainerRegistry {
     }
   }
 
-  register<Request extends ContainerRequest>(adapter: ContainerAdapter<Request>): this {
+  register<Request extends ContainerRequest, Source>(
+    adapter: ContainerAdapter<Request, Source>,
+  ): this {
     assertContainerAdapter(adapter);
     if (this.#adapters.has(adapter.type)) {
       throw new FrontsError(
@@ -118,13 +120,14 @@ export class ContainerRegistry {
     return this.#adapters.has(type);
   }
 
-  async prepare<Request extends ContainerRequest>(
-    context: ContainerPrepareContext<Request>,
+  async prepare<Request extends ContainerRequest, Source>(
+    context: ContainerPrepareContext<Request, Source>,
   ): Promise<PreparedContainer> {
     const signal = context.signal;
     throwIfAborted(signal, 'container');
     const requestedType = context.request.type;
-    const adapter = this.#adapters.get(requestedType);
+    const adapter = this.#adapters.get(requestedType) as
+      ContainerAdapter<Request, Source> | undefined;
     if (adapter === undefined) {
       throw new FrontsError(
         frontsErrorCodes.containerFailed,

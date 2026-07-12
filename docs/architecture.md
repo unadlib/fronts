@@ -76,7 +76,9 @@ host action and includes an application identity only for mount/replace transact
 
 Prepares an execution target and owns its cleanup. A container can also select a different loader;
 iframe execution uses this to ensure code is loaded inside the child realm instead of the parent.
-Preparation receives the same application operation envelope used for resolution and loading.
+The mount request may provide a static container or a resolution-aware container resolver.
+Planning happens before loader selection; preparation receives the resolved deployment and the
+same application operation envelope used for resolution and loading.
 
 ### `FrontsApp`
 
@@ -148,6 +150,8 @@ boundary without mutating MF runtime caches behind an active application.
 
 - Implement `AppResolver` for a deployment registry or experiment service.
 - Implement `ResolutionCache` for shared or persistent policy caching.
+- Use a container request resolver when registry metadata selects DOM, Shadow DOM, or a dedicated
+  iframe origin per deployment.
 - Implement `AppLoader` for a non-MF transport.
 - Implement `ContainerAdapter` for another execution target.
 - Subscribe to `HostEvent` and map it to OpenTelemetry or an internal telemetry pipeline.
