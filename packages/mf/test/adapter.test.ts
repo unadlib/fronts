@@ -88,6 +88,35 @@ describe('Module Federation runtime adapter', () => {
     expect(runtime.registerRemotes).toHaveBeenCalledWith([source.remote], { force: true });
   });
 
+  it('rejects silent reuse of a remote name for another resolved deployment', async () => {
+    const runtime = createRuntime();
+    runtime.loadRemote.mockResolvedValue({ module: true });
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+    const first = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout/2.0.0/remote.js',
+      name: 'checkout',
+    });
+    const second = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout/3.0.0/remote.js',
+      name: 'checkout',
+    });
+
+    await adapter.load(createResolved(first), createOperation('load'));
+    await expect(
+      adapter.load({ ...createResolved(second), version: '3.0.0' }, createOperation('load')),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      details: {
+        registeredVersion: '2.0.0',
+        remote: 'checkout',
+        requestedVersion: '3.0.0',
+      },
+      phase: 'load',
+    });
+    expect(runtime.registerRemotes).toHaveBeenCalledOnce();
+    expect(runtime.loadRemote).toHaveBeenCalledOnce();
+  });
+
   it('preloads only the resolved expose with official runtime options', async () => {
     const runtime = createRuntime();
     runtime.preloadRemote.mockResolvedValue(undefined);

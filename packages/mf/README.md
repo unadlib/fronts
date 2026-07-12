@@ -37,6 +37,11 @@ For each resolved application, the adapter uses only public instance methods:
 It does not parse manifests, select shared dependencies, modify snapshots, or import
 `@module-federation/runtime-core`. Those remain official Module Federation responsibilities.
 
+The official runtime keeps the first registration when a remote name is registered again without
+`force`. The adapter therefore rejects a different source or resolved version previously registered
+through Fronts on the same runtime instance. Prefer an immutable, deployment-specific remote name;
+use `force` only when intentionally replacing the runtime's cached deployment.
+
 The remote module must default-export a valid Fronts application, normally from an expose named
 `./application`.
 

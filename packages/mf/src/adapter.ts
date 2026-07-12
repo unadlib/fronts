@@ -8,12 +8,61 @@ import type {
   ModuleFederationSource,
 } from './types.js';
 
+interface RegisteredDeployment {
+  readonly fingerprint: string;
+  readonly version?: string;
+}
+
+const registeredDeployments = new WeakMap<
+  ModuleFederationAdapterOptions['instance'],
+  Map<string, RegisteredDeployment>
+>();
+
+function createRemoteFingerprint(remote: Remote): string {
+  return JSON.stringify([
+    'entry' in remote ? remote.entry : null,
+    'version' in remote ? remote.version : null,
+    remote.alias ?? null,
+    remote.shareScope ?? null,
+    remote.type ?? null,
+    remote.entryGlobalName ?? null,
+  ]);
+}
+
 function registerRemote(
   resolved: ResolvedApp<ModuleFederationSource>,
   options: ModuleFederationAdapterOptions,
 ): void {
   const force = resolved.source.force ?? options.force ?? false;
   const configuredRemote = resolved.source.remote;
+  const deployments = registeredDeployments.get(options.instance) ?? new Map();
+  const registered = deployments.get(configuredRemote.name);
+  const requested: RegisteredDeployment = {
+    fingerprint: createRemoteFingerprint(configuredRemote),
+    ...(resolved.version === undefined ? {} : { version: resolved.version }),
+  };
+  const versionConflict =
+    registered?.version !== undefined &&
+    requested.version !== undefined &&
+    registered.version !== requested.version;
+  if (
+    force === false &&
+    registered !== undefined &&
+    (registered.fingerprint !== requested.fingerprint || versionConflict)
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.loadFailed,
+      `Module Federation remote "${configuredRemote.name}" is already bound to another deployment.`,
+      {
+        details: {
+          remote: configuredRemote.name,
+          ...(registered.version === undefined ? {} : { registeredVersion: registered.version }),
+          ...(requested.version === undefined ? {} : { requestedVersion: requested.version }),
+        },
+        phase: 'load',
+      },
+    );
+  }
   const runtimeRemote: Remote = {
     ...configuredRemote,
     ...(Array.isArray(configuredRemote.shareScope)
@@ -21,6 +70,13 @@ function registerRemote(
       : {}),
   };
   options.instance.registerRemotes([runtimeRemote], force ? { force: true } : undefined);
+  deployments.set(configuredRemote.name, {
+    ...requested,
+    ...(requested.version === undefined && registered?.version !== undefined
+      ? { version: registered.version }
+      : {}),
+  });
+  registeredDeployments.set(options.instance, deployments);
 }
 
 function createPreloadOptions(
