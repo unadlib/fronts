@@ -24,6 +24,7 @@ import {
   useApplicationAbortSignal,
   useApplicationIdentity,
   useHostServices,
+  useRemoteApp,
 } from '../src/index.js';
 
 interface Props {
@@ -342,6 +343,40 @@ describe('Vue host adapter', () => {
 
     await flushPromises();
     expect(view.text()).toContain('Failed: registry unavailable');
+  });
+
+  it('keeps remote state stable when Vue host observers throw', async () => {
+    const { instance } = createMountedApplication();
+    const observerFailure = new Error('observer failed');
+    const onReady = vi.fn(() => {
+      throw observerFailure;
+    });
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<Source, Services>;
+    const Probe = defineComponent({
+      setup() {
+        const remote = useRemoteApp<Props, Source, Services>({
+          app: { name: 'checkout' },
+          appProps: { value: 'first' },
+          host,
+          onReady,
+        });
+        return () =>
+          h('div', {
+            'data-status': remote.status.value,
+            ref: remote.target,
+          });
+      },
+    });
+    const view = mountVue(Probe);
+
+    await flushPromises();
+    expect(onReady).toHaveBeenCalledWith(instance);
+    expect(view.attributes('data-status')).toBe('ready');
+    view.unmount();
+    await flushPromises();
+    expect(instance.unmount).toHaveBeenCalledOnce();
   });
 
   it('ignores late update failures from an instance replaced by remount', async () => {

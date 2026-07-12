@@ -41,6 +41,17 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+function notify<Arguments extends readonly unknown[]>(
+  listener: ((...arguments_: Arguments) => void) | undefined,
+  ...arguments_: Arguments
+): void {
+  try {
+    listener?.(...arguments_);
+  } catch {
+    // Observer failures do not change the remote application lifecycle.
+  }
+}
+
 export function useRemoteApp<
   Props,
   Source,
@@ -81,7 +92,7 @@ export function useRemoteApp<
         const failure = toError(reason);
         error.value = failure;
         status.value = 'error';
-        toValue(input).onError?.(failure);
+        notify(toValue(input).onError, failure);
       },
     );
   };
@@ -146,7 +157,7 @@ export function useRemoteApp<
           appliedPropsVersion = mountedPropsVersion;
           instance.value = mounted;
           status.value = 'ready';
-          toValue(input).onReady?.(mounted);
+          notify(toValue(input).onReady, mounted);
           updateMounted(mounted, toValue(input).appProps, propsVersion);
         },
         (reason: unknown) => {
@@ -156,7 +167,7 @@ export function useRemoteApp<
           const failure = toError(reason);
           error.value = failure;
           status.value = 'error';
-          toValue(input).onError?.(failure);
+          notify(toValue(input).onError, failure);
         },
       );
 
