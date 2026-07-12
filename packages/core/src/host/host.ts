@@ -185,6 +185,28 @@ function createContainerRequestEnvelope<Request extends ContainerRequest>(
   return Object.freeze(envelope) as Request;
 }
 
+function createReplacementSlot(target: Element | ShadowRoot, instanceId: string): HTMLElement {
+  let slot: HTMLElement | undefined;
+  try {
+    slot = target.ownerDocument.createElement('div');
+    slot.dataset.frontsDeployment = 'staging';
+    slot.dataset.frontsReplaces = instanceId;
+    slot.hidden = true;
+    slot.inert = true;
+    slot.setAttribute('aria-hidden', 'true');
+    target.append(slot);
+    return slot;
+  } catch (error) {
+    slot?.remove();
+    throw asFrontsError(
+      error,
+      frontsErrorCodes.containerFailed,
+      `Failed to create a replacement slot for "${instanceId}".`,
+      'container',
+    );
+  }
+}
+
 function phaseForIntent(
   intent: HostOperationIntent,
 ): Extract<FrontsPhase, 'load' | 'mount' | 'resolve'> {
@@ -512,6 +534,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     options: ReplaceAppOptions<Props, Request>,
   ): Promise<ReplacementResult<Props, Source>> {
     const replacementSignal = options.signal;
+    const target = options.target;
     const current = this.#instances.get(currentInstanceId);
     if (current === undefined) {
       throw new FrontsError(
@@ -536,15 +559,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     this.#replacing.add(currentInstanceId);
-    const slot = options.target.ownerDocument.createElement('div');
-    slot.dataset.frontsDeployment = 'staging';
-    slot.dataset.frontsReplaces = currentInstanceId;
-    slot.hidden = true;
-    slot.inert = true;
-    slot.setAttribute('aria-hidden', 'true');
-    options.target.append(slot);
-
     try {
+      const slot = createReplacementSlot(target, currentInstanceId);
       let replacement: MountedApplication<Props, Source> | undefined;
       try {
         replacement = await this.#scheduleMount({ ...options, target: slot }, 'replace');

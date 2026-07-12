@@ -222,6 +222,39 @@ describe('ready-first application replacement', () => {
     await result.application.unmount();
   });
 
+  it('releases the replacement transaction when staging slot creation fails', async () => {
+    const { host } = createReplacementHarness({});
+    const target = document.createElement('main');
+    const current = await host.mount({
+      instanceId: 'checkout-current',
+      props: { label: 'stable' },
+      ref: { name: 'checkout', range: '1' },
+      target,
+    });
+    const brokenTarget = document.createElement('main');
+    vi.spyOn(brokenTarget, 'append').mockImplementation(() => {
+      throw new Error('staging target rejected the slot');
+    });
+
+    await expect(
+      host.replace('checkout-current', {
+        instanceId: 'checkout-next',
+        props: { label: 'canary' },
+        ref: { name: 'checkout', range: '2' },
+        target: brokenTarget,
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.containerFailed,
+      phase: 'container',
+    });
+    expect(host.audit().replacementTransactions).toEqual([]);
+    expect(host.get('checkout-current')).toBe(current);
+    expect(brokenTarget.children).toHaveLength(0);
+
+    await current.unmount();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('commits a ready replacement even when previous-version cleanup reports an error', async () => {
     const cleanupFailure = new Error('old framework root would not unmount');
     const { host } = createReplacementHarness({
