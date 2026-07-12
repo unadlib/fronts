@@ -320,9 +320,11 @@ export function createIframeProxyLoader<Source, Services extends object = object
 
           return {
             ready,
-            activate: () => peer.request('lifecycle.activate', undefined),
-            deactivate: () => peer.request('lifecycle.deactivate', undefined),
-            update: (props) => peer.request('lifecycle.update', props),
+            activate: () =>
+              peer.request('lifecycle.activate', undefined, { signal: context.signal }),
+            deactivate: () =>
+              peer.request('lifecycle.deactivate', undefined, { signal: context.signal }),
+            update: (props) => peer.request('lifecycle.update', props, { signal: context.signal }),
             async unmount(): Promise<void> {
               if (disposed) {
                 return;

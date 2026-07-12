@@ -908,6 +908,71 @@ describe('secure iframe execution', () => {
     iframe.remove();
   });
 
+  it('cancels pending iframe lifecycle calls with the application lifetime', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    iframe.dataset.frontsFrameLoaded = 'true';
+    iframe.dataset.frontsTargetOrigin = 'https://frame.example.test';
+    const frameWindow = iframe.contentWindow;
+    expect(frameWindow).not.toBeNull();
+    if (frameWindow === null) {
+      throw new Error('Happy DOM did not create an iframe window.');
+    }
+
+    let remote: IframeRpcPeer | undefined;
+    let updateSignal: AbortSignal | undefined;
+    vi.spyOn(frameWindow, 'postMessage').mockImplementation(((...args: unknown[]) => {
+      const [message, , transfer] = args;
+      const connect = message as { channelId: string };
+      const port = Array.isArray(transfer) ? (transfer[0] as MessagePort | undefined) : undefined;
+      if (port === undefined) {
+        throw new Error('Iframe proxy did not transfer an RPC port.');
+      }
+      remote = new IframeRpcPeer(port, {
+        channelId: connect.channelId,
+        idPrefix: 'cancellable-agent',
+        requestTimeoutMs: 0,
+      });
+      remote.handle('lifecycle.update', (_params, context) => {
+        updateSignal = context.signal;
+        return new Promise(() => undefined);
+      });
+      remote.handle('lifecycle.unmount', () => undefined);
+      void remote.request('capabilities.negotiate', []).then(() => remote?.notify('fronts.ready'));
+    }) as typeof frameWindow.postMessage);
+
+    const resolved: ResolvedApp<Source> = {
+      ref: normalizeAppRef({ name: 'checkout' }),
+      source: { entry: 'https://cdn.example.test/checkout/mf-manifest.json' },
+    };
+    const proxyApp = getFrontsApp<Props, object>(
+      await createIframeProxyLoader<Source, object, Props>({
+        handshakeTimeoutMs: 100,
+        requestTimeoutMs: 0,
+      }).load(resolved, createOperation()),
+    );
+    const controller = new AbortController();
+    const handle = await proxyApp.mount({
+      identity,
+      props: { value: 'cancellable' },
+      services: {},
+      signal: controller.signal,
+      target: iframe,
+    });
+    await handle.ready;
+
+    const update = handle.update?.({ value: 'pending' });
+    await vi.waitFor(() => expect(updateSignal).toBeDefined());
+    controller.abort('application lifetime ended');
+
+    await expect(update).rejects.toMatchObject({ code: frontsErrorCodes.aborted });
+    await vi.waitFor(() => expect(updateSignal?.aborted).toBe(true));
+    await handle.unmount();
+    remote?.close();
+    iframe.remove();
+  });
+
   it('treats proxy capabilities as a negotiable maximum during host authorization', async () => {
     const resolved: ResolvedApp<Source> = {
       ref: normalizeAppRef({ name: 'checkout' }),
