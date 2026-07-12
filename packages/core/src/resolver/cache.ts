@@ -103,7 +103,7 @@ export function createCachedResolver<Source>(
         return value;
       } catch (error) {
         throwIfAborted(context.signal, 'resolve');
-        if (cached !== undefined && currentTime < cached.staleUntil) {
+        if (cached !== undefined && now() < cached.staleUntil) {
           return cached.value;
         }
         throw error;

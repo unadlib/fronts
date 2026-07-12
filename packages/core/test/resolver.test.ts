@@ -131,6 +131,28 @@ describe('application resolution', () => {
     await expect(resolver.resolve(ref, context)).rejects.toThrow('still unavailable');
   });
 
+  it('does not return a stale value that expires while its refresh is pending', async () => {
+    let time = 1_000;
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const remote = vi
+      .fn<AppResolver<string>['resolve']>()
+      .mockResolvedValueOnce({ ref, source: 'release-a' })
+      .mockImplementationOnce(() => {
+        time = 1_111;
+        throw new Error('slow registry failure');
+      });
+    const resolver = createCachedResolver({
+      now: () => time,
+      resolver: { resolve: remote },
+      staleTtlMs: 100,
+      ttlMs: 10,
+    });
+
+    await expect(resolver.resolve(ref, context)).resolves.toMatchObject({ source: 'release-a' });
+    time = 1_015;
+    await expect(resolver.resolve(ref, context)).rejects.toThrow('slow registry failure');
+  });
+
   it('falls through resolver chains and preserves the final failure', async () => {
     const first = vi.fn<AppResolver<string>['resolve']>().mockRejectedValue(new Error('missing'));
     const second = vi.fn<AppResolver<string>['resolve']>().mockResolvedValue({
