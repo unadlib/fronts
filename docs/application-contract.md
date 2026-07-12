@@ -4,7 +4,9 @@
 
 Every producer exports a `FrontsApp` created by `defineApp()`, `defineReactApp()`, or
 `defineVueApp()`. The helper adds a non-enumerable symbol brand plus enumerable protocol name and
-version fields. The host validates all three before executing remote code as an application.
+version fields. The symbol is a local marker; the cross-package ABI is the structural mount shape
+plus the protocol name and major version. The host validates that ABI, and a symbol brand never
+bypasses protocol-version validation.
 
 The exposed Module Federation module should normally have this shape:
 
