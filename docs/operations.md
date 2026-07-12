@@ -14,6 +14,9 @@ identity flow through the resolver, loader, and container extension boundaries. 
 Core snapshots and freezes host-owned references, operation contexts, identities, resolution
 policy, and resolved deployment envelopes. Opaque transport source objects, application props,
 services, abort signals, and DOM targets retain their domain-specific ownership.
+Mount captures the props and target references plus a frozen container request before asynchronous
+resolution; built-in `attributes` and iframe `sandbox` collections are copied as part of that
+request snapshot.
 
 Runtime IDs are trimmed and must be non-empty strings. Invalid identifiers are rejected before
 resolution with the error code and phase of the requested operation; custom ID factories are

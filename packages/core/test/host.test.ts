@@ -628,6 +628,53 @@ describe('Fronts host runtime', () => {
     expect(host.audit().idle).toBe(true);
   });
 
+  it('snapshots mount inputs before asynchronous resolution', async () => {
+    let finishResolution!: () => void;
+    const resolutionGate = new Promise<void>((resolve) => {
+      finishResolution = resolve;
+    });
+    const originalTarget = document.createElement('main');
+    const app = defineApp<Props, Services>({
+      mount: vi.fn(({ props, target }) => {
+        expect(props).toEqual({ value: 'original' });
+        expect(target).toBe(originalTarget.firstElementChild);
+        return { unmount: vi.fn() };
+      }),
+    });
+    const { loader, resolved } = createHarness(app);
+    const resolver: AppResolver<Source> = {
+      async resolve() {
+        await resolutionGate;
+        return resolved;
+      },
+    };
+    const host = createFrontsHost({ loader, resolver, services });
+    const forgedTarget = document.createElement('main');
+    const attributes = { 'data-policy': 'original' };
+    const container = { attributes, type: 'dom' as const };
+    const mountOptions = {
+      container,
+      props: { value: 'original' },
+      readyTimeoutMs: 100,
+      ref: { name: 'checkout' },
+      target: originalTarget,
+    };
+
+    const mounting = host.mount(mountOptions);
+    mountOptions.props = { value: 'forged' };
+    mountOptions.target = forgedTarget;
+    mountOptions.readyTimeoutMs = Number.POSITIVE_INFINITY;
+    Reflect.set(container, 'type', 'shadow');
+    attributes['data-policy'] = 'forged';
+    finishResolution();
+
+    const instance = await mounting;
+    expect(originalTarget.firstElementChild?.getAttribute('data-policy')).toBe('original');
+    expect(forgedTarget.children).toHaveLength(0);
+    expect(instance.state).toBe('ready');
+    await instance.unmount();
+  });
+
   it('audits and aborts detached resolve, load and preload operations during disposal', async () => {
     const { host, resolver } = createHarness();
     const signals: AbortSignal[] = [];
