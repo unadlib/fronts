@@ -173,7 +173,7 @@ describe('Fronts host runtime', () => {
     const app = defineApp<Props, Services>({
       mount: () => ({ ready: new Promise<void>(() => undefined), unmount }),
     });
-    const { host } = createHarness(app);
+    const { events, host } = createHarness(app);
     const target = document.createElement('main');
 
     await expect(
@@ -191,7 +191,8 @@ describe('Fronts host runtime', () => {
     );
     expect(unmount).toHaveBeenCalledOnce();
     expect(target.children).toHaveLength(0);
-    expect(host.inspect()[0]).toMatchObject({ state: 'failed' });
+    expect(host.inspect()).toEqual([]);
+    expect(events.at(-2)).toMatchObject({ kind: 'state', snapshot: { state: 'failed' } });
   });
 
   it('rejects invalid readiness timeouts even when an app has no ready promise', async () => {
@@ -213,7 +214,7 @@ describe('Fronts host runtime', () => {
   });
 
   it('maps loader errors to the load phase without leaving a container behind', async () => {
-    const { host, loader } = createHarness();
+    const { events, host, loader } = createHarness();
     loader.load.mockRejectedValueOnce(new Error('remote entry unavailable'));
     const target = document.createElement('main');
 
@@ -226,7 +227,8 @@ describe('Fronts host runtime', () => {
       }),
     );
     expect(target.children).toHaveLength(0);
-    expect(host.inspect()[0]).toMatchObject({ state: 'failed' });
+    expect(host.inspect()).toEqual([]);
+    expect(events.at(-2)).toMatchObject({ kind: 'state', snapshot: { state: 'failed' } });
   });
 
   it('reports capability authorization failures in the mount phase', async () => {
@@ -574,6 +576,45 @@ describe('Fronts host runtime', () => {
     resolveHandle({ unmount });
     await vi.waitFor(() => expect(unmount).toHaveBeenCalledOnce());
     expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
+  });
+
+  it('releases terminal instance identities for remount and clean retry', async () => {
+    const { host, loader } = createHarness();
+    const target = document.createElement('main');
+    const first = await host.mount({
+      instanceId: 'checkout-stable',
+      props: { value: 'first' },
+      ref: { name: 'checkout' },
+      target,
+    });
+    await first.unmount();
+
+    const second = await host.mount({
+      instanceId: 'checkout-stable',
+      props: { value: 'second' },
+      ref: { name: 'checkout' },
+      target,
+    });
+    await second.unmount();
+    expect(host.inspect()).toEqual([]);
+
+    loader.load.mockRejectedValueOnce(new Error('temporary federation failure'));
+    await expect(
+      host.mount({
+        instanceId: 'checkout-retry',
+        props: { value: 'failed' },
+        ref: { name: 'checkout' },
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.loadFailed });
+    const retried = await host.mount({
+      instanceId: 'checkout-retry',
+      props: { value: 'retried' },
+      ref: { name: 'checkout' },
+      target,
+    });
+    await retried.unmount();
+    expect(host.inspect()).toEqual([]);
   });
 
   it('rejects duplicate instance identities and operations after host disposal', async () => {

@@ -108,7 +108,10 @@ Expected policy:
 
 ## Audit and shutdown
 
-`host.inspect()` returns immutable instance snapshots. `host.audit()` reports:
+`host.inspect()` returns snapshots for live transactions and terminal records retained because
+cleanup could not be proven complete. Successfully destroyed or fully rolled-back transactions
+release their identity reservation and are observed through host events instead. `host.audit()`
+reports:
 
 - active/non-destroyed instances;
 - pending operations;

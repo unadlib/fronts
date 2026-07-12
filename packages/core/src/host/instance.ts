@@ -5,7 +5,7 @@ import { asFrontsError } from './utils.js';
 export interface MountedApplicationCallbacks {
   readonly transition: (state: AppInstanceState) => void;
   readonly reportError: (error: FrontsError) => void;
-  readonly onDisposed: () => void;
+  readonly onDisposed: (clean: boolean) => void;
   readonly unlinkSignal: () => void;
 }
 
@@ -161,7 +161,6 @@ export class MountedApplicationImpl<
       }
 
       this.#callbacks.unlinkSignal();
-      this.#callbacks.onDisposed();
 
       if (errors.length > 0) {
         const failure = new FrontsError(
@@ -171,10 +170,12 @@ export class MountedApplicationImpl<
         );
         this.#setState('failed');
         this.#callbacks.reportError(failure);
+        this.#callbacks.onDisposed(false);
         throw failure;
       }
 
       this.#setState('destroyed');
+      this.#callbacks.onDisposed(true);
     });
 
     return this.#unmountPromise;

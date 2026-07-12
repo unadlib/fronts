@@ -626,6 +626,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     let container: Awaited<ReturnType<ContainerRegistry['prepare']>> | undefined;
     let appHandle: AppHandle<Props> | undefined;
     let provision: ServiceProvision<Services> | undefined;
+    let cleanupFailed = false;
+    const abandonedCleanups: Promise<void>[] = [];
+    const trackAbandonedCleanup = (cleanup: Promise<void>): void => {
+      abandonedCleanups.push(cleanup);
+    };
     let scope:
       Awaited<ReturnType<typeof createServiceScope<Services, ServiceKey<Services>>>> | undefined;
 
@@ -681,9 +686,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
             target: options.target,
           }),
         cleanup: async (prepared) => prepared.dispose(),
-        onAbandoned: (cleanup) => {
-          this.#trackPending(cleanup);
-        },
+        onAbandoned: trackAbandonedCleanup,
         phase: 'container',
         signal: controller.signal,
       });
@@ -703,9 +706,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
             target: mountContainer.target,
           }),
         cleanup: async (handle) => handle.unmount(),
-        onAbandoned: (cleanup) => {
-          this.#trackPending(cleanup);
-        },
+        onAbandoned: trackAbandonedCleanup,
         phase: 'mount',
         signal: controller.signal,
       });
@@ -731,9 +732,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           scope: scope as ServiceScope<Partial<Services>>,
         },
         {
-          onDisposed: () => {
+          onDisposed: (clean) => {
             this.#instances.delete(instanceId);
             record.deploymentSlot?.remove();
+            if (clean) {
+              this.#releaseRecord(record);
+            }
           },
           reportError: (error) => this.#reportError(record, error, error.phase ?? phase),
           transition: (state) => this.#transition(record, state, phaseForState(state)),
@@ -756,6 +760,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         try {
           await appHandle.unmount();
         } catch {
+          cleanupFailed = true;
           // The original mount failure remains authoritative.
         }
       }
@@ -766,12 +771,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           await scope.dispose();
         }
       } catch {
+        cleanupFailed = true;
         // The original mount failure remains authoritative.
       }
       if (container !== undefined) {
         try {
           await container.dispose();
         } catch {
+          cleanupFailed = true;
           // The original mount failure remains authoritative.
         }
       }
@@ -781,7 +788,32 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const terminal = failure.code === frontsErrorCodes.aborted ? 'aborted' : 'failed';
       this.#transition(record, terminal, phase);
       this.#reportError(record, failure, phase);
+      if (abandonedCleanups.length === 0) {
+        if (!cleanupFailed) {
+          this.#releaseRecord(record);
+        }
+      } else {
+        const release = Promise.allSettled(abandonedCleanups).then((results) => {
+          if (!cleanupFailed && results.every((result) => result.status === 'fulfilled')) {
+            this.#releaseRecord(record);
+          }
+        });
+        this.#trackPending(release);
+      }
       throw failure;
+    }
+  }
+
+  #releaseRecord(record: ApplicationRecord<Source>): void {
+    if (
+      record.ownsContainerElement === true &&
+      record.containerElement !== undefined &&
+      record.containerElement.parentNode !== null
+    ) {
+      return;
+    }
+    if (this.#records.get(record.identity.instanceId) === record) {
+      this.#records.delete(record.identity.instanceId);
     }
   }
 
