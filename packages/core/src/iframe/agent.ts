@@ -96,16 +96,22 @@ function createSession<Source, Props = unknown>(
     message.capabilities,
     'Iframe host capabilities',
   );
-  const peer = new IframeRpcPeer(port, {
-    channelId: message.channelId,
-    idPrefix: 'agent',
-    ...(options.requestTimeoutMs === undefined
-      ? {}
-      : { requestTimeoutMs: options.requestTimeoutMs }),
-  });
   const root = options.target.ownerDocument.createElement('div');
   root.dataset.frontsAgentInstance = message.identity.instanceId;
   options.target.append(root);
+  let peer: IframeRpcPeer;
+  try {
+    peer = new IframeRpcPeer(port, {
+      channelId: message.channelId,
+      idPrefix: 'agent',
+      ...(options.requestTimeoutMs === undefined
+        ? {}
+        : { requestTimeoutMs: options.requestTimeoutMs }),
+    });
+  } catch (error) {
+    root.remove();
+    throw error;
+  }
   let handle: AppHandle<Props> | undefined;
   let stopped = false;
 
@@ -232,6 +238,33 @@ function createSession<Source, Props = unknown>(
   return { stop };
 }
 
+function closePorts(ports: readonly MessagePort[]): void {
+  for (const port of ports) {
+    port.close();
+  }
+}
+
+function reportConnectFailure<Source>(
+  port: MessagePort,
+  channelId: string,
+  options: IframeAgentOptions<Source>,
+  error: unknown,
+): void {
+  try {
+    const peer = new IframeRpcPeer(port, {
+      channelId,
+      idPrefix: 'agent-rejected',
+      ...(options.requestTimeoutMs === undefined
+        ? {}
+        : { requestTimeoutMs: options.requestTimeoutMs }),
+    });
+    peer.notify('fronts.fatal', serializeIframeError(error));
+    setTimeout(() => peer.close('Iframe connection rejected'), 0);
+  } catch {
+    port.close();
+  }
+}
+
 export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): IframeAgent {
   assertIframeTimeout(options.requestTimeoutMs ?? 10_000, 'requestTimeoutMs');
   const allowedOrigins = validateAllowedOrigins(options.allowedOrigins);
@@ -241,14 +274,12 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
   let stopped = false;
 
   const receive = (event: MessageEvent<unknown>) => {
-    if (
-      stopped ||
-      !allowedOrigins.has(event.origin) ||
-      event.source !== expectedParent ||
-      !isIframeConnectMessage(event.data) ||
-      event.ports.length !== 1 ||
-      sessions.has(event.data.channelId)
-    ) {
+    if (stopped || !allowedOrigins.has(event.origin) || event.source !== expectedParent) {
+      closePorts(event.ports);
+      return;
+    }
+    if (!isIframeConnectMessage(event.data) || event.ports.length !== 1) {
+      closePorts(event.ports);
       return;
     }
 
@@ -257,10 +288,26 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
       return;
     }
     const channelId = event.data.channelId;
-    const session = createSession(event.data as IframeConnectMessage<Source>, port, options, () =>
-      sessions.delete(channelId),
-    );
-    sessions.set(channelId, session);
+    if (sessions.has(channelId)) {
+      reportConnectFailure(
+        port,
+        channelId,
+        options,
+        new FrontsError(
+          frontsErrorCodes.iframeProtocol,
+          `Iframe channel "${channelId}" already has an active session.`,
+        ),
+      );
+      return;
+    }
+    try {
+      const session = createSession(event.data as IframeConnectMessage<Source>, port, options, () =>
+        sessions.delete(channelId),
+      );
+      sessions.set(channelId, session);
+    } catch (error) {
+      reportConnectFailure(port, channelId, options, error);
+    }
   };
   targetWindow.addEventListener('message', receive);
 

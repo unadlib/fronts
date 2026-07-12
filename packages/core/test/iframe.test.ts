@@ -16,6 +16,7 @@ import {
 import {
   IframeRpcPeer,
   createIframeAgent,
+  createIframeConnectMessage,
   createIframeContainer,
   createIframeProxyLoader,
 } from '../src/iframe/index.js';
@@ -239,6 +240,54 @@ describe('secure iframe execution', () => {
     );
     peer.close();
     validChannel.port2.close();
+  });
+
+  it('reports malformed iframe connections without leaking a session', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'malformed-connect';
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    const load = vi.fn<AppLoader<Source>['load']>();
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load },
+      parent: window,
+      target: document.createElement('main'),
+      window,
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: { value: 'invalid' },
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    let fatal: unknown;
+    parentPeer.on('fronts.fatal', (error) => {
+      fatal = error;
+    });
+
+    expect(() =>
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { ...message, resolved: { ref } },
+          origin: parentOrigin,
+          ports: [channel.port2],
+          source: window,
+        }),
+      ),
+    ).not.toThrow();
+
+    await vi.waitFor(() =>
+      expect(fatal).toMatchObject({ code: frontsErrorCodes.resolutionFailed }),
+    );
+    expect(agent.sessions).toBe(0);
+    expect(load).not.toHaveBeenCalled();
+
+    parentPeer.close();
+    await agent.stop();
   });
 
   it('enforces a one-time negotiated grant on every host-side service call', async () => {
