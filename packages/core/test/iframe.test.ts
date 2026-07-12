@@ -310,6 +310,29 @@ describe('secure iframe execution', () => {
     receiver.close();
   });
 
+  it('notifies the remote iframe RPC peer when a channel closes', async () => {
+    const channel = new MessageChannel();
+    const host = new IframeRpcPeer(channel.port1, {
+      channelId: 'closed-channel',
+      requestTimeoutMs: 0,
+    });
+    const frame = new IframeRpcPeer(channel.port2, {
+      channelId: 'closed-channel',
+      requestTimeoutMs: 0,
+    });
+    frame.handle('never', () => new Promise(() => undefined));
+    const pending = host.request('never');
+
+    frame.close('Iframe agent stopped');
+
+    await expect(pending).rejects.toMatchObject({
+      code: frontsErrorCodes.rpcClosed,
+      message: 'Iframe agent stopped',
+    });
+    expect(host.closed).toBe(true);
+    host.close();
+  });
+
   it('fails fast for invalid iframe timeout configuration', async () => {
     const channel = new MessageChannel();
     expect(

@@ -39,8 +39,17 @@ interface RpcCancelMessage extends RpcMessageBase {
   readonly id: string;
 }
 
+interface RpcCloseMessage extends RpcMessageBase {
+  readonly type: 'close';
+  readonly reason: string;
+}
+
 type RpcWireMessage =
-  RpcCancelMessage | RpcNotificationMessage | RpcRequestMessage | RpcResponseMessage;
+  | RpcCancelMessage
+  | RpcCloseMessage
+  | RpcNotificationMessage
+  | RpcRequestMessage
+  | RpcResponseMessage;
 
 export interface IframeRpcHandlerContext {
   readonly signal: AbortSignal;
@@ -105,6 +114,8 @@ function isRpcWireMessage(value: unknown, channelId: string): value is RpcWireMe
     switch (message.type) {
       case 'cancel':
         return isNonEmptyString(message.id);
+      case 'close':
+        return typeof message.reason === 'string';
       case 'notification':
         return isNonEmptyString(message.method);
       case 'request':
@@ -275,14 +286,31 @@ export class IframeRpcPeer {
   }
 
   close(reason: unknown = 'Iframe RPC channel closed'): void {
+    this.#close(reason, true);
+  }
+
+  #close(reason: unknown, notifyRemote: boolean): void {
     if (this.#closed) {
       return;
+    }
+    let description = 'Iframe RPC channel closed';
+    try {
+      description = String(reason);
+    } catch {
+      // Closing must continue even if a caller supplied a hostile reason value.
+    }
+    if (notifyRemote) {
+      try {
+        this.#post({ reason: description, type: 'close' });
+      } catch {
+        // The local peer still owns and must release all of its resources.
+      }
     }
     this.#closed = true;
     this.#port.removeEventListener('message', this.#onMessage);
     this.#port.close();
 
-    const error = new FrontsError(frontsErrorCodes.rpcClosed, String(reason));
+    const error = new FrontsError(frontsErrorCodes.rpcClosed, description);
     for (const pending of this.#pending.values()) {
       pending.unlinkAbort();
       if (pending.timer !== undefined) {
@@ -322,6 +350,9 @@ export class IframeRpcPeer {
         break;
       case 'cancel':
         this.#inflight.get(message.id)?.abort('Remote request cancelled');
+        break;
+      case 'close':
+        this.#close(message.reason, false);
         break;
     }
   };
@@ -387,6 +418,7 @@ export class IframeRpcPeer {
   #post(
     message:
       | Omit<RpcCancelMessage, keyof RpcMessageBase>
+      | Omit<RpcCloseMessage, keyof RpcMessageBase>
       | Omit<RpcNotificationMessage, keyof RpcMessageBase>
       | Omit<RpcRequestMessage, keyof RpcMessageBase>
       | Omit<RpcResponseMessage, keyof RpcMessageBase>,
