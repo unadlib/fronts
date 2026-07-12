@@ -944,6 +944,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       record.containerElement = container.element;
       record.ownsContainerElement = container.ownsElement ?? false;
 
+      phase = 'mount';
       this.#transition(record, 'mounting', phase);
       const mountContainer = container;
       const mountScope = scope;

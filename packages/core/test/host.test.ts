@@ -999,7 +999,13 @@ describe('Fronts host runtime', () => {
     );
     const app = defineApp<Props, Services>({ mount });
     const { loader, resolver } = createHarness(app);
-    const host = createFrontsHost({ loader, resolver, services });
+    const events: HostEvent<Source>[] = [];
+    const host = createFrontsHost({
+      loader,
+      observer: (event) => events.push(event),
+      resolver,
+      services,
+    });
     const controller = new AbortController();
     const pending = host.mount({
       props: { value: 'x' },
@@ -1011,6 +1017,18 @@ describe('Fronts host runtime', () => {
 
     controller.abort('navigation changed');
     await expect(pending).rejects.toMatchObject({ code: frontsErrorCodes.aborted, phase: 'mount' });
+    expect(events.slice(-2)).toEqual([
+      expect.objectContaining({
+        kind: 'state',
+        phase: 'mount',
+        snapshot: expect.objectContaining({ state: 'aborted' }),
+      }),
+      expect.objectContaining({
+        error: expect.objectContaining({ phase: 'mount' }),
+        kind: 'error',
+        phase: 'mount',
+      }),
+    ]);
     expect(host.audit()).toMatchObject({ idle: false, pendingOperations: 1 });
 
     resolveHandle({ unmount });
