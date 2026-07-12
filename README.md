@@ -5,8 +5,8 @@ applications. It uses Module Federation 2 for module discovery and loading, then
 application-level contract and production controls that a module loader intentionally does not
 own.
 
-> Status: `2.0.0-alpha.0`. The architecture and protocol are implemented and tested, but the
-> public API may still change before the first stable release.
+> Status: Fronts 2.0 prerelease, published under the `next` tag. The architecture and protocol are
+> implemented and tested, but the public API may still change before the first stable release.
 
 ## Why Fronts still exists after Module Federation 2
 
