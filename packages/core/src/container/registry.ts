@@ -22,6 +22,22 @@ function isMountTarget(value: unknown): boolean {
   );
 }
 
+function assertContainerAdapter(value: unknown): asserts value is ContainerAdapter {
+  if (
+    !isRecord(value) ||
+    typeof value.type !== 'string' ||
+    value.type.trim() === '' ||
+    value.type !== value.type.trim() ||
+    typeof value.prepare !== 'function'
+  ) {
+    throw new FrontsError(
+      frontsErrorCodes.containerFailed,
+      'A container adapter must provide a non-empty type and a prepare function.',
+      { phase: 'container' },
+    );
+  }
+}
+
 function assertPreparedContainer(
   value: unknown,
   expectedType: string,
@@ -86,6 +102,7 @@ export class ContainerRegistry {
   }
 
   register<Request extends ContainerRequest>(adapter: ContainerAdapter<Request>): this {
+    assertContainerAdapter(adapter);
     if (this.#adapters.has(adapter.type)) {
       throw new FrontsError(
         frontsErrorCodes.containerFailed,

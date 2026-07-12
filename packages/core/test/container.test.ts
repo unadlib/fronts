@@ -130,6 +130,20 @@ describe('application containers', () => {
     );
   });
 
+  it.each([
+    null,
+    { prepare: () => undefined, type: '' },
+    { prepare: () => undefined, type: ' padded ' },
+    { type: 'missing-prepare' },
+  ])('rejects the invalid container adapter %j during registration', (adapter) => {
+    expect(() => new ContainerRegistry([adapter as unknown as ContainerAdapter])).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.containerFailed,
+        phase: 'container',
+      }),
+    );
+  });
+
   it('rejects and rolls back invalid prepared container results', async () => {
     const parent = document.createElement('main');
     document.body.append(parent);
