@@ -137,7 +137,8 @@ remains primary; cleanup errors are reported through typed Fronts errors and eve
 
 `replace(currentInstanceId, nextOptions)` is intentionally not an in-place remote mutation:
 
-1. A hidden staging slot is created beside the current owned container.
+1. A hidden staging slot is created inside `nextOptions.target`; pass the current layout parent for
+   an in-place visual replacement, or another target for an intentional move.
 2. The next deployment resolves, loads, mounts, and reaches `ready` in staging.
 3. If any phase fails, staging is destroyed and the current instance stays active.
 4. If ready succeeds, the new slot is committed, then the previous instance is unmounted.
