@@ -511,6 +511,39 @@ describe('Fronts host runtime', () => {
     expect(host.audit().idle).toBe(true);
   });
 
+  it('does not inherit the internal negotiable capability marker', async () => {
+    const definition = Object.assign(
+      Object.create({
+        [Symbol.for('@fronts/core/application/negotiable-capabilities/v2')]: true,
+      }) as object,
+      {
+        capabilities: ['navigation'] as const,
+        mount: vi.fn(() => ({ unmount: vi.fn() })),
+      },
+    );
+    const app = defineApp<Props, Services>(definition);
+    const { loader, resolver } = createHarness(app);
+    const host = createFrontsHost({
+      capabilityPolicy: () => false,
+      loader,
+      resolver,
+      services,
+    });
+
+    await expect(
+      host.mount({
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({
+      code: frontsErrorCodes.capabilityDenied,
+      phase: 'mount',
+    });
+    expect(app.mount).not.toHaveBeenCalled();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('rejects invalid capability declarations before invoking the service provider', async () => {
     const app = defineApp<Props, Services>({
       capabilities: ['__proto__'] as unknown as readonly (keyof Services & string)[],

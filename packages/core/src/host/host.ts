@@ -967,6 +967,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         trackAbandonedCleanup,
       );
       const negotiableCapabilities =
+        Object.prototype.hasOwnProperty.call(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL) &&
         Reflect.get(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL) === true;
       const scopedCapabilities = negotiableCapabilities
         ? await this.#selectNegotiableCapabilities(
