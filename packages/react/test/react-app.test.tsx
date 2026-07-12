@@ -152,6 +152,51 @@ describe('React application adapter', () => {
     expect(onError).toHaveBeenCalledOnce();
     act(() => void handle?.unmount());
   });
+
+  it('recovers a failed update on the next render and remains unmountable', async () => {
+    const failure = new Error('render failed');
+    const Recoverable = ({ value }: Props) => {
+      if (value === 'broken') {
+        throw failure;
+      }
+      return <output>{value}</output>;
+    };
+    const app = defineReactApp<Props, object>({
+      fallback: <p>Application unavailable</p>,
+      root: Recoverable,
+    });
+    const target = document.createElement('div');
+    let handle: Awaited<ReturnType<typeof app.mount>> | undefined;
+
+    await act(async () => {
+      handle = await app.mount({
+        identity,
+        props: { value: 'healthy' },
+        services: {},
+        signal: new AbortController().signal,
+        target,
+      });
+    });
+    await handle?.ready;
+
+    let failedUpdate: PromiseLike<void> | void = undefined;
+    await act(async () => {
+      failedUpdate = handle?.update?.({ value: 'broken' });
+      void Promise.resolve(failedUpdate).catch(() => undefined);
+    });
+    await expect(failedUpdate).rejects.toBe(failure);
+    expect(target.textContent).toBe('Application unavailable');
+
+    let recoveredUpdate: PromiseLike<void> | void = undefined;
+    await act(async () => {
+      recoveredUpdate = handle?.update?.({ value: 'recovered' });
+    });
+    await recoveredUpdate;
+    expect(target.textContent).toBe('recovered');
+
+    act(() => void handle?.unmount());
+    expect(target.textContent).toBe('');
+  });
 });
 
 describe('React host adapter', () => {

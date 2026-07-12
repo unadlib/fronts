@@ -36,8 +36,10 @@ export default defineReactApp<Props, Services>({
 ```
 
 `defineReactApp()` owns the React root, commit-based readiness, prop updates, context, error
-boundary, optional Strict Mode, and unmount. Expose the returned application as a Module
-Federation module or load it through another Fronts loader.
+boundary, optional Strict Mode, and unmount. A render error rejects the current lifecycle operation
+and shows the configured fallback; a later update remounts the boundary so a valid render can
+recover. Expose the returned application as a Module Federation module or load it through another
+Fronts loader.
 
 ## React host
 

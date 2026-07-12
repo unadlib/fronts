@@ -74,6 +74,8 @@ export function defineReactApp<
     mount(context) {
       let disposed = false;
       let pending: Deferred | undefined;
+      let boundaryVersion = 0;
+      let resetBoundary = false;
       const rootFactory = options.createRoot ?? createRoot;
       const root = rootFactory(context.target, options.rootOptions);
       const reactContext: FrontsReactContextValue<Services> = {
@@ -101,6 +103,10 @@ export function defineReactApp<
           ),
         );
         pending = deferred;
+        if (resetBoundary) {
+          boundaryVersion += 1;
+          resetBoundary = false;
+        }
 
         const renderContext: ReactAppRenderContext<Props, Services> = {
           ...reactContext,
@@ -113,12 +119,14 @@ export function defineReactApp<
           ReactAppErrorBoundary,
           {
             ...(options.fallback === undefined ? {} : { fallback: options.fallback }),
+            key: boundaryVersion,
             onError(error, info) {
-              options.onError?.(error, info);
+              resetBoundary = true;
               if (pending === deferred) {
                 pending = undefined;
                 deferred.reject(error);
               }
+              options.onError?.(error, info);
             },
           },
           createElement(
