@@ -17,6 +17,7 @@ import {
   useApplicationAbortSignal,
   useApplicationIdentity,
   useHostServices,
+  useRemoteApp,
 } from '../src/index.js';
 
 interface Props {
@@ -285,6 +286,62 @@ describe('React application adapter', () => {
 });
 
 describe('React host adapter', () => {
+  it('returns to idle when its target disappears and remounts when it returns', async () => {
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const resolved: ResolvedApp<Source> = {
+      ref,
+      source: { entry: 'checkout.json' },
+    };
+    const createInstance = (instanceId: string): MountedApplication<Props, Source> => ({
+      abort: vi.fn(async () => undefined),
+      activate: vi.fn(async () => undefined),
+      deactivate: vi.fn(async () => undefined),
+      identity: { ...identity, instanceId },
+      ready: Promise.resolve(),
+      ref,
+      resolved,
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+    });
+    const first = createInstance('react-first');
+    const second = createInstance('react-second');
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second),
+    } as unknown as FrontsHost<Source, Services>;
+    const Probe = ({ show }: { readonly show: boolean }) => {
+      const remote = useRemoteApp<Props, Source, Services>({
+        app: { name: 'checkout' },
+        appProps: { value: 'first' },
+        host,
+      });
+      return (
+        <section
+          data-instance={remote.instance?.identity.instanceId ?? ''}
+          data-status={remote.status}
+        >
+          {show ? <div ref={remote.targetRef} /> : null}
+        </section>
+      );
+    };
+    const view = render(<Probe show />);
+    const probe = () => view.container.querySelector('section');
+
+    await waitFor(() => expect(probe()?.getAttribute('data-status')).toBe('ready'));
+    expect(probe()?.getAttribute('data-instance')).toBe('react-first');
+
+    view.rerender(<Probe show={false} />);
+    await waitFor(() => expect(probe()?.getAttribute('data-status')).toBe('idle'));
+    expect(probe()?.getAttribute('data-instance')).toBe('');
+    await waitFor(() => expect(first.unmount).toHaveBeenCalledOnce());
+
+    view.rerender(<Probe show />);
+    await waitFor(() => expect(host.mount).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(probe()?.getAttribute('data-status')).toBe('ready'));
+    expect(probe()?.getAttribute('data-instance')).toBe('react-second');
+    view.unmount();
+  });
+
   it('mounts, updates and tears down remote applications without owning their DOM', async () => {
     const ref = normalizeAppRef({ name: 'checkout' });
     const resolved: ResolvedApp<Source> = {

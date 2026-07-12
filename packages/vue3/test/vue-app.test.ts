@@ -458,6 +458,57 @@ describe('Vue host adapter', () => {
     return { instance, unmount, update };
   }
 
+  it('returns to idle when its target disappears and remounts when it returns', async () => {
+    const first = createMountedApplication();
+    const second = createMountedApplication();
+    const secondInstance = {
+      ...second.instance,
+      identity: { ...second.instance.identity, instanceId: 'vue-second' },
+    };
+    const host = {
+      mount: vi.fn().mockResolvedValueOnce(first.instance).mockResolvedValueOnce(secondInstance),
+    } as unknown as FrontsHost<Source, Services>;
+    const Probe = defineComponent({
+      props: {
+        show: { type: Boolean, required: true },
+      },
+      setup(props) {
+        const remote = useRemoteApp<Props, Source, Services>({
+          app: { name: 'checkout' },
+          appProps: { value: 'first' },
+          host,
+        });
+        return () =>
+          h(
+            'section',
+            {
+              'data-instance': remote.instance.value?.identity.instanceId ?? '',
+              'data-status': remote.status.value,
+            },
+            props.show ? h('div', { ref: remote.target }) : undefined,
+          );
+      },
+    });
+    const view = mountVue(Probe, { props: { show: true } });
+
+    await flushPromises();
+    expect(view.attributes('data-status')).toBe('ready');
+    expect(view.attributes('data-instance')).toBe(identity.instanceId);
+
+    await view.setProps({ show: false });
+    await flushPromises();
+    expect(view.attributes('data-status')).toBe('idle');
+    expect(view.attributes('data-instance')).toBe('');
+    expect(first.unmount).toHaveBeenCalledOnce();
+
+    await view.setProps({ show: true });
+    await flushPromises();
+    expect(host.mount).toHaveBeenCalledTimes(2);
+    expect(view.attributes('data-status')).toBe('ready');
+    expect(view.attributes('data-instance')).toBe('vue-second');
+    view.unmount();
+  });
+
   it('mounts, updates and tears down remote applications without owning their DOM', async () => {
     const { instance, unmount, update } = createMountedApplication();
     let resolveMount!: (value: MountedApplication<Props, Source>) => void;

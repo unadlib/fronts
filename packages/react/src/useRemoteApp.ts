@@ -85,6 +85,9 @@ export function useRemoteApp<
 
   useEffect(() => {
     if (target === null) {
+      setStatus('idle');
+      setError(null);
+      setInstance(null);
       return;
     }
     let disposed = false;

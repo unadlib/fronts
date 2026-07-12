@@ -123,6 +123,9 @@ export function useRemoteApp<
     (_values, _previous, onCleanup) => {
       const element = target.value;
       if (element === null) {
+        status.value = 'idle';
+        error.value = null;
+        instance.value = null;
         return;
       }
       const options = toValue(input);
