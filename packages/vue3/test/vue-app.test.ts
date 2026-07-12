@@ -189,6 +189,35 @@ describe('Vue application adapter', () => {
     expect(target.childElementCount).toBe(0);
   });
 
+  it('removes its Shadow wrapper when Vue unmounting fails', async () => {
+    const failure = new Error('Vue unmount failed');
+    const vueApp = {
+      config: {},
+      mount: vi.fn(),
+      provide: vi.fn(),
+      unmount: vi.fn(() => {
+        throw failure;
+      }),
+    } as unknown as App;
+    const target = document.createElement('div').attachShadow({ mode: 'open' });
+    const app = defineVueApp<Props, Services>({
+      createApp: (() => vueApp) as typeof createApp,
+      root: ContextConsumer,
+    });
+    const handle = await app.mount({
+      identity,
+      props: { value: 'shadow' },
+      services: { locale: { language: 'en-US' } },
+      signal: new AbortController().signal,
+      target,
+    });
+    await handle.ready;
+
+    expect(target.childElementCount).toBe(1);
+    expect(() => handle.unmount()).toThrow(failure);
+    expect(target.childElementCount).toBe(0);
+  });
+
   it('rejects readiness after Vue reports an application render error', async () => {
     const failure = new Error('render failed');
     const onError = vi.fn();

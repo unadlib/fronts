@@ -196,9 +196,12 @@ export function defineVueApp<
             ),
           );
           pending = undefined;
-          app.unmount();
-          if (mountTarget !== context.target) {
-            mountTarget.remove();
+          try {
+            app.unmount();
+          } finally {
+            if (mountTarget !== context.target) {
+              mountTarget.remove();
+            }
           }
         },
       };
