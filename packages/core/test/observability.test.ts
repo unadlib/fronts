@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  FrontsError,
   createFrontsHost,
   defineApp,
   frontsErrorCodes,
@@ -146,6 +147,45 @@ describe('host observability and runtime audits', () => {
         }),
       }),
     ]);
+
+    await instance.unmount();
+  });
+
+  it('attributes typed application failures to the active lifecycle phase', async () => {
+    const events: HostEvent<Source>[] = [];
+    const applicationError = new FrontsError(
+      frontsErrorCodes.capabilityDenied,
+      'navigation was denied',
+      { details: { capability: 'navigation' }, phase: 'mount' },
+    );
+    const host = createRuntime({
+      app: defineApp<Record<string, never>>({
+        mount: () => ({
+          unmount: () => undefined,
+          update: () => {
+            throw applicationError;
+          },
+        }),
+      }),
+      observer: (event) => events.push(event),
+    });
+    const instance = await host.mount({
+      props: {},
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    await expect(instance.update({})).rejects.toMatchObject({
+      cause: applicationError,
+      code: frontsErrorCodes.capabilityDenied,
+      details: { capability: 'navigation' },
+      phase: 'update',
+    });
+    expect(events.findLast((event) => event.kind === 'error')).toMatchObject({
+      error: { phase: 'update' },
+      phase: 'update',
+      snapshot: { error: { phase: 'update' } },
+    });
 
     await instance.unmount();
   });

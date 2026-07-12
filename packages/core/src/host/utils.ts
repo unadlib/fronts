@@ -39,7 +39,14 @@ export function asFrontsError(
   phase: FrontsPhase,
 ): FrontsError {
   if (error instanceof FrontsError) {
-    return error;
+    if (error.phase === phase) {
+      return error;
+    }
+    return new FrontsError(error.code, error.message, {
+      cause: error,
+      ...(error.details === undefined ? {} : { details: error.details }),
+      phase,
+    });
   }
   return new FrontsError(code, message, { cause: error, phase });
 }
