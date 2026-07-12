@@ -153,6 +153,7 @@ function createRevocableMembrane(): RevocableMembrane {
 export async function createServiceScope<Services extends object, Key extends ServiceKey<Services>>(
   options: CreateServiceScopeOptions<Services, Key>,
 ): Promise<ServiceScope<Pick<Services, Key>>> {
+  throwIfAborted(options.signal, 'mount');
   const scoped = Object.create(null) as Pick<Services, Key>;
   const membrane = createRevocableMembrane();
 
@@ -196,18 +197,26 @@ export async function createServiceScope<Services extends object, Key extends Se
   Object.freeze(scoped);
   const revocable = Proxy.revocable(scoped, {});
   let revoked = false;
+  let unlinkAbort: () => void = () => undefined;
+
+  const revokeScope = (): void => {
+    if (revoked) {
+      return;
+    }
+    revoked = true;
+    unlinkAbort();
+    revocable.revoke();
+    membrane.revoke();
+  };
+  const onAbort = () => revokeScope();
+  options.signal.addEventListener('abort', onAbort, { once: true });
+  unlinkAbort = () => options.signal.removeEventListener('abort', onAbort);
 
   return {
     get revoked() {
       return revoked;
     },
-    revoke() {
-      if (!revoked) {
-        revoked = true;
-        revocable.revoke();
-        membrane.revoke();
-      }
-    },
+    revoke: revokeScope,
     services: revocable.proxy,
   };
 }

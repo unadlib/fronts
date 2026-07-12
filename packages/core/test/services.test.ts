@@ -94,6 +94,21 @@ describe('capability-scoped host services', () => {
     expect(() => retainedMethod('/after-unmount')).toThrow(TypeError);
   });
 
+  it('revokes capabilities immediately when the application lifetime is aborted', async () => {
+    const controller = new AbortController();
+    const scope = await createServiceScope({
+      capabilities: ['navigation'],
+      identity,
+      services,
+      signal: controller.signal,
+    });
+    const retainedMethod = scope.services.navigation.go;
+
+    controller.abort('host teardown started');
+    expect(scope.revoked).toBe(true);
+    expect(() => retainedMethod('/after-abort')).toThrow(TypeError);
+  });
+
   it('preserves service receiver identity and promise behavior while active', async () => {
     const receiver = {
       prefix: '/store',
@@ -140,5 +155,19 @@ describe('capability-scoped host services', () => {
     });
 
     expect(Object.keys(scope.services)).toEqual([]);
+  });
+
+  it('does not create an empty scope for an already aborted lifetime', async () => {
+    const controller = new AbortController();
+    controller.abort('cancelled');
+
+    await expect(
+      createServiceScope({
+        capabilities: [],
+        identity,
+        services,
+        signal: controller.signal,
+      }),
+    ).rejects.toEqual(expect.objectContaining({ code: frontsErrorCodes.aborted, phase: 'mount' }));
   });
 });
