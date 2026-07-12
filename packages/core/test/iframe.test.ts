@@ -328,6 +328,33 @@ describe('secure iframe execution', () => {
     validChannel.port2.close();
   });
 
+  it('fails fast for invalid or closed iframe RPC registrations and methods', () => {
+    const channel = new MessageChannel();
+    const peer = new IframeRpcPeer(channel.port1, { channelId: 'validated-rpc' });
+
+    expect(() => peer.handle(' ', vi.fn())).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
+    );
+    expect(() => peer.on('', vi.fn())).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
+    );
+    expect(() => peer.request(' padded ')).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
+    );
+    expect(() => peer.notify('')).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.iframeProtocol }),
+    );
+
+    peer.close();
+    expect(() => peer.handle('method', vi.fn())).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.rpcClosed }),
+    );
+    expect(() => peer.on('event', vi.fn())).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.rpcClosed }),
+    );
+    channel.port2.close();
+  });
+
   it('settles iframe readiness when unmounted before the frame loads', async () => {
     const iframe = document.createElement('iframe');
     document.body.append(iframe);

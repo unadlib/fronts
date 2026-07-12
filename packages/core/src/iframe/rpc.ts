@@ -70,6 +70,15 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
+function assertRpcMethod(method: unknown): asserts method is string {
+  if (!isNonEmptyString(method) || method !== method.trim()) {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      'An iframe RPC method must be a non-empty, trimmed string.',
+    );
+  }
+}
+
 function isSerializedIframeError(value: unknown): value is SerializedIframeError {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -136,10 +145,10 @@ export class IframeRpcPeer {
   #closed = false;
 
   constructor(port: MessagePort, options: IframeRpcPeerOptions) {
-    if (options.channelId.trim() === '') {
+    if (!isNonEmptyString(options.channelId) || options.channelId !== options.channelId.trim()) {
       throw new FrontsError(
         frontsErrorCodes.iframeProtocol,
-        'An iframe RPC channel id is required.',
+        'An iframe RPC channel id must be a non-empty, trimmed string.',
       );
     }
     this.#port = port;
@@ -156,6 +165,14 @@ export class IframeRpcPeer {
   }
 
   handle(method: string, handler: IframeRpcHandler): () => void {
+    this.#assertOpen();
+    assertRpcMethod(method);
+    if (typeof handler !== 'function') {
+      throw new FrontsError(
+        frontsErrorCodes.iframeProtocol,
+        `The iframe RPC handler for "${method}" must be a function.`,
+      );
+    }
     if (this.#handlers.has(method)) {
       throw new FrontsError(
         frontsErrorCodes.iframeProtocol,
@@ -167,6 +184,14 @@ export class IframeRpcPeer {
   }
 
   on(method: string, listener: IframeRpcNotificationListener): () => void {
+    this.#assertOpen();
+    assertRpcMethod(method);
+    if (typeof listener !== 'function') {
+      throw new FrontsError(
+        frontsErrorCodes.iframeProtocol,
+        `The iframe RPC listener for "${method}" must be a function.`,
+      );
+    }
     const listeners = this.#notifications.get(method) ?? new Set();
     listeners.add(listener);
     this.#notifications.set(method, listeners);
@@ -184,6 +209,7 @@ export class IframeRpcPeer {
     options: { readonly signal?: AbortSignal; readonly timeoutMs?: number } = {},
   ): Promise<Result> {
     this.#assertOpen();
+    assertRpcMethod(method);
     const id = `${this.#idPrefix}:${++this.#sequence}`;
     const timeoutMs = options.timeoutMs ?? this.#requestTimeoutMs;
     try {
@@ -244,6 +270,7 @@ export class IframeRpcPeer {
 
   notify(method: string, params?: unknown): void {
     this.#assertOpen();
+    assertRpcMethod(method);
     this.#post({ method, params, type: 'notification' });
   }
 
