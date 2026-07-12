@@ -748,7 +748,6 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     const controller = new AbortController();
-    const unlinkSignal = linkAbortSignal(signal, controller);
     const containerRequest = createContainerRequestEnvelope(
       requestedContainer ?? ({ type: 'dom' } as Request),
     );
@@ -775,6 +774,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       controller.signal,
       requestedOperationId,
     );
+    const unlinkSignal = linkAbortSignal(signal, controller);
     const record: ApplicationRecord<Source> = {
       controller,
       createdAt: now,

@@ -726,6 +726,8 @@ describe('Fronts host runtime', () => {
   it('validates explicit and generated mount identifiers before resolving', async () => {
     const { host, loader, resolver } = createHarness();
     const target = document.createElement('main');
+    const controller = new AbortController();
+    const subscribe = vi.spyOn(controller.signal, 'addEventListener');
 
     await expect(
       host.mount({
@@ -747,6 +749,7 @@ describe('Fronts host runtime', () => {
       host.mount({
         props: { value: 'invalid trace id' },
         ref: { name: 'checkout' },
+        signal: controller.signal,
         target,
         traceId: '\t',
       }),
@@ -767,6 +770,7 @@ describe('Fronts host runtime', () => {
     ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
 
     expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
     expect(target.children).toHaveLength(0);
     expect(host.inspect()).toEqual([]);
     expect(generatedIdHost.inspect()).toEqual([]);
