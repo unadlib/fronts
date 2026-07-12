@@ -4,6 +4,21 @@
   "description": "Framework-neutral application protocol and host runtime for Fronts",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/unadlib/fronts#readme",
+  "bugs": {
+    "url": "https://github.com/unadlib/fronts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unadlib/fronts.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "micro-frontends",
+    "module-federation",
+    "runtime",
+    "orchestration"
+  ],
   "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -48,7 +63,8 @@
     "node": ">=22.18.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsdown",

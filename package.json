@@ -5,6 +5,14 @@
   "description": "A framework-neutral application runtime powered by Module Federation 2.0",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/unadlib/fronts#readme",
+  "bugs": {
+    "url": "https://github.com/unadlib/fronts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unadlib/fronts.git"
+  },
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22.18.0",
@@ -12,7 +20,8 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
-    "check": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:coverage",
+    "changeset": "changeset",
+    "check": "pnpm lint && pnpm build && pnpm verify:packages && pnpm typecheck && pnpm test:coverage",
     "clean": "pnpm -r --if-present clean",
     "dev:examples": "pnpm --parallel --filter './examples/*' dev",
     "format": "prettier --write .",
@@ -21,9 +30,13 @@
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck"
+    "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
+    "verify:packages": "node scripts/verify-packages.mjs",
+    "version-packages": "changeset version",
+    "release": "pnpm check && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@types/node": "^26.1.1",

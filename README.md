@@ -133,6 +133,7 @@ Then open `http://127.0.0.1:4100`.
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
 - [Migration from Fronts 0.x](docs/migration-from-v0.md) — progressive migration without a flag day
+- [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development
 
