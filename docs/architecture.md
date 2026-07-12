@@ -78,7 +78,7 @@ Prepares an execution target and owns its cleanup. A container can also select a
 iframe execution uses this to ensure code is loaded inside the child realm instead of the parent.
 The mount request may provide a static container or a resolution-aware container resolver.
 Planning happens before loader selection; preparation receives the resolved deployment and the
-same application operation envelope used for resolution and loading.
+correlated application operation context used for resolution and loading.
 
 ### `FrontsApp`
 
