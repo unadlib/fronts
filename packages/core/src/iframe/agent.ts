@@ -159,6 +159,7 @@ function createSession<Source, Props = unknown>(
   }
   let handle: AppHandle<Props> | undefined;
   let stopped = false;
+  let cleanupPromise: Promise<void> | undefined;
   const abandonedCleanups: Promise<void>[] = [];
 
   const loaded = (async () => {
@@ -249,6 +250,18 @@ function createSession<Source, Props = unknown>(
   peer.handle('lifecycle.activate', async () => (await requireHandle()).activate?.());
   peer.handle('lifecycle.deactivate', async () => (await requireHandle()).deactivate?.());
 
+  const cleanupApplication = (): Promise<void> => {
+    cleanupPromise ??= (async () => {
+      if (handle !== undefined) {
+        await handle.unmount();
+      } else {
+        await loaded.then((mounted) => mounted.unmount()).catch(() => undefined);
+      }
+      await Promise.all(abandonedCleanups);
+    })();
+    return cleanupPromise;
+  };
+
   const stop = async (): Promise<void> => {
     if (stopped) {
       return;
@@ -256,12 +269,7 @@ function createSession<Source, Props = unknown>(
     stopped = true;
     controller.abort('Iframe session stopped');
     try {
-      if (handle !== undefined) {
-        await handle.unmount();
-      } else {
-        await loaded.then((mounted) => mounted.unmount()).catch(() => undefined);
-      }
-      await Promise.all(abandonedCleanups);
+      await cleanupApplication();
     } finally {
       root.remove();
       peer.close('Iframe session stopped');
@@ -270,14 +278,12 @@ function createSession<Source, Props = unknown>(
   };
 
   peer.handle('lifecycle.unmount', async () => {
+    controller.abort('Iframe application unmounted');
     try {
-      if (handle !== undefined) {
-        await handle.unmount();
-      }
+      await cleanupApplication();
     } finally {
       handle = undefined;
       root.remove();
-      controller.abort('Iframe application unmounted');
       remove();
       setTimeout(() => peer.close('Iframe application unmounted'), 0);
     }
