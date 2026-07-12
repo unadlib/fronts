@@ -32,14 +32,12 @@ function createSmokePrograms() {
 
 const core = await import('@fronts/core');
 const iframe = await import('@fronts/core/iframe');
-const legacy = await import('@fronts/core/legacy');
 const mf = await import('@fronts/mf');
 const react = await import('@fronts/react');
 const vue = await import('@fronts/vue3');
 
 assert.equal(typeof core.createFrontsHost, 'function');
 assert.equal(typeof iframe.createIframeAgent, 'function');
-assert.equal(typeof legacy.createLegacyScriptLoader, 'function');
 assert.equal(typeof mf.createModuleFederationAdapter, 'function');
 assert.equal(typeof react.defineReactApp, 'function');
 assert.equal(typeof vue.defineVueApp, 'function');
@@ -56,14 +54,12 @@ assert.equal(core.isFrontsApp(app), true);
 
 const core = require('@fronts/core');
 const iframe = require('@fronts/core/iframe');
-const legacy = require('@fronts/core/legacy');
 const mf = require('@fronts/mf');
 const react = require('@fronts/react');
 const vue = require('@fronts/vue3');
 
 assert.equal(typeof core.createFrontsHost, 'function');
 assert.equal(typeof iframe.createIframeAgent, 'function');
-assert.equal(typeof legacy.createLegacyScriptLoader, 'function');
 assert.equal(typeof mf.createModuleFederationAdapter, 'function');
 assert.equal(typeof react.defineReactApp, 'function');
 assert.equal(typeof vue.defineVueApp, 'function');
@@ -93,6 +89,10 @@ try {
     const packedManifest = JSON.parse(
       execFileSync('tar', ['-xOf', archive, 'package/package.json'], { encoding: 'utf8' }),
     );
+    if (candidate.name === '@fronts/core') {
+      assert(!('./legacy' in packedManifest.exports));
+      assert(!entries.some((entry) => /package\/dist\/legacy(?:\.|-)/.test(entry)));
+    }
     for (const specification of Object.values(packedManifest.dependencies ?? {})) {
       assert(!String(specification).startsWith('workspace:'));
     }

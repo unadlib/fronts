@@ -71,7 +71,6 @@ The main entry exports:
 Additional entry points:
 
 - `@fronts/core/iframe` — parent iframe container/proxy and child agent
-- `@fronts/core/legacy` — migration adapter for Fronts 0.x script applications
 
 The core package has no React, Vue, bundler, or Module Federation dependency. Pair it with
 `@fronts/mf`, a custom loader, or both.

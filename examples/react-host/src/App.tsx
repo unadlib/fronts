@@ -29,7 +29,7 @@ export function App() {
     <main className="shell">
       <header className="hero">
         <p className="eyebrow">Fronts 2.0 vertical slice</p>
-        <h1>One application runtime, four execution models</h1>
+        <h1>One application runtime, three execution models</h1>
         <p>
           The shell resolves deployment policy; Module Federation loads code; Fronts owns lifecycle,
           container and service boundaries.
@@ -75,18 +75,6 @@ export function App() {
             host={host}
             loading={<Loading />}
             traceId="iframe-checkout-example"
-          />
-        </article>
-
-        <article className="slot">
-          <h2>Fronts 0.x · explicit legacy bridge</h2>
-          <RemoteApp
-            app={{ name: 'legacy-orders' }}
-            appProps={{ orderId: `order-${revision}` }}
-            fallback={Failure}
-            host={host}
-            loading={<Loading />}
-            traceId="legacy-orders-example"
           />
         </article>
       </section>

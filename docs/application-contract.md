@@ -71,9 +71,6 @@ Updates an existing mounted application without changing identity, deployment, t
 scope. Implementations should resolve after the framework commits the update. When unsupported,
 the host reports a typed invalid-state error instead of silently remounting.
 
-The legacy adapter can opt into remount-on-update because the old API had no update contract; this
-behavior is explicit and isolated to legacy applications.
-
 ### `activate()` and `deactivate()`
 
 Optional visibility/activity hints. They are not mount/unmount and must preserve application

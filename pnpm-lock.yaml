@@ -67,12 +67,6 @@ importers:
         specifier: ^2.1.4
         version: 2.1.5(@module-federation/runtime-tools@2.7.0)
 
-  examples/legacy-remote:
-    devDependencies:
-      '@rsbuild/core':
-        specifier: ^2.1.4
-        version: 2.1.5(@module-federation/runtime-tools@2.7.0)
-
   examples/react-host:
     dependencies:
       '@fronts/core':

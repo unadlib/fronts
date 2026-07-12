@@ -15,9 +15,8 @@ Module Federation 2.7，这个前提已经不成立：官方已经提供独立 R
 名字，就没有独立价值，而且会成为官方 Runtime 的脆弱分叉。
 
 仍然存在的空白位于更高一层：企业宿主需要把“一个远程模块”提升为“一个可治理的应用实例”。
-这包含统一生命周期、版本与租户策略、不同隔离容器、最小权限宿主能力、替换事务、失败回滚、
-跨框架观测，以及旧系统渐进迁移。MF Runtime 的职责是可靠地取得模块；这些应用级策略不应反向
-塞进 MF。
+这包含统一生命周期、版本与租户策略、不同隔离容器、最小权限宿主能力、替换事务、失败回滚和
+跨框架观测。MF Runtime 的职责是可靠地取得模块；这些应用级策略不应反向塞进 MF。
 
 因此 Fronts 2.0 的定位是：
 
@@ -72,7 +71,6 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 | DOM、Shadow DOM、iframe 采用统一 Host API        | Fronts containers               |
 | 宿主 API 必须按应用声明和策略裁剪                | Fronts service scopes           |
 | 新版本需 ready 后原子切换、失败自动保留旧版本    | Fronts replacement transaction  |
-| Fronts 0.x 脚本要渐进迁移                        | Fronts legacy adapter           |
 
 ## 采用的产品边界
 
@@ -85,7 +83,7 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 5. 宿主服务按应用声明、宿主 policy 和实例生命周期授予。
 6. readiness-gated replace、失败回滚和旧实例清理结果。
 7. 生命周期事件、错误分段、审计和泄漏检测。
-8. React、Vue 3 和 Fronts 0.x 的边界适配。
+8. React 和 Vue 3 的边界适配。
 
 ### Fronts 2.0 委托给 MF
 
@@ -112,8 +110,8 @@ Vue 3 Bridge 也提供相同方向的能力。因此：
 生命周期主要等价于“render 返回 cleanup”。在 MF 2 已经成为成熟底座之后，继续兼容这些内部
 结构会把所有历史偶然性固化为新 API。
 
-2.0 因此从协议重建，0.x 只通过显式 legacy adapter 进入，并要求来源白名单、可选 SRI、超时
-和可撤销全局注册。迁移完成后可以彻底删除该适配器。
+2.0 因此从协议重建，并且不提供 0.x runtime compatibility。旧应用需要在本仓库之外完成协议
+升级，不能通过旧全局变量或脚本注册机制进入 2.0 Host。
 
 ## 成功标准
 

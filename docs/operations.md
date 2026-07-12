@@ -101,8 +101,7 @@ host.assertIdle();
 ```
 
 `dispose()` aborts/unmounts instances and releases host resources. Transport-specific objects with
-their own lifetime, such as a legacy script loader, should also be disposed by the composition
-root.
+their own lifetime should also be disposed by the composition root.
 
 ## Replacement runbook
 
@@ -131,7 +130,7 @@ The repository uses four layers:
 1. unit tests for protocol, resolver, service scope, adapters, and error behavior;
 2. host contract tests for lifecycle transitions, cancellation, replacement, and audit;
 3. a real MF Runtime integration test serving a real remote container over HTTP;
-4. browser E2E for the five-service React/Vue/iframe/legacy vertical slice.
+4. browser E2E for the four-service React/Vue/iframe vertical slice.
 
 Mocks are appropriate for error matrices, but at least one runtime test must execute the official
 MF instance. Official MF also recommends real-runtime integration/E2E testing to avoid a false

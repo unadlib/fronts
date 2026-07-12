@@ -15,8 +15,7 @@ AppRef + ResolveContext
                                         ▼
                               AppLoader selected by container
                               ├─ @fronts/mf → official MF instance
-                              ├─ iframe proxy → iframe agent + own MF instance
-                              └─ legacy script loader
+                              └─ iframe proxy → iframe agent + own MF instance
                                         │
                                         ▼
                                 FrontsApp protocol

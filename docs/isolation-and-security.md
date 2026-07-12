@@ -113,28 +113,12 @@ Guidelines:
 - never expose raw auth tokens, storage, `fetch`, DOM roots, or a generic `eval/execute` service;
 - log denied capability requests and privileged calls.
 
-## Legacy script policy
-
-The legacy loader exists only for migration and has a stricter default posture:
-
-- origin allowlist/predicate;
-- SRI required by default for cross-origin scripts;
-- optional nonce, referrer policy, and cross-origin attributes;
-- load timeout and cancellation;
-- deterministic global registration name;
-- restoration of loader-owned globals on disposal.
-
-Legacy code still executes in the parent realm and can access page globals. SRI verifies bytes; it
-does not sandbox behavior. Prefer moving high-risk legacy applications directly to iframe mode or
-rewriting them to the application protocol.
-
 ## Supply-chain checklist
 
 - HTTPS for registry, manifests, entries, chunks, and iframe agent.
 - Immutable versioned URLs and restrictive CDN write permissions.
 - Artifact signing/attestation in the deployment pipeline.
 - CSP with explicit script/connect/frame origins; nonce/hash where applicable.
-- SRI for legacy cross-origin scripts when the asset graph permits it.
 - Registry responses authenticated and authorized; browser query inputs are untrusted.
 - Dependency and license scanning for producers and host.
 - Retain previous immutable artifacts for rollback.

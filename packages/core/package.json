@@ -43,16 +43,6 @@
         "types": "./dist/iframe.d.cts",
         "default": "./dist/iframe.cjs"
       }
-    },
-    "./legacy": {
-      "import": {
-        "types": "./dist/legacy.d.ts",
-        "default": "./dist/legacy.js"
-      },
-      "require": {
-        "types": "./dist/legacy.d.cts",
-        "default": "./dist/legacy.cjs"
-      }
     }
   },
   "files": [

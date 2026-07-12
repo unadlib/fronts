@@ -5,11 +5,8 @@ import {
   createFrontsHost,
   createShadowContainer,
   createStaticResolver,
-  type AppLoader,
-  type ResolvedApp,
 } from '@fronts/core';
 import { createIframeContainer, createIframeProxyLoader } from '@fronts/core/iframe';
-import { createLegacyScriptLoader, type LegacyScriptSource } from '@fronts/core/legacy';
 import {
   createModuleFederationAdapter,
   createModuleFederationSource,
@@ -21,15 +18,7 @@ export interface HostServices {
   readonly telemetry: { emit(name: string, data?: unknown): void };
 }
 
-export type ExampleSource = LegacyScriptSource | ModuleFederationSource;
-
-function isFederated(source: ExampleSource): source is ModuleFederationSource {
-  return 'remote' in source;
-}
-
-function narrowResolved<Source>(resolved: ResolvedApp<ExampleSource>): ResolvedApp<Source> {
-  return resolved as unknown as ResolvedApp<Source>;
-}
+export type ExampleSource = ModuleFederationSource;
 
 const reactRemote = createModuleFederationSource({
   entry: 'http://127.0.0.1:4101/mf-manifest.json',
@@ -57,41 +46,10 @@ const resolver = createStaticResolver<ExampleSource>([
     match: { name: 'isolated-checkout' },
     resolve: { source: reactRemote, version: '2.0.0' },
   },
-  {
-    match: { name: 'legacy-orders' },
-    resolve: {
-      source: {
-        globalName: 'legacy-orders',
-        url: 'http://127.0.0.1:4104/legacy-orders.js',
-      },
-      version: '0.1.1',
-    },
-  },
 ]);
 
 const federation = createInstance({ name: 'fronts_react_host', remotes: [] });
 const federationLoader = createModuleFederationAdapter({ instance: federation });
-export const legacyLoader = createLegacyScriptLoader({
-  allowedOrigins: [window.location.origin, 'http://127.0.0.1:4104'],
-  // This is a local development fixture. Production cross-origin legacy scripts
-  // should keep the default SRI requirement enabled.
-  requireIntegrityForCrossOrigin: false,
-});
-
-const loader: AppLoader<ExampleSource> = {
-  async load(resolved, context) {
-    return isFederated(resolved.source)
-      ? await federationLoader.load(narrowResolved<ModuleFederationSource>(resolved), context)
-      : await legacyLoader.load(narrowResolved<LegacyScriptSource>(resolved), context);
-  },
-  async preload(resolved, context) {
-    if (isFederated(resolved.source)) {
-      await federationLoader.preload?.(narrowResolved<ModuleFederationSource>(resolved), context);
-    } else {
-      await legacyLoader.preload(narrowResolved<LegacyScriptSource>(resolved), context);
-    }
-  },
-};
 
 const services: HostServices = {
   navigation: {
@@ -117,7 +75,7 @@ export const host = createFrontsHost<ExampleSource, HostServices>({
   },
   containers: [createDomContainer(), createShadowContainer(), createIframeContainer()],
   hostId: 'fronts-example-shell',
-  loader,
+  loader: federationLoader,
   observer(event) {
     if (event.kind === 'error') {
       console.error('[fronts lifecycle]', event);

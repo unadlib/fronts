@@ -22,7 +22,6 @@ hints, observability, and React/Vue bridges. Fronts does not duplicate those cap
 | DOM, Shadow DOM, and isolated iframe execution behind one host API           | Fronts containers                   |
 | Capability-scoped host services                                              | Fronts service scopes               |
 | Readiness-gated replacement, rollback, cancellation, tracing, and leak audit | Fronts host                         |
-| Migration of Fronts 0.x script applications                                  | Fronts legacy adapter               |
 
 If an application only needs `loadRemote()` or an official React/Vue Bridge component, use Module
 Federation directly. Fronts is useful when a platform needs one governed application model across
@@ -30,8 +29,7 @@ frameworks, loaders, isolation levels, and release policies.
 
 ## Packages
 
-- `@fronts/core` — application protocol, host, resolvers, containers, services, iframe agent, and
-  legacy adapter
+- `@fronts/core` — application protocol, host, resolvers, containers, services, and iframe agent
 - `@fronts/mf` — adapter over the public `@module-federation/runtime` instance API
 - `@fronts/react` — React producer and host adapters
 - `@fronts/vue3` — Vue 3 producer and host adapters
@@ -107,14 +105,13 @@ resolved application source to `registerRemotes()`, `preloadRemote()`, and `load
 
 ## Examples
 
-The vertical slice contains a React host plus four independently served applications:
+The vertical slice contains a React host plus three independently served applications:
 
 - React over Module Federation in a DOM container
 - Vue 3 over Module Federation in a Shadow DOM container
 - React over Module Federation inside an iframe with its own MF runtime instance
-- a Fronts 0.x-style script application through the legacy adapter
 
-Run all five services with:
+Run all four services with:
 
 ```sh
 pnpm install
@@ -132,7 +129,6 @@ Then open `http://127.0.0.1:4100`.
 - [Resolution and delivery](docs/resolution-and-delivery.md) — versions, channels, caching, and rollback
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
-- [Migration from Fronts 0.x](docs/migration-from-v0.md) — progressive migration without a flag day
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development
@@ -145,8 +141,7 @@ pnpm test:coverage
 pnpm build
 ```
 
-Node.js 22.18 or newer and pnpm 10 are required. The old implementation is retained locally under
-the ignored `old/` directory for migration research and is never included in commits or packages.
+Node.js 22.18 or newer and pnpm 10 are required.
 
 ## License
 
