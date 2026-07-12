@@ -69,6 +69,25 @@ describe('secure iframe execution', () => {
     expect(target.children).toHaveLength(0);
   });
 
+  it('does not grant same-origin authority by default', async () => {
+    const prepared = await createIframeContainer().prepare({
+      identity,
+      request: {
+        src: 'https://frame.example.test/app',
+        targetOrigin: 'https://frame.example.test',
+        title: 'Checkout',
+        type: 'iframe',
+      },
+      signal: new AbortController().signal,
+      target: document.createElement('main'),
+    });
+    const iframe = prepared.element as HTMLIFrameElement;
+
+    expect(iframe.sandbox.contains('allow-scripts')).toBe(true);
+    expect(iframe.sandbox.contains('allow-same-origin')).toBe(false);
+    await prepared.dispose();
+  });
+
   it('forbids wildcard and mismatched iframe origins', () => {
     const target = document.createElement('main');
     const prepare = (targetOrigin: string) =>

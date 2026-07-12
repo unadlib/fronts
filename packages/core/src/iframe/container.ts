@@ -69,7 +69,7 @@ export function createIframeContainer(): ContainerAdapter<IframeContainerRequest
       if (request.allow !== undefined) {
         iframe.allow = request.allow;
       }
-      for (const token of request.sandbox ?? ['allow-scripts', 'allow-same-origin']) {
+      for (const token of request.sandbox ?? ['allow-scripts']) {
         iframe.sandbox.add(token);
       }
 

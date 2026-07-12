@@ -82,6 +82,9 @@ For untrusted content, serve the agent from a dedicated origin and avoid combini
 parent. Grant browser permissions (`allow`) individually. Content Security Policy, Trusted Types,
 COOP/COEP, cookie attributes, and server headers remain deployment responsibilities.
 
+The iframe container defaults to `sandbox="allow-scripts"`. `allow-same-origin` is available only
+through an explicit sandbox option and should normally be paired with a dedicated child origin.
+
 ## Capability-scoped services
 
 Producer declaration:
