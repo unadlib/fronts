@@ -128,7 +128,7 @@ describe('secure iframe execution', () => {
     frame.close();
   });
 
-  it('loads and mounts the real application inside an iframe agent realm', async () => {
+  it('loads, mounts, and reliably tears down the real application inside an iframe realm', async () => {
     const parentOrigin = 'https://shell.example.test';
     const frameOrigin = 'https://frame.example.test';
     const iframe = document.createElement('iframe');
@@ -214,6 +214,22 @@ describe('secure iframe execution', () => {
     await handle.unmount();
     expect(remoteUnmount).toHaveBeenCalledOnce();
     await vi.waitFor(() => expect(agent.sessions).toBe(0));
+
+    iframe.dataset.frontsChannel = crypto.randomUUID();
+    remoteUnmount.mockRejectedValueOnce(new Error('remote cleanup failed'));
+    const failingHandle = await proxyApp.mount({
+      identity: { ...identity, instanceId: 'checkout-frame-failing' },
+      props: { value: 'Failing cleanup frame' },
+      services: { navigation },
+      signal: new AbortController().signal,
+      target: iframe,
+    });
+    await failingHandle.ready;
+    await expect(failingHandle.unmount()).rejects.toThrow('remote cleanup failed');
+    expect(remoteUnmount).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(agent.sessions).toBe(0));
+    expect(frameTarget.children).toHaveLength(0);
+
     await agent.stop();
     iframe.remove();
   });

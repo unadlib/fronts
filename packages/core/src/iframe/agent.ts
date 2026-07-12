@@ -180,14 +180,17 @@ function createSession<Source, Props = unknown>(
   };
 
   peer.handle('lifecycle.unmount', async () => {
-    if (handle !== undefined) {
-      await handle.unmount();
+    try {
+      if (handle !== undefined) {
+        await handle.unmount();
+      }
+    } finally {
       handle = undefined;
+      root.remove();
+      controller.abort('Iframe application unmounted');
+      remove();
+      setTimeout(() => peer.close('Iframe application unmounted'), 0);
     }
-    root.remove();
-    controller.abort('Iframe application unmounted');
-    remove();
-    setTimeout(() => peer.close('Iframe application unmounted'), 0);
   });
 
   return { stop };
