@@ -92,18 +92,16 @@ async function cleanupInvalidContainer(value: unknown): Promise<readonly unknown
   return errors;
 }
 
-export class ContainerRegistry {
-  readonly #adapters = new Map<string, ContainerAdapter>();
+export class ContainerRegistry<Source = unknown> {
+  readonly #adapters = new Map<string, ContainerAdapter<ContainerRequest, Source>>();
 
-  constructor(adapters: readonly ContainerAdapter[] = []) {
+  constructor(adapters: readonly ContainerAdapter<ContainerRequest, Source>[] = []) {
     for (const adapter of adapters) {
       this.register(adapter);
     }
   }
 
-  register<Request extends ContainerRequest, Source>(
-    adapter: ContainerAdapter<Request, Source>,
-  ): this {
+  register<Request extends ContainerRequest>(adapter: ContainerAdapter<Request, Source>): this {
     assertContainerAdapter(adapter);
     if (this.#adapters.has(adapter.type)) {
       throw new FrontsError(
@@ -112,7 +110,7 @@ export class ContainerRegistry {
         { phase: 'container' },
       );
     }
-    this.#adapters.set(adapter.type, adapter as ContainerAdapter);
+    this.#adapters.set(adapter.type, adapter as ContainerAdapter<ContainerRequest, Source>);
     return this;
   }
 
@@ -120,7 +118,7 @@ export class ContainerRegistry {
     return this.#adapters.has(type);
   }
 
-  async prepare<Request extends ContainerRequest, Source>(
+  async prepare<Request extends ContainerRequest>(
     context: ContainerPrepareContext<Request, Source>,
   ): Promise<PreparedContainer> {
     const signal = context.signal;
@@ -170,8 +168,11 @@ export class ContainerRegistry {
   }
 }
 
-export function createContainerRegistry(
-  adapters: readonly ContainerAdapter[] = [createDomContainer(), createShadowContainer()],
-): ContainerRegistry {
-  return new ContainerRegistry(adapters);
+export function createContainerRegistry<Source = unknown>(
+  adapters: readonly ContainerAdapter<ContainerRequest, Source>[] = [
+    createDomContainer(),
+    createShadowContainer(),
+  ],
+): ContainerRegistry<Source> {
+  return new ContainerRegistry<Source>(adapters);
 }

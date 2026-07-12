@@ -2,7 +2,10 @@ import { throwIfAborted } from '../errors.js';
 import { createContainerElement, createElementDisposer } from './element.js';
 import type { ContainerAdapter, PreparedContainer, ShadowContainerRequest } from './types.js';
 
-export function createShadowContainer(): ContainerAdapter<ShadowContainerRequest> {
+export function createShadowContainer<Source = unknown>(): ContainerAdapter<
+  ShadowContainerRequest,
+  Source
+> {
   return {
     type: 'shadow',
     prepare({ identity, request, signal, target }): PreparedContainer {

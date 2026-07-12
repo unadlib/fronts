@@ -391,7 +391,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
 > {
   readonly id: string;
   readonly #options: FrontsHostOptions<Source, Services>;
-  readonly #containers: ContainerRegistry;
+  readonly #containers: ContainerRegistry<Source>;
   readonly #services: Services;
   readonly #listeners = new Set<HostEventListener<Source>>();
   readonly #records = new Map<string, ApplicationRecord<Source>>();
@@ -862,7 +862,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     this.#emitState(record, undefined, 'resolve', now, 0);
 
     let phase: FrontsPhase = 'resolve';
-    let container: Awaited<ReturnType<ContainerRegistry['prepare']>> | undefined;
+    let container: Awaited<ReturnType<ContainerRegistry<Source>['prepare']>> | undefined;
     let appHandle: AppHandle<Props> | undefined;
     let provision: ServiceProvision<Services> | undefined;
     const cleanupErrors: unknown[] = [];

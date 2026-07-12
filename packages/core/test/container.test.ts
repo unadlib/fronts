@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import {
   ContainerRegistry,
@@ -132,6 +132,37 @@ describe('application containers', () => {
     expect(() => registry.register(adapter)).toThrowError(
       expect.objectContaining<Partial<FrontsError>>({ code: frontsErrorCodes.containerFailed }),
     );
+  });
+
+  it('preserves resolved source types through custom registries', async () => {
+    const registry = new ContainerRegistry<{ entry: string }>();
+    registry.register({
+      type: 'source-aware',
+      prepare({ resolved, target }) {
+        expectTypeOf(resolved.source.entry).toEqualTypeOf<string>();
+        const element = target.ownerDocument.createElement('section');
+        target.append(element);
+        return {
+          dispose: () => element.remove(),
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'source-aware',
+        };
+      },
+    });
+    const parent = document.createElement('main');
+
+    const prepared = await registry.prepare({
+      ...createOperationContext(),
+      identity,
+      request: { type: 'source-aware' },
+      target: parent,
+    });
+
+    expect(prepared.type).toBe('source-aware');
+    await prepared.dispose();
+    expect(parent.children).toHaveLength(0);
   });
 
   it.each([

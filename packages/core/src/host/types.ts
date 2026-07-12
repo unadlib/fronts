@@ -140,7 +140,9 @@ export interface FrontsHostOptions<Source, Services extends object> {
   readonly services?: Services;
   readonly createServices?: ServiceProvider<Source, Services>;
   readonly capabilityPolicy?: CapabilityPolicy<Services>;
-  readonly containers?: ContainerRegistry | readonly ContainerAdapter[];
+  readonly containers?:
+    | ContainerRegistry<NoInfer<Source>>
+    | readonly ContainerAdapter<ContainerRequest, NoInfer<Source>>[];
   readonly containerLoaders?: Readonly<Record<string, AppLoader<Source>>>;
   readonly readyTimeoutMs?: number;
   readonly createInstanceId?: (ref: NormalizedAppRef) => string;

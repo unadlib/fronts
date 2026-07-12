@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import {
+  createContainerRegistry,
   createDomContainer,
   createFrontsHost,
   defineApp,
@@ -9,6 +10,7 @@ import {
   type AppLoader,
   type AppResolver,
   type ContainerAdapter,
+  type ContainerPrepareContext,
   type ContainerRequestResolver,
   type ContainerRequest,
   type DomContainerRequest,
@@ -62,7 +64,7 @@ function createHarness(
     load: vi.fn<AppLoader<Source>['load']>().mockResolvedValue({ default: app }),
     preload: vi.fn<NonNullable<AppLoader<Source>['preload']>>().mockResolvedValue(undefined),
   };
-  const domContainer = createDomContainer();
+  const domContainer = createDomContainer<Source>();
   const containerPrepare = vi.fn(domContainer.prepare);
   const events: HostEvent<Source>[] = [];
   const host = createFrontsHost({
@@ -194,7 +196,15 @@ describe('Fronts host runtime', () => {
     );
     const host = createFrontsHost<Source, Services>({
       containerLoaders: { deployment: { load: deploymentLoad } },
-      containers: [{ prepare, type: 'deployment' }],
+      containers: [
+        {
+          prepare(context) {
+            expectTypeOf(context.resolved.source).toEqualTypeOf<Source>();
+            return prepare(context as ContainerPrepareContext<DeploymentContainerRequest, Source>);
+          },
+          type: 'deployment',
+        },
+      ],
       loader: { load: defaultLoad },
       resolver: {
         resolve: (ref) => ({
@@ -223,6 +233,22 @@ describe('Fronts host runtime', () => {
     await instance.unmount();
     expect(unmount).toHaveBeenCalledOnce();
     expect(target.children).toHaveLength(0);
+  });
+
+  it('keeps host source inference with a source-agnostic container registry', async () => {
+    const containers = createContainerRegistry();
+    const { loader, resolver } = createHarness();
+    const host = createFrontsHost({ containers, loader, resolver, services });
+
+    const instance = await host.mount({
+      props: { value: 'typed' },
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    expectTypeOf(instance.resolved.source).toEqualTypeOf<Source>();
+    await instance.unmount();
+    expect(host.audit().idle).toBe(true);
   });
 
   it('cancels asynchronous container planning before loading an application', async () => {

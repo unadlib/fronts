@@ -140,7 +140,10 @@ function validateSandbox(
   return Object.freeze([...tokens]);
 }
 
-export function createIframeContainer(): ContainerAdapter<IframeContainerRequest> {
+export function createIframeContainer<Source = unknown>(): ContainerAdapter<
+  IframeContainerRequest,
+  Source
+> {
   return {
     type: 'iframe',
     prepare({ identity, request, signal, target }): PreparedContainer {
