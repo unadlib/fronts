@@ -34,7 +34,7 @@ export interface IframeConnectMessage<Source = unknown, Props = unknown> {
   readonly ref: NormalizedAppRef;
   readonly resolved: ResolvedApp<Source>;
   readonly props: Props;
-  /** Parent-configured maximum, not the session's negotiated grant. */
+  /** Parent-authorized offer derived from its configured maximum, not the session's final grant. */
   readonly capabilities: readonly string[];
 }
 

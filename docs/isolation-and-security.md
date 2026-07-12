@@ -116,6 +116,10 @@ Iframe authority is the intersection of three sets:
 2. services actually present in the host-authorized instance facade;
 3. capabilities declared by the application loaded inside the child.
 
+The first set is an upper bound, not a mandatory dependency declaration for the proxy. Before the
+iframe handshake, the host removes entries that are unavailable from the instance provider or
+denied by policy. The child still requires its complete declared set from the resulting offer.
+
 Iframe protocol v2 requires the agent to send the third set after loading the real application.
 The parent validates the intersection, locks one grant for that session, and the child creates RPC
 stubs only for that exact grant. The parent independently checks the locked grant again on every

@@ -161,9 +161,12 @@ skipping container disposal. Providers must honor `signal`. If a provider throws
 its result, it still owns rollback of any partially allocated resources.
 
 For iframe applications, `IframeProxyLoaderOptions.capabilities` is a host-controlled maximum,
-not the final child grant. After loading the real child application, the agent negotiates its
-declared subset with the parent. Only the exact negotiated intersection becomes RPC stubs, and the
-parent checks that grant on every call.
+not a list of mandatory dependencies and not the final child grant. Entries unavailable from the
+instance service provider or denied by policy are omitted from the parent offer rather than failing
+the proxy before the child is known. After loading the real child application, the agent negotiates
+its declared subset with the parent. Only the exact negotiated intersection becomes RPC stubs, and
+the parent checks that grant on every call. A child is still rejected when one of its own declared
+requirements is absent from that offer.
 
 Prefer narrow intent APIs such as `navigation.go()` and `telemetry.emit()` over ambient objects
 such as `window`, a Redux store, or a generic message bus.

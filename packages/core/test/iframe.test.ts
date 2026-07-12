@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   assertAppHandle,
+  createFrontsHost,
   defineApp,
   frontsErrorCodes,
   getFrontsApp,
@@ -240,7 +241,8 @@ describe('secure iframe execution', () => {
 
     vi.spyOn(frameWindow, 'postMessage').mockImplementation(((...args: unknown[]) => {
       const [message, , transfer] = args;
-      const connect = message as { channelId: string };
+      const connect = message as { capabilities: readonly string[]; channelId: string };
+      expect(connect.capabilities).toEqual(['navigation']);
       const port = Array.isArray(transfer) ? (transfer[0] as MessagePort | undefined) : undefined;
       if (port === undefined) {
         throw new Error('Iframe proxy did not transfer an RPC port.');
@@ -288,7 +290,7 @@ describe('secure iframe execution', () => {
     const handle = await proxyApp.mount({
       identity,
       props: { value: 'malicious frame' },
-      services: { navigation, telemetry },
+      services: { navigation } as unknown as Services,
       signal: new AbortController().signal,
       target: iframe,
     });
@@ -301,6 +303,55 @@ describe('secure iframe execution', () => {
     await handle.unmount();
     attacker?.close();
     iframe.remove();
+  });
+
+  it('treats proxy capabilities as a negotiable maximum during host authorization', async () => {
+    const resolved: ResolvedApp<Source> = {
+      ref: normalizeAppRef({ name: 'checkout' }),
+      source: { entry: 'https://cdn.example.test/checkout/mf-manifest.json' },
+      version: '2.0.0',
+    };
+    const navigation = { go: vi.fn(async () => undefined) };
+    const telemetry = { emit: vi.fn(async () => undefined) };
+    const disposeServices = vi.fn();
+    const prepare = vi.fn(() => {
+      throw new Error('stop after authorization');
+    });
+    const createServices = vi.fn(() => ({
+      dispose: disposeServices,
+      services: { navigation, telemetry },
+    }));
+    const capabilityPolicy = vi.fn(
+      ({ capability }: { readonly capability: keyof Services }) => capability === 'navigation',
+    );
+    const host = createFrontsHost<Source, Services>({
+      capabilityPolicy,
+      containers: [{ prepare, type: 'dom' }],
+      createServices,
+      loader: createIframeProxyLoader<Source, Services, Props>({
+        capabilities: ['navigation', 'telemetry'],
+      }),
+      resolver: { resolve: () => resolved },
+    });
+
+    await expect(
+      host.mount({
+        props: { value: 'host scoped frame' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.containerFailed });
+
+    expect(createServices).toHaveBeenCalledWith(
+      expect.objectContaining({ capabilities: ['navigation', 'telemetry'] }),
+    );
+    expect(capabilityPolicy.mock.calls.map(([context]) => context.capability)).toEqual([
+      'navigation',
+      'telemetry',
+    ]);
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(disposeServices).toHaveBeenCalledOnce();
+    expect(host.audit().idle).toBe(true);
   });
 
   it('loads, mounts, and reliably tears down the real application inside an iframe realm', async () => {

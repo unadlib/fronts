@@ -1,4 +1,5 @@
 import { defineApp, type AppHandle, type FrontsApp, type ServiceKey } from '../app/index.js';
+import { FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL } from '../app/constants.js';
 import { FrontsError, frontsErrorCodes, throwIfAborted } from '../errors.js';
 import type { AppLoader } from '../host/index.js';
 import type { ResolvedApp } from '../resolver/index.js';
@@ -180,7 +181,7 @@ export function createIframeProxyLoader<Source, Services extends object = object
         'Iframe proxy capabilities',
       ) as readonly ServiceKey<Services>[];
 
-      return defineApp<Props, Services>({
+      const app = defineApp<Props, Services>({
         capabilities,
         name: resolved.ref.name,
         mount(context): AppHandle<Props> {
@@ -210,7 +211,10 @@ export function createIframeProxyLoader<Source, Services extends object = object
               ? {}
               : { requestTimeoutMs: options.requestTimeoutMs }),
           });
-          const availableCapabilities = new Set<string>(capabilities);
+          const offeredCapabilities = capabilities.filter((capability) =>
+            Object.prototype.hasOwnProperty.call(context.services, capability),
+          );
+          const availableCapabilities = new Set<string>(offeredCapabilities);
           let grantedCapabilities: ReadonlySet<string> | undefined;
           peer.handle('capabilities.negotiate', (params) => {
             if (grantedCapabilities !== undefined) {
@@ -264,7 +268,7 @@ export function createIframeProxyLoader<Source, Services extends object = object
             }
 
             const message = createIframeConnectMessage<Source, Props, Services>({
-              capabilities,
+              capabilities: offeredCapabilities,
               channelId,
               identity: context.identity,
               props: context.props as Props,
@@ -331,6 +335,13 @@ export function createIframeProxyLoader<Source, Services extends object = object
           };
         },
       });
+      Object.defineProperty(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL, {
+        configurable: false,
+        enumerable: false,
+        value: true,
+        writable: false,
+      });
+      return app;
     },
   };
 }

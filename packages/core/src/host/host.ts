@@ -5,6 +5,7 @@ import {
   type ApplicationIdentity,
   type ServiceKey,
 } from '../app/index.js';
+import { FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL } from '../app/constants.js';
 import {
   ContainerRegistry,
   createContainerRegistry,
@@ -686,11 +687,21 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         record.identity,
       );
       provision = await this.#provideServices(capabilities, resolution, record.resolved, operation);
+      const negotiableCapabilities =
+        Reflect.get(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL) === true;
+      const scopedCapabilities = negotiableCapabilities
+        ? await this.#selectNegotiableCapabilities(
+            capabilities,
+            record.identity,
+            provision.services,
+            controller.signal,
+          )
+        : capabilities;
       scope = await createServiceScope({
-        capabilities,
+        capabilities: scopedCapabilities,
         dispose: provision.dispose,
         identity: record.identity,
-        ...(this.#options.capabilityPolicy === undefined
+        ...(this.#options.capabilityPolicy === undefined || negotiableCapabilities
           ? {}
           : { policy: this.#options.capabilityPolicy }),
         services: provision.services,
@@ -872,6 +883,30 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       },
     );
     this.#reportError(record, failure, 'unmount');
+  }
+
+  async #selectNegotiableCapabilities(
+    capabilities: readonly ServiceKey<Services>[],
+    identity: ApplicationIdentity,
+    services: Services,
+    signal: AbortSignal,
+  ): Promise<readonly ServiceKey<Services>[]> {
+    const selected: ServiceKey<Services>[] = [];
+    for (const capability of capabilities) {
+      throwIfAborted(signal, 'mount');
+      if (!Object.prototype.hasOwnProperty.call(services, capability)) {
+        continue;
+      }
+      const service = services[capability];
+      const allowed =
+        this.#options.capabilityPolicy === undefined ||
+        (await this.#options.capabilityPolicy({ capability, identity, service }));
+      throwIfAborted(signal, 'mount');
+      if (allowed) {
+        selected.push(capability);
+      }
+    }
+    return Object.freeze(selected);
   }
 
   async #provideServices(
