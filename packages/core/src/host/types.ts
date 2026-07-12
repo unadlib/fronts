@@ -49,6 +49,7 @@ export interface MountAppOptions<
   readonly readyTimeoutMs?: number;
   readonly resolve?: MountResolveOptions;
   readonly signal?: AbortSignal;
+  readonly traceId?: string;
 }
 
 export type ReplaceAppOptions<
@@ -83,14 +84,19 @@ export interface ApplicationInstanceSnapshot<Source = unknown> {
 
 export interface HostStateEvent<Source = unknown> {
   readonly kind: 'state';
+  readonly hostId: string;
+  readonly sequence: number;
   readonly snapshot: ApplicationInstanceSnapshot<Source>;
   readonly previousState?: AppInstanceState;
   readonly phase?: FrontsPhase;
+  readonly durationMs: number;
   readonly timestamp: number;
 }
 
 export interface HostErrorEvent<Source = unknown> {
   readonly kind: 'error';
+  readonly hostId: string;
+  readonly sequence: number;
   readonly snapshot: ApplicationInstanceSnapshot<Source>;
   readonly error: FrontsError;
   readonly phase: FrontsPhase;
@@ -129,11 +135,29 @@ export interface FrontsHostOptions<Source, Services extends object> {
   readonly containerLoaders?: Readonly<Record<string, AppLoader<Source>>>;
   readonly readyTimeoutMs?: number;
   readonly createInstanceId?: (ref: NormalizedAppRef) => string;
+  readonly createTraceId?: (ref: NormalizedAppRef, instanceId: string) => string;
+  readonly hostId?: string;
   readonly now?: () => number;
   readonly observer?: HostEventListener<Source>;
 }
 
+export interface RetainedContainerSnapshot {
+  readonly containerType?: string;
+  readonly identity: ApplicationIdentity;
+  readonly state: AppInstanceState;
+}
+
+export interface HostAuditReport<Source = unknown> {
+  readonly activeInstances: readonly ApplicationInstanceSnapshot<Source>[];
+  readonly hostId: string;
+  readonly idle: boolean;
+  readonly pendingOperations: number;
+  readonly replacementTransactions: readonly string[];
+  readonly retainedContainers: readonly RetainedContainerSnapshot[];
+}
+
 export interface FrontsHost<Source, Services extends object> {
+  readonly id: string;
   resolve(ref: AppRef, options?: HostResolveOptions): Promise<ResolvedApp<Source>>;
   load<Props = unknown>(
     ref: AppRef,
@@ -149,6 +173,8 @@ export interface FrontsHost<Source, Services extends object> {
   ): Promise<ReplacementResult<Props, Source>>;
   get(instanceId: string): MountedApplication<unknown, Source> | undefined;
   inspect(): readonly ApplicationInstanceSnapshot<Source>[];
+  audit(): HostAuditReport<Source>;
+  assertIdle(): void;
   subscribe(listener: HostEventListener<Source>): () => void;
   unmount(instanceId: string): Promise<void>;
   dispose(): Promise<void>;

@@ -192,6 +192,7 @@ describe('Vue host adapter', () => {
         appProps: { value: 'first' },
         host: host as unknown as FrontsHost<unknown, object>,
         onReady,
+        traceId: 'trace-vue-checkout',
       },
       slots: {
         loading: () => h('p', 'Loading checkout'),
@@ -208,6 +209,7 @@ describe('Vue host adapter', () => {
       expect.objectContaining({
         props: { value: 'first' },
         ref: { name: 'checkout' },
+        traceId: 'trace-vue-checkout',
       }),
     );
 

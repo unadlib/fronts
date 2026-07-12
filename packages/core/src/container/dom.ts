@@ -12,6 +12,7 @@ export function createDomContainer(): ContainerAdapter<DomContainerRequest> {
       return {
         dispose: createElementDisposer(element),
         element,
+        ownsElement: true,
         target: element,
         type: 'dom',
       };

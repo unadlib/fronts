@@ -11,6 +11,7 @@ export interface ApplicationIdentity {
   readonly name: string;
   readonly version?: string;
   readonly expose?: string;
+  readonly traceId?: string;
 }
 
 export interface MountContext<Props, Services extends object> {

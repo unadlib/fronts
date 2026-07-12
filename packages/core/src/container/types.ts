@@ -34,6 +34,8 @@ export interface ContainerPrepareContext<Request extends ContainerRequest = Cont
 export interface PreparedContainer {
   readonly type: string;
   readonly element: Element;
+  /** Whether dispose() is expected to detach element from its parent. */
+  readonly ownsElement?: boolean;
   readonly target: MountTarget;
   dispose(): MaybePromise<void>;
 }

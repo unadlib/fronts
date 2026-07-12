@@ -9,6 +9,7 @@ export type {
   FrontsHost,
   FrontsHostOptions,
   HostErrorEvent,
+  HostAuditReport,
   HostEvent,
   HostEventListener,
   HostResolveOptions,
@@ -19,4 +20,5 @@ export type {
   MountResolveOptions,
   ReplaceAppOptions,
   ReplacementResult,
+  RetainedContainerSnapshot,
 } from './types.js';

@@ -186,6 +186,7 @@ describe('React host adapter', () => {
         host={host}
         loading={<p>Loading checkout</p>}
         onReady={onReady}
+        traceId="trace-react-checkout"
       />,
     );
 
@@ -195,6 +196,7 @@ describe('React host adapter', () => {
       expect.objectContaining({
         props: { value: 'first' },
         ref: { name: 'checkout' },
+        traceId: 'trace-react-checkout',
       }),
     );
 

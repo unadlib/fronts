@@ -92,6 +92,7 @@ export function createIframeContainer(): ContainerAdapter<IframeContainerRequest
       return {
         dispose: createElementDisposer(iframe),
         element: iframe,
+        ownsElement: true,
         target: iframe,
         type: 'iframe',
       };

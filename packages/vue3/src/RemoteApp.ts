@@ -27,6 +27,7 @@ export const RemoteApp = defineComponent({
     readyTimeoutMs: Number,
     resolve: Object as PropType<MountResolveOptions>,
     targetProps: Object as PropType<Record<string, unknown>>,
+    traceId: String,
   },
   emits: {
     error: (error: Error) => error instanceof Error,
@@ -44,6 +45,7 @@ export const RemoteApp = defineComponent({
       ...(props.mountKey === undefined ? {} : { mountKey: props.mountKey }),
       ...(props.readyTimeoutMs === undefined ? {} : { readyTimeoutMs: props.readyTimeoutMs }),
       ...(props.resolve === undefined ? {} : { resolve: props.resolve }),
+      ...(props.traceId === undefined ? {} : { traceId: props.traceId }),
     }));
     const remote = useRemoteApp(options);
 

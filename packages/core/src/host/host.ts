@@ -32,6 +32,7 @@ import type {
   FrontsHost,
   FrontsHostOptions,
   HostEvent,
+  HostAuditReport,
   HostEventListener,
   HostResolveOptions,
   LoadedApp,
@@ -51,9 +52,33 @@ interface ApplicationRecord<Source> {
   readonly controller: AbortController;
   containerType?: string;
   containerElement?: Element;
+  ownsContainerElement?: boolean;
   resolved?: ResolvedApp<Source>;
   error?: FrontsError;
   deploymentSlot?: HTMLElement;
+}
+
+let hostSequence = 0;
+
+function createHostId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `fronts-host:${globalThis.crypto.randomUUID()}`;
+  }
+  hostSequence += 1;
+  return `fronts-host:${hostSequence}`;
+}
+
+function normalizeRuntimeId(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new FrontsError(frontsErrorCodes.mountFailed, `${label} must be a non-empty string.`, {
+      phase: 'mount',
+    });
+  }
+  return value.trim();
+}
+
+function isTerminalState(state: AppInstanceState): boolean {
+  return state === 'destroyed' || state === 'failed' || state === 'aborted';
 }
 
 const allowedTransitions: Readonly<Record<AppInstanceState, readonly AppInstanceState[]>> = {
@@ -120,6 +145,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   Source,
   Services
 > {
+  readonly id: string;
   readonly #options: FrontsHostOptions<Source, Services>;
   readonly #containers: ContainerRegistry;
   readonly #services: Services;
@@ -130,7 +156,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   readonly #replacing = new Set<string>();
   readonly #now: () => number;
   readonly #readyTimeoutMs: number;
-  #sequence = 0;
+  #instanceSequence = 0;
+  #eventSequence = 0;
   #disposed = false;
 
   constructor(options: FrontsHostOptions<Source, Services>) {
@@ -140,6 +167,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         ? options.containers
         : createContainerRegistry(options.containers);
     this.#services = options.services ?? ({} as Services);
+    this.id = normalizeRuntimeId(options.hostId ?? createHostId(), 'hostId');
     this.#now = options.now ?? Date.now;
     this.#readyTimeoutMs = options.readyTimeoutMs ?? 10_000;
     if (options.observer !== undefined) {
@@ -337,6 +365,60 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     return [...this.#records.values()].map((record) => this.#snapshot(record));
   }
 
+  audit(): HostAuditReport<Source> {
+    const activeInstances = [...this.#instances.keys()]
+      .map((instanceId) => this.#records.get(instanceId))
+      .filter((record): record is ApplicationRecord<Source> => record !== undefined)
+      .map((record) => this.#snapshot(record));
+    const retainedContainers = [...this.#records.values()]
+      .filter(
+        (record) =>
+          record.ownsContainerElement === true &&
+          record.containerElement !== undefined &&
+          record.containerElement.parentNode !== null &&
+          isTerminalState(record.state),
+      )
+      .map((record) => ({
+        ...(record.containerType === undefined ? {} : { containerType: record.containerType }),
+        identity: record.identity,
+        state: record.state,
+      }));
+    const replacementTransactions = [...this.#replacing];
+    const pendingOperations = this.#pending.size;
+
+    return {
+      activeInstances,
+      hostId: this.id,
+      idle:
+        activeInstances.length === 0 &&
+        pendingOperations === 0 &&
+        replacementTransactions.length === 0 &&
+        retainedContainers.length === 0,
+      pendingOperations,
+      replacementTransactions,
+      retainedContainers,
+    };
+  }
+
+  assertIdle(): void {
+    const report = this.audit();
+    if (report.idle) {
+      return;
+    }
+    throw new FrontsError(
+      frontsErrorCodes.runtimeLeak,
+      `Fronts host "${this.id}" still has active or retained runtime resources.`,
+      {
+        details: {
+          activeInstances: report.activeInstances.map(({ identity }) => identity.instanceId),
+          pendingOperations: report.pendingOperations,
+          replacementTransactions: report.replacementTransactions,
+          retainedContainers: report.retainedContainers.map(({ identity }) => identity.instanceId),
+        },
+      },
+    );
+  }
+
   subscribe(listener: HostEventListener<Source>): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
@@ -391,17 +473,23 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     const containerRequest = options.container ?? ({ type: 'dom' } as Request);
     const loader = this.#options.containerLoaders?.[containerRequest.type] ?? this.#options.loader;
     const now = this.#now();
+    const traceId = normalizeRuntimeId(
+      options.traceId ??
+        this.#options.createTraceId?.(ref, instanceId) ??
+        `${this.id}:${instanceId}`,
+      'traceId',
+    );
     const record: ApplicationRecord<Source> = {
       controller,
       createdAt: now,
-      identity: { expose: ref.expose, instanceId, name: ref.name },
+      identity: { expose: ref.expose, instanceId, name: ref.name, traceId },
       ref,
       state: 'resolving',
       updatedAt: now,
       containerType: containerRequest.type,
     };
     this.#records.set(instanceId, record);
-    this.#emitState(record, undefined, 'resolve');
+    this.#emitState(record, undefined, 'resolve', now, 0);
 
     let phase: FrontsPhase = 'resolve';
     let container: Awaited<ReturnType<ContainerRegistry['prepare']>> | undefined;
@@ -425,6 +513,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         expose: ref.expose,
         instanceId,
         name: ref.name,
+        traceId,
         ...(resolved.version === undefined ? {} : { version: resolved.version }),
       };
 
@@ -456,6 +545,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         'container',
       );
       record.containerElement = container.element;
+      record.ownsContainerElement = container.ownsElement ?? false;
 
       phase = 'mount';
       this.#transition(record, 'mounting', phase);
@@ -567,8 +657,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   #createInstanceId(ref: NormalizedAppRef): string {
-    this.#sequence += 1;
-    return this.#options.createInstanceId?.(ref) ?? `${ref.name}:${this.#sequence}`;
+    this.#instanceSequence += 1;
+    return this.#options.createInstanceId?.(ref) ?? `${ref.name}:${this.#instanceSequence}`;
   }
 
   #transition(
@@ -588,9 +678,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     const previousState = record.state;
+    const timestamp = Math.max(record.updatedAt, this.#now());
+    const durationMs = timestamp - record.updatedAt;
     record.state = state;
-    record.updatedAt = this.#now();
-    this.#emitState(record, previousState, phase);
+    record.updatedAt = timestamp;
+    this.#emitState(record, previousState, phase, timestamp, durationMs);
   }
 
   #snapshot(record: ApplicationRecord<Source>): ApplicationInstanceSnapshot<Source> {
@@ -610,13 +702,18 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     record: ApplicationRecord<Source>,
     previousState: AppInstanceState | undefined,
     phase: FrontsPhase,
+    timestamp: number,
+    durationMs: number,
   ): void {
     this.#emit({
+      durationMs,
+      hostId: this.id,
       kind: 'state',
       phase,
+      sequence: ++this.#eventSequence,
       ...(previousState === undefined ? {} : { previousState }),
       snapshot: this.#snapshot(record),
-      timestamp: this.#now(),
+      timestamp,
     });
   }
 
@@ -624,10 +721,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     record.error = error;
     this.#emit({
       error,
+      hostId: this.id,
       kind: 'error',
       phase,
+      sequence: ++this.#eventSequence,
       snapshot: this.#snapshot(record),
-      timestamp: this.#now(),
+      timestamp: Math.max(record.updatedAt, this.#now()),
     });
   }
 

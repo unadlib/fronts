@@ -25,6 +25,7 @@ export interface UseRemoteAppOptions<
   readonly mountKey?: string | number;
   readonly readyTimeoutMs?: number;
   readonly resolve?: MountResolveOptions;
+  readonly traceId?: string;
   readonly onError?: (error: Error) => void;
   readonly onReady?: (instance: MountedApplication<Props, Source>) => void;
 }
@@ -81,6 +82,7 @@ export function useRemoteApp<
       ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
       ...(options.readyTimeoutMs === undefined ? {} : { readyTimeoutMs: options.readyTimeoutMs }),
       ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
+      ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
     });
 
     void mount.then(
@@ -127,6 +129,7 @@ export function useRemoteApp<
     options.mountKey,
     options.readyTimeoutMs,
     options.resolve,
+    options.traceId,
   ]);
 
   useEffect(() => {

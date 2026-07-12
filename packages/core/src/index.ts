@@ -53,6 +53,7 @@ export type {
   FrontsHost,
   FrontsHostOptions,
   HostErrorEvent,
+  HostAuditReport,
   HostEvent,
   HostEventListener,
   HostResolveOptions,
@@ -64,6 +65,7 @@ export type {
   MountedApplicationCallbacks,
   ReplaceAppOptions,
   ReplacementResult,
+  RetainedContainerSnapshot,
 } from './host/index.js';
 export {
   MemoryResolutionCache,

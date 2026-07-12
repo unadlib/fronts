@@ -13,6 +13,7 @@ export const frontsErrorCodes = {
   mountFailed: 'FRONTS_MOUNT_FAILED',
   readyTimeout: 'FRONTS_READY_TIMEOUT',
   resolutionFailed: 'FRONTS_RESOLUTION_FAILED',
+  runtimeLeak: 'FRONTS_RUNTIME_LEAK',
   rpcClosed: 'FRONTS_RPC_CLOSED',
   rpcTimeout: 'FRONTS_RPC_TIMEOUT',
   unsupportedProtocol: 'FRONTS_UNSUPPORTED_PROTOCOL',

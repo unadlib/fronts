@@ -18,6 +18,7 @@ export function createShadowContainer(): ContainerAdapter<ShadowContainerRequest
         return {
           dispose: createElementDisposer(element),
           element,
+          ownsElement: true,
           target: shadowRoot,
           type: 'shadow',
         };
