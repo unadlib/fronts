@@ -805,7 +805,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       requestedContainer === undefined ? ({ type: 'dom' } as Request) : requestedContainer,
     );
     const loader = this.#options.containerLoaders?.[containerRequest.type] ?? this.#options.loader;
-    const now = this.#now();
+    const now = this.#readNow(Date.now());
     const traceId = normalizeRuntimeId(
       requestedTraceId ??
         this.#options.createTraceId?.(ref, instanceId) ??
@@ -1293,7 +1293,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     const previousState = record.state;
-    const timestamp = Math.max(record.updatedAt, this.#now());
+    const timestamp = Math.max(record.updatedAt, this.#readNow(record.updatedAt));
     const durationMs = timestamp - record.updatedAt;
     record.state = state;
     record.updatedAt = timestamp;
@@ -1349,8 +1349,17 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       phase,
       sequence: ++this.#eventSequence,
       snapshot: this.#snapshot(record),
-      timestamp: Math.max(record.updatedAt, this.#now()),
+      timestamp: Math.max(record.updatedAt, this.#readNow(record.updatedAt)),
     });
+  }
+
+  #readNow(fallback: number): number {
+    try {
+      const value = this.#now();
+      return Number.isFinite(value) ? value : fallback;
+    } catch {
+      return fallback;
+    }
   }
 
   #emit(event: HostEvent<Source>): void {

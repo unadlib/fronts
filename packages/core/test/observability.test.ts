@@ -156,6 +156,34 @@ describe('host observability and runtime audits', () => {
     expect(() => host.assertIdle()).not.toThrow();
   });
 
+  it('does not let a failing observability clock block application cleanup', async () => {
+    let clockReads = 0;
+    const unmount = vi.fn();
+    const host = createRuntime({
+      app: defineApp<Record<string, never>>({
+        mount: () => ({ unmount }),
+      }),
+      now: () => {
+        clockReads += 1;
+        if (clockReads > 5) {
+          throw new Error('telemetry clock failed');
+        }
+        return clockReads;
+      },
+    });
+    const instance = await host.mount({
+      props: {},
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    await instance.unmount();
+
+    expect(unmount).toHaveBeenCalledOnce();
+    expect(instance.state).toBe('destroyed');
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('detects an owned container that violates its dispose contract', async () => {
     const leakyContainer: ContainerAdapter<LeakyContainerRequest> = {
       type: 'leaky',
