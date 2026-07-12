@@ -964,6 +964,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         resolution,
         resolvedDeployment,
         operation,
+        trackAbandonedCleanup,
       );
       const negotiableCapabilities =
         Reflect.get(app, FRONTS_NEGOTIABLE_CAPABILITIES_SYMBOL) === true;
@@ -1208,6 +1209,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     resolution: Readonly<ResolutionPolicyContext>,
     resolved: ResolvedApp<Source>,
     operation: ApplicationHostOperationContext,
+    onAbandoned: (cleanup: Promise<void>) => void,
   ): Promise<ServiceProvision<Services>> {
     const provider = this.#options.createServices;
     if (provider === undefined) {
@@ -1215,13 +1217,20 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     }
 
     throwIfAborted(operation.signal, 'mount');
-    const result: unknown = await provider({
-      capabilities,
-      hostId: this.id,
-      identity: operation.identity,
-      operation,
-      resolution,
-      resolved,
+    const result = await acquireWithAbort<unknown>({
+      acquire: () =>
+        provider({
+          capabilities,
+          hostId: this.id,
+          identity: operation.identity,
+          operation,
+          resolution,
+          resolved,
+          signal: operation.signal,
+        }),
+      cleanup: async (lateResult) => createServiceDisposer(lateResult)(),
+      onAbandoned,
+      phase: 'mount',
       signal: operation.signal,
     });
     const dispose = createServiceDisposer(result);

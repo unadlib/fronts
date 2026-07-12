@@ -149,7 +149,8 @@ Guidelines:
 - rate-limit expensive or sensitive methods;
 - never expose raw auth tokens, storage, `fetch`, DOM roots, or a generic `eval/execute` service;
 - log denied capability requests and privileged calls.
-- make providers abort-aware and roll back partial allocation when they throw before returning.
+- make providers abort-aware and roll back partial allocation when they throw before returning; a
+  result that arrives after host cancellation is disposed by the host.
 
 ## Supply-chain checklist
 

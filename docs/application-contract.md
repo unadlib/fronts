@@ -165,8 +165,10 @@ only the requested, authorized keys enter the application facade.
 Returning the result transfers ownership to the host. `dispose` is called at most once after
 facade revocation, including authorization failure, aborted mount, ordinary unmount, and host
 shutdown. It may be asynchronous; a failure is surfaced as an unmount cleanup failure without
-skipping container disposal. Providers must honor `signal`. If a provider throws before returning
-its result, it still owns rollback of any partially allocated resources.
+skipping container disposal. An aborted mount stops awaiting a pending provider; if its result
+arrives later, the host disposes it and keeps that cleanup visible as a pending operation. Providers
+must still honor `signal` to stop work promptly. If a provider throws before returning its result,
+it still owns rollback of any partially allocated resources.
 
 For iframe applications, `IframeProxyLoaderOptions.capabilities` is a host-controlled maximum,
 not a list of mandatory dependencies and not the final child grant. Entries unavailable from the

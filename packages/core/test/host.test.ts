@@ -638,6 +638,49 @@ describe('Fronts host runtime', () => {
     expect(disposers.get('checkout-b')).toHaveBeenCalledOnce();
   });
 
+  it('cancels a pending service provider and disposes its late result', async () => {
+    let resolveProvider!: (result: {
+      readonly dispose: () => Promise<void>;
+      readonly services: Partial<Services>;
+    }) => void;
+    const providerResult = new Promise<{
+      readonly dispose: () => Promise<void>;
+      readonly services: Partial<Services>;
+    }>((resolve) => {
+      resolveProvider = resolve;
+    });
+    const dispose = vi.fn(async () => undefined);
+    const createServices = vi.fn(() => providerResult);
+    const app = defineApp<Props, Services>({
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+    });
+    const { loader, resolver } = createHarness(app);
+    const host = createFrontsHost({ createServices, loader, resolver, services });
+    const controller = new AbortController();
+    const mounting = host.mount({
+      instanceId: 'late-service-provider',
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      signal: controller.signal,
+      target: document.createElement('main'),
+    });
+    await vi.waitFor(() => expect(createServices).toHaveBeenCalledOnce());
+
+    controller.abort('service allocation cancelled');
+
+    await expect(mounting).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    expect(app.mount).not.toHaveBeenCalled();
+    expect(host.audit()).toMatchObject({ idle: false, pendingOperations: 1 });
+
+    resolveProvider({ dispose, services: {} });
+    await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(host.audit().pendingOperations).toBe(0));
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('surfaces service disposal failures while still releasing the application container', async () => {
     const disposalFailure = new Error('telemetry channel cleanup failed');
     const app = defineApp<Props, Services>({
