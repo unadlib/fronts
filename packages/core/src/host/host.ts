@@ -815,7 +815,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     const containerRequest = createContainerRequestEnvelope(
       requestedContainer === undefined ? ({ type: 'dom' } as Request) : requestedContainer,
     );
-    const loader = this.#options.containerLoaders?.[containerRequest.type] ?? this.#options.loader;
+    const containerLoaders = this.#options.containerLoaders;
+    const loader =
+      containerLoaders !== undefined &&
+      Object.prototype.hasOwnProperty.call(containerLoaders, containerRequest.type)
+        ? (containerLoaders[containerRequest.type] ?? this.#options.loader)
+        : this.#options.loader;
     const now = this.#readNow(Date.now());
     const traceId = normalizeRuntimeId(
       requestedTraceId ??

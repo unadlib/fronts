@@ -845,6 +845,37 @@ describe('Fronts host runtime', () => {
     expect(instance.state).toBe('ready');
   });
 
+  it('ignores inherited loader properties for custom container types', async () => {
+    const { loader, resolver } = createHarness();
+    const container: ContainerAdapter = {
+      type: 'toString',
+      prepare({ target }) {
+        const element = document.createElement('section');
+        target.append(element);
+        return {
+          dispose: () => element.remove(),
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'toString',
+        };
+      },
+    };
+    const host = createFrontsHost({ containers: [container], loader, resolver, services });
+
+    const instance = await host.mount({
+      container: { type: 'toString' },
+      props: { value: 'custom' },
+      ref: { name: 'checkout' },
+      target: document.createElement('main'),
+    });
+
+    expect(loader.load).toHaveBeenCalledOnce();
+    expect(instance.state).toBe('ready');
+    await instance.unmount();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('automatically unmounts when the caller lifetime is aborted', async () => {
     const unmount = vi.fn();
     const app = defineApp<Props, Services>({ mount: () => ({ unmount }) });
