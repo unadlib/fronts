@@ -108,9 +108,12 @@ capabilities: ['navigation', 'telemetry'];
 Host authorization:
 
 ```ts
-capabilityPolicy: ({ capability, identity }) =>
+capabilityPolicy: ({ capability, identity, signal }) =>
   capability !== 'navigation' || trustedNavigationApps.has(identity.name);
 ```
+
+The signal also bounds asynchronous authorization work; an aborted mount stops waiting for the
+policy before any service facade reaches the application.
 
 For identity-, tenant-, deployment-, or trace-bound implementations, configure `createServices`.
 It receives trusted host identity, operation, resolution policy, resolved deployment, declared

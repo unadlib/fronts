@@ -1,5 +1,6 @@
 import { FrontsError, frontsErrorCodes, stringifyUnknown, throwIfAborted } from '../errors.js';
 import type { ServiceKey } from '../app/index.js';
+import { raceWithAbort } from '../host/utils.js';
 import type { CreateServiceScopeOptions, ServiceScope } from './types.js';
 
 interface RevocableMembrane {
@@ -189,7 +190,16 @@ export async function createServiceScope<Services extends object, Key extends Se
       const service = options.services[capability];
       const allowed =
         options.policy === undefined ||
-        (await options.policy({ capability, identity: options.identity, service }));
+        (await raceWithAbort(
+          options.policy({
+            capability,
+            identity: options.identity,
+            service,
+            signal: options.signal,
+          }),
+          options.signal,
+          'mount',
+        ));
       throwIfAborted(options.signal, 'mount');
 
       if (!allowed) {

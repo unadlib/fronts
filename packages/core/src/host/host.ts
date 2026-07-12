@@ -1187,7 +1187,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const service = services[capability];
       const allowed =
         this.#options.capabilityPolicy === undefined ||
-        (await this.#options.capabilityPolicy({ capability, identity, service }));
+        (await raceWithAbort(
+          this.#options.capabilityPolicy({ capability, identity, service, signal }),
+          signal,
+          'mount',
+        ));
       throwIfAborted(signal, 'mount');
       if (allowed) {
         selected.push(capability);

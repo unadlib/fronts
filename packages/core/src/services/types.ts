@@ -6,6 +6,7 @@ export interface CapabilityPolicyContext<Services extends object> {
   readonly capability: ServiceKey<Services>;
   readonly identity: ApplicationIdentity;
   readonly service: Services[ServiceKey<Services>];
+  readonly signal: AbortSignal;
 }
 
 export type CapabilityPolicy<Services extends object> = (

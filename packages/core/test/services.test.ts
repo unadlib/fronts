@@ -63,6 +63,36 @@ describe('capability-scoped host services', () => {
     expect(dispose).toHaveBeenCalledOnce();
   });
 
+  it('cancels asynchronous authorization and disposes its service scope', async () => {
+    const controller = new AbortController();
+    const dispose = vi.fn(async () => undefined);
+    let policySignal: AbortSignal | undefined;
+    const policy = vi.fn(
+      (context: { readonly signal: AbortSignal }) =>
+        new Promise<boolean>(() => {
+          policySignal = context.signal;
+        }),
+    );
+    const creating = createServiceScope({
+      capabilities: ['navigation'],
+      dispose,
+      identity,
+      policy,
+      services,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(policy).toHaveBeenCalledOnce());
+
+    controller.abort('application mount cancelled');
+
+    await expect(creating).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    expect(policySignal).toBe(controller.signal);
+    expect(dispose).toHaveBeenCalledOnce();
+  });
+
   it('rejects inherited and prototype-mutating capability names', async () => {
     await expect(
       createServiceScope({

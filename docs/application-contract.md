@@ -127,9 +127,11 @@ export default defineApp<Props, HostServices>({
 ```
 
 Declaration is necessary but not sufficient. The host's `capabilityPolicy` evaluates each key for
-the concrete application identity. A declared capability that is unavailable or denied rejects an
-ordinary application mount; undeclared services never enter its facade. A service scope is revoked
-on cleanup, so retained method proxies fail rather than continuing to affect the host.
+the concrete application identity and receives the instance `signal`. The runtime stops awaiting
+asynchronous authorization when that signal aborts. A declared capability that is unavailable or
+denied rejects an ordinary application mount; undeclared services never enter its facade. A service
+scope is revoked on cleanup, so retained method proxies fail rather than continuing to affect the
+host.
 
 Static `services` remain the simplest host configuration. When a capability must be bound to one
 application instance, use `createServices` as an instance-level provider:

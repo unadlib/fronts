@@ -472,6 +472,44 @@ describe('Fronts host runtime', () => {
     expect(disposeServices).toHaveBeenCalledOnce();
   });
 
+  it('cancels capability authorization for negotiable iframe applications', async () => {
+    const app = defineApp<Props, Services>({
+      capabilities: ['navigation'],
+      mount: vi.fn(() => ({ unmount: vi.fn() })),
+    });
+    Object.defineProperty(app, Symbol.for('@fronts/core/application/negotiable-capabilities/v2'), {
+      value: true,
+    });
+    const { loader, resolver } = createHarness(app);
+    const controller = new AbortController();
+    let policySignal: AbortSignal | undefined;
+    const capabilityPolicy = vi.fn(
+      (context: { readonly signal: AbortSignal }) =>
+        new Promise<boolean>(() => {
+          policySignal = context.signal;
+        }),
+    );
+    const host = createFrontsHost({ capabilityPolicy, loader, resolver, services });
+    const mounting = host.mount({
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      signal: controller.signal,
+      target: document.createElement('main'),
+    });
+    await vi.waitFor(() => expect(capabilityPolicy).toHaveBeenCalledOnce());
+
+    controller.abort('iframe mount cancelled');
+
+    await expect(mounting).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    expect(policySignal).toBe(loader.load.mock.calls.at(-1)?.[1].signal);
+    expect(policySignal?.aborted).toBe(true);
+    expect(app.mount).not.toHaveBeenCalled();
+    expect(host.audit().idle).toBe(true);
+  });
+
   it('rejects invalid capability declarations before invoking the service provider', async () => {
     const app = defineApp<Props, Services>({
       capabilities: ['__proto__'] as unknown as readonly (keyof Services & string)[],
