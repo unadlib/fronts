@@ -66,6 +66,17 @@ function createResolvedEnvelope<Source>(
   });
 }
 
+function normalizeAgentHostId(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new FrontsError(
+      frontsErrorCodes.iframeProtocol,
+      'Iframe agent hostId must be a non-empty string.',
+      { phase: 'load' },
+    );
+  }
+  return value.trim();
+}
+
 function isIframeConnectCandidate(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -171,6 +182,7 @@ function createSession<Source, Props = unknown>(
   message: IframeConnectMessage<Source, Props>,
   port: MessagePort,
   options: IframeAgentOptions<Source>,
+  hostId: string,
   remove: () => void,
 ): AgentSession {
   const ref = normalizeAppRef(message.ref);
@@ -209,7 +221,7 @@ function createSession<Source, Props = unknown>(
       options.loader.load(
         resolved,
         Object.freeze({
-          hostId: options.hostId ?? 'fronts-iframe-agent',
+          hostId,
           identity,
           intent: 'mount',
           operationId: message.channelId,
@@ -374,6 +386,7 @@ function reportConnectFailure<Source>(
 
 export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): IframeAgent {
   assertIframeTimeout(options.requestTimeoutMs ?? 10_000, 'requestTimeoutMs');
+  const hostId = normalizeAgentHostId(options.hostId ?? 'fronts-iframe-agent');
   const allowedOrigins = validateAllowedOrigins(options.allowedOrigins);
   const targetWindow = options.window ?? window;
   const expectedParent = options.parent ?? targetWindow.parent;
@@ -412,8 +425,12 @@ export function createIframeAgent<Source>(options: IframeAgentOptions<Source>): 
       return;
     }
     try {
-      const session = createSession(event.data as IframeConnectMessage<Source>, port, options, () =>
-        sessions.delete(channelId),
+      const session = createSession(
+        event.data as IframeConnectMessage<Source>,
+        port,
+        options,
+        hostId,
+        () => sessions.delete(channelId),
       );
       sessions.set(channelId, session);
     } catch (error) {

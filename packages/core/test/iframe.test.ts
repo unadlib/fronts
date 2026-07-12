@@ -613,6 +613,26 @@ describe('secure iframe execution', () => {
     expect(addEventListener).not.toHaveBeenCalled();
   });
 
+  it.each([[''], [' \t '], [42]])('rejects invalid iframe agent host id %j', (hostId) => {
+    const addEventListener = vi.fn();
+
+    expect(() =>
+      createIframeAgent({
+        allowedOrigins: ['https://shell.example.test'],
+        hostId: hostId as string,
+        loader: { load: vi.fn() },
+        target: document.createElement('main'),
+        window: { addEventListener } as unknown as Window,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<FrontsError>>({
+        code: frontsErrorCodes.iframeProtocol,
+        phase: 'load',
+      }),
+    );
+    expect(addEventListener).not.toHaveBeenCalled();
+  });
+
   it('fails fast for invalid or closed iframe RPC registrations and methods', () => {
     const channel = new MessageChannel();
     const peer = new IframeRpcPeer(channel.port1, { channelId: 'validated-rpc' });
@@ -871,7 +891,7 @@ describe('secure iframe execution', () => {
     });
     const agent = createIframeAgent({
       allowedOrigins: [parentOrigin],
-      hostId: 'isolated-agent',
+      hostId: ' isolated-agent ',
       loader: { load },
       parent: window,
       target: document.createElement('main'),
