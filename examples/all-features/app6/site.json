@@ -1,4 +1,0 @@
-{
-  "name": "app6",
-  "exports": ["./src/components/Button"]
-}

@@ -5,6 +5,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local archives and operating system metadata
+old/
+.DS_Store
+
 # Runtime data
 pids
 *.pid
