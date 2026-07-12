@@ -761,7 +761,11 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
             signal: controller.signal,
             target: options.target,
           }),
-        cleanup: async (prepared) => prepared.dispose(),
+        cleanup: async (prepared) => {
+          record.containerElement = prepared.element;
+          record.ownsContainerElement = prepared.ownsElement ?? false;
+          await prepared.dispose();
+        },
         onAbandoned: trackAbandonedCleanup,
         phase: 'container',
         signal: controller.signal,

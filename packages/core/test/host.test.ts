@@ -732,6 +732,53 @@ describe('Fronts host runtime', () => {
     expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
   });
 
+  it('audits a late owned container that violates its disposal contract', async () => {
+    const controller = new AbortController();
+    const target = document.createElement('main');
+    const adapter: ContainerAdapter<AbortableContainerRequest> = {
+      type: 'abortable',
+      prepare({ target: parent }) {
+        const element = parent.ownerDocument.createElement('section');
+        parent.append(element);
+        controller.abort('cancelled during leaky container preparation');
+        return {
+          dispose: () => undefined,
+          element,
+          ownsElement: true,
+          target: element,
+          type: 'abortable',
+        };
+      },
+    };
+    const { loader, resolver } = createHarness();
+    const host = createFrontsHost({ containers: [adapter], loader, resolver, services });
+
+    await expect(
+      host.mount<Props, AbortableContainerRequest>({
+        container: { type: 'abortable' },
+        instanceId: 'late-leaky-container',
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        signal: controller.signal,
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.aborted, phase: 'container' });
+
+    await vi.waitFor(() => expect(host.audit().pendingOperations).toBe(0));
+    expect(host.audit()).toMatchObject({
+      idle: false,
+      retainedContainers: [
+        {
+          identity: { instanceId: 'late-leaky-container' },
+          state: 'aborted',
+        },
+      ],
+    });
+    target.replaceChildren();
+    expect(host.audit().idle).toBe(true);
+    expect(host.inspect()).toEqual([]);
+  });
+
   it('unmounts an application handle that resolves after cancellation', async () => {
     let resolveHandle!: (handle: { unmount(): void }) => void;
     const unmount = vi.fn();
