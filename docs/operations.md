@@ -11,6 +11,10 @@ Every public host action also creates one immutable operation envelope. The same
 identity flow through the resolver, loader, and container extension boundaries. Callers may supply
 `operationId`/`traceId`, or let the host create them.
 
+Runtime IDs are trimmed and must be non-empty strings. Invalid identifiers are rejected before
+resolution with the error code and phase of the requested operation; custom ID factories are
+validated by the same rules.
+
 ```ts
 const deployment = await host.preload(
   { name: 'checkout', channel: 'canary' },

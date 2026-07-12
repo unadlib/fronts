@@ -535,6 +535,75 @@ describe('Fronts host runtime', () => {
     expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
   });
 
+  it('reports invalid detached operation identifiers in the matching operation phase', async () => {
+    const { host, resolver } = createHarness();
+
+    await expect(host.resolve({ name: 'checkout' }, { operationId: ' ' })).rejects.toMatchObject({
+      code: frontsErrorCodes.resolutionFailed,
+      phase: 'resolve',
+    });
+    await expect(host.load({ name: 'checkout' }, { traceId: '\t' })).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      phase: 'load',
+    });
+    await expect(host.preload({ name: 'checkout' }, { operationId: '\n' })).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      phase: 'load',
+    });
+
+    expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
+  });
+
+  it('validates explicit and generated mount identifiers before resolving', async () => {
+    const { host, loader, resolver } = createHarness();
+    const target = document.createElement('main');
+
+    await expect(
+      host.mount({
+        instanceId: ' ',
+        props: { value: 'invalid' },
+        ref: { name: 'checkout' },
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
+    await expect(
+      host.mount({
+        operationId: '\n',
+        props: { value: 'invalid operation id' },
+        ref: { name: 'checkout' },
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
+    await expect(
+      host.mount({
+        props: { value: 'invalid trace id' },
+        ref: { name: 'checkout' },
+        target,
+        traceId: '\t',
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
+
+    const generatedIdHost = createFrontsHost({
+      createInstanceId: () => '\t',
+      loader,
+      resolver,
+      services,
+    });
+    await expect(
+      generatedIdHost.mount({
+        props: { value: 'invalid generated id' },
+        ref: { name: 'checkout' },
+        target,
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'mount' });
+
+    expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(target.children).toHaveLength(0);
+    expect(host.inspect()).toEqual([]);
+    expect(generatedIdHost.inspect()).toEqual([]);
+  });
+
   it('selects an isolated loader for a configured container type', async () => {
     const harness = createHarness();
     const { loader: defaultLoader, resolved, resolver } = harness;

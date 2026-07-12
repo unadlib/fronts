@@ -94,13 +94,31 @@ function createHostId(): string {
   return `fronts-host:${hostSequence}`;
 }
 
-function normalizeRuntimeId(value: unknown, label: string): string {
+function normalizeRuntimeId(
+  value: unknown,
+  label: string,
+  code: FrontsErrorCode,
+  phase: FrontsPhase,
+): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new FrontsError(frontsErrorCodes.mountFailed, `${label} must be a non-empty string.`, {
-      phase: 'mount',
-    });
+    throw new FrontsError(code, `${label} must be a non-empty string.`, { phase });
   }
   return value.trim();
+}
+
+function phaseForIntent(
+  intent: HostOperationIntent,
+): Extract<FrontsPhase, 'load' | 'mount' | 'resolve'> {
+  switch (intent) {
+    case 'resolve':
+      return 'resolve';
+    case 'load':
+    case 'preload':
+      return 'load';
+    case 'mount':
+    case 'replace':
+      return 'mount';
+  }
 }
 
 function normalizeDeclaredCapabilities<Services extends object>(
@@ -268,7 +286,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         ? options.containers
         : createContainerRegistry(options.containers);
     this.#services = options.services ?? ({} as Services);
-    this.id = normalizeRuntimeId(options.hostId ?? createHostId(), 'hostId');
+    this.id = normalizeRuntimeId(
+      options.hostId ?? createHostId(),
+      'hostId',
+      frontsErrorCodes.mountFailed,
+      'mount',
+    );
     this.#now = options.now ?? Date.now;
     this.#readyTimeoutMs = options.readyTimeoutMs ?? 10_000;
     if (options.observer !== undefined) {
@@ -599,7 +622,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     intent: ApplicationHostOperationContext['intent'],
   ): Promise<MountedApplication<Props, Source>> {
     const ref = normalizeAppRef(options.ref);
-    const instanceId = options.instanceId ?? this.#createInstanceId(ref);
+    const instanceId = normalizeRuntimeId(
+      options.instanceId ?? this.#createInstanceId(ref),
+      'instanceId',
+      frontsErrorCodes.mountFailed,
+      'mount',
+    );
     if (this.#records.has(instanceId)) {
       throw new FrontsError(
         frontsErrorCodes.duplicateInstance,
@@ -618,6 +646,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         this.#options.createTraceId?.(ref, instanceId) ??
         `${this.id}:${instanceId}`,
       'traceId',
+      frontsErrorCodes.mountFailed,
+      'mount',
     );
     const initialIdentity: ApplicationIdentity = {
       expose: ref.expose,
@@ -1016,6 +1046,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     signal: AbortSignal,
     options: Pick<HostResolveOptions, 'operationId' | 'traceId'>,
   ): DetachedHostOperationContext {
+    const phase = phaseForIntent(intent);
+    const code = failureForPhase(phase);
     return {
       hostId: this.id,
       intent,
@@ -1023,7 +1055,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       signal,
       ...(options.traceId === undefined
         ? {}
-        : { traceId: normalizeRuntimeId(options.traceId, 'traceId') }),
+        : { traceId: normalizeRuntimeId(options.traceId, 'traceId', code, phase) }),
     };
   }
 
@@ -1040,7 +1072,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       intent,
       operationId: this.#createOperationId(intent, ref, operationId),
       signal,
-      traceId: normalizeRuntimeId(identity.traceId, 'traceId'),
+      traceId: normalizeRuntimeId(
+        identity.traceId,
+        'traceId',
+        frontsErrorCodes.mountFailed,
+        'mount',
+      ),
     };
   }
 
@@ -1050,11 +1087,14 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     operationId?: string,
   ): string {
     this.#operationSequence += 1;
+    const phase = phaseForIntent(intent);
     return normalizeRuntimeId(
       operationId ??
         this.#options.createOperationId?.(intent, ref) ??
         `${this.id}:${intent}:${this.#operationSequence}`,
       'operationId',
+      failureForPhase(phase),
+      phase,
     );
   }
 
