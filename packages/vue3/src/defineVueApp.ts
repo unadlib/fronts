@@ -86,18 +86,6 @@ export function defineVueApp<
       let disposed = false;
       let pending: Deferred | undefined;
 
-      app.config.errorHandler = (error, _instance, info) => {
-        const failed = pending;
-        if (failed !== undefined) {
-          pending = undefined;
-          failed.reject(error);
-        }
-        try {
-          options.onError?.(error, info);
-        } catch {
-          // Observer failures must not replace the application render failure.
-        }
-      };
       try {
         await options.configure?.(app, { ...vueContext, props: context.props });
       } catch (error) {
@@ -106,6 +94,24 @@ export function defineVueApp<
         }
         throw error;
       }
+      const configuredErrorHandler = app.config.errorHandler;
+      app.config.errorHandler = (error, instance, info) => {
+        const failed = pending;
+        if (failed !== undefined) {
+          pending = undefined;
+          failed.reject(error);
+        }
+        try {
+          configuredErrorHandler?.(error, instance, info);
+        } catch {
+          // Configured error observers must not replace the application render failure.
+        }
+        try {
+          options.onError?.(error, info);
+        } catch {
+          // Observer failures must not replace the application render failure.
+        }
+      };
 
       const waitForRender = (): Promise<void> => {
         const deferred = createDeferred();

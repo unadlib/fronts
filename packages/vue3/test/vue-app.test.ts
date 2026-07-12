@@ -251,6 +251,40 @@ describe('Vue application adapter', () => {
     expect(onError).toHaveBeenCalledWith(renderFailure, 'render function');
     await handle.unmount();
   });
+
+  it('composes a configured Vue error handler without losing readiness failures', async () => {
+    const failure = new Error('configured render failed');
+    const configuredErrorHandler = vi.fn();
+    const onError = vi.fn();
+    const Broken = defineComponent({
+      setup: () => () => {
+        throw failure;
+      },
+    });
+    const app = defineVueApp<Record<string, never>, object>({
+      configure(vueApp) {
+        vueApp.config.errorHandler = configuredErrorHandler;
+      },
+      onError,
+      root: Broken,
+    });
+    const handle = await app.mount({
+      identity,
+      props: {},
+      services: {},
+      signal: new AbortController().signal,
+      target: document.createElement('div'),
+    });
+
+    await expect(handle.ready).rejects.toBe(failure);
+    expect(configuredErrorHandler).toHaveBeenCalledWith(
+      failure,
+      expect.anything(),
+      expect.any(String),
+    );
+    expect(onError).toHaveBeenCalledWith(failure, expect.any(String));
+    await handle.unmount();
+  });
 });
 
 describe('Vue host adapter', () => {
