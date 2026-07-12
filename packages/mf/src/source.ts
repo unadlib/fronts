@@ -26,12 +26,15 @@ function invalidSourceField(field: string): FrontsError {
 export function assertModuleFederationSource(
   source: unknown,
 ): asserts source is ModuleFederationSource {
-  if (!isRecord(source) || !isRecord(source.remote)) {
+  if (!isRecord(source)) {
     throw new FrontsError(
       frontsErrorCodes.loadFailed,
       'A Module Federation source must contain a remote definition.',
       { phase: 'load' },
     );
+  }
+  if (!hasOwn(source, 'remote') || !isRecord(source.remote)) {
+    throw invalidSourceField('remote');
   }
 
   const remote = source.remote;

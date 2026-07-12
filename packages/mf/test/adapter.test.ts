@@ -215,6 +215,7 @@ describe('Module Federation runtime adapter', () => {
   });
 
   it.each([
+    ['remote', Object.create({ remote: { entry: 'checkout.js', name: 'checkout' } }) as object],
     [
       'remote.entry',
       {
