@@ -38,7 +38,14 @@ export interface UseRemoteAppResult<Props, Source> {
 }
 
 function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
+  if (error instanceof Error) {
+    return error;
+  }
+  try {
+    return new Error(String(error));
+  } catch {
+    return new Error('The remote application failed with an unknown error.');
+  }
 }
 
 function notify<Arguments extends readonly unknown[]>(

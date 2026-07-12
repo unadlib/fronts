@@ -444,6 +444,25 @@ describe('Vue host adapter', () => {
     expect(view.text()).toContain('Failed: registry unavailable');
   });
 
+  it('renders a fallback for unstringifiable host rejection values', async () => {
+    const host = {
+      mount: vi.fn(async () => {
+        throw Object.create(null);
+      }),
+    } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: {
+        app: { name: 'checkout' },
+        appProps: { value: 'first' },
+        fallback: (failure: Error) => h('p', failure.message),
+        host,
+      },
+    });
+
+    await flushPromises();
+    expect(view.text()).toContain('The remote application failed with an unknown error.');
+  });
+
   it('keeps remote state stable when Vue host observers throw', async () => {
     const { instance } = createMountedApplication();
     const observerFailure = new Error('observer failed');

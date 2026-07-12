@@ -364,6 +364,27 @@ describe('React host adapter', () => {
     expect(await screen.findByText('Failed: registry unavailable')).toBeTruthy();
   });
 
+  it('renders a fallback for unstringifiable host rejection values', async () => {
+    const host = {
+      mount: vi.fn(async () => {
+        throw Object.create(null);
+      }),
+    } as unknown as FrontsHost<Source, Services>;
+
+    render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        fallback={(error) => <p>{error.message}</p>}
+        host={host}
+      />,
+    );
+
+    expect(
+      await screen.findByText('The remote application failed with an unknown error.'),
+    ).toBeTruthy();
+  });
+
   it('keeps remote state stable when React host observers throw', async () => {
     const ref = normalizeAppRef({ name: 'checkout' });
     const resolved: ResolvedApp<Source> = { ref, source: { entry: 'checkout.json' } };
