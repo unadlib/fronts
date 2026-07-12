@@ -1255,6 +1255,54 @@ describe('Fronts host runtime', () => {
     expect(host.audit()).toMatchObject({ idle: true, pendingOperations: 0 });
   });
 
+  it('retains cleanup failures that settle after an interim audit', async () => {
+    let resolveHandle!: (handle: { unmount(): Promise<void> }) => void;
+    const cleanupFailure = new Error('late application cleanup failed');
+    const mount = vi.fn(
+      () =>
+        new Promise<{ unmount(): Promise<void> }>((resolve) => {
+          resolveHandle = resolve;
+        }),
+    );
+    const app = defineApp<Props, Services>({ mount });
+    const { loader, resolver } = createHarness(app);
+    const host = createFrontsHost({ loader, resolver, services });
+    const controller = new AbortController();
+    const mounting = host.mount({
+      instanceId: 'late-cleanup-failure',
+      props: { value: 'x' },
+      ref: { name: 'checkout' },
+      signal: controller.signal,
+      target: document.createElement('main'),
+    });
+    await vi.waitFor(() => expect(mount).toHaveBeenCalledOnce());
+    controller.abort('navigation changed');
+    await expect(mounting).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+
+    expect(host.audit()).toMatchObject({ idle: false, pendingOperations: 1 });
+    resolveHandle({
+      unmount: vi.fn(async () => {
+        throw cleanupFailure;
+      }),
+    });
+
+    await vi.waitFor(() => expect(host.audit().pendingOperations).toBe(0));
+    expect(host.audit()).toMatchObject({
+      cleanupFailures: [
+        {
+          cleanupError: { code: frontsErrorCodes.lifecycleFailed, phase: 'unmount' },
+          identity: { instanceId: 'late-cleanup-failure' },
+          state: 'aborted',
+        },
+      ],
+      idle: false,
+    });
+    await expect(host.dispose()).rejects.toMatchObject({ code: frontsErrorCodes.runtimeLeak });
+  });
+
   it('releases terminal instance identities for remount and clean retry', async () => {
     const { host, loader } = createHarness();
     const target = document.createElement('main');

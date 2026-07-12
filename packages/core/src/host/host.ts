@@ -78,6 +78,7 @@ interface ApplicationRecord<Source> {
   error?: FrontsError;
   cleanupError?: FrontsError;
   cleanupCauses?: unknown[];
+  cleanupPending?: boolean;
   deploymentSlot?: HTMLElement;
 }
 
@@ -1117,7 +1118,9 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
           this.#releaseRecord(record);
         }
       } else {
+        record.cleanupPending = true;
         const release = Promise.allSettled(abandonedCleanups).then((results) => {
+          record.cleanupPending = false;
           const lateCleanupErrors = results.flatMap((result) =>
             result.status === 'rejected' ? [result.reason] : [],
           );
@@ -1134,7 +1137,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   #releaseRecord(record: ApplicationRecord<Source>): void {
-    if (record.cleanupError !== undefined) {
+    if (record.cleanupError !== undefined || record.cleanupPending === true) {
       return;
     }
     if (
