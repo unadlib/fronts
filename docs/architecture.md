@@ -119,7 +119,8 @@ The host executes these phases in order:
 
 1. Normalize the reference and create operation, identity, and trace IDs.
 2. Resolve the deployment.
-3. Choose the default or container-specific loader and load the module.
+3. Resolve a dynamic container request when configured, choose the default or container-specific
+   loader from that request, and load the module.
 4. Validate protocol name/version and application shape.
 5. Create instance-bound services when configured, authorize declared capabilities, and create a
    revocable service scope.
