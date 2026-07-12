@@ -3,7 +3,10 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   clean: true,
   dts: true,
-  entry: ['src/index.ts'],
+  entry: {
+    iframe: 'src/iframe/index.ts',
+    index: 'src/index.ts',
+  },
   format: ['esm', 'cjs'],
   platform: 'neutral',
   publint: true,

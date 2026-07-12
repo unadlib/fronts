@@ -4,6 +4,7 @@ export const frontsErrorCodes = {
   containerFailed: 'FRONTS_CONTAINER_FAILED',
   duplicateInstance: 'FRONTS_DUPLICATE_INSTANCE',
   hostDisposed: 'FRONTS_HOST_DISPOSED',
+  iframeProtocol: 'FRONTS_IFRAME_PROTOCOL',
   instanceNotFound: 'FRONTS_INSTANCE_NOT_FOUND',
   invalidApp: 'FRONTS_INVALID_APP',
   invalidState: 'FRONTS_INVALID_STATE',
@@ -12,6 +13,8 @@ export const frontsErrorCodes = {
   mountFailed: 'FRONTS_MOUNT_FAILED',
   readyTimeout: 'FRONTS_READY_TIMEOUT',
   resolutionFailed: 'FRONTS_RESOLUTION_FAILED',
+  rpcClosed: 'FRONTS_RPC_CLOSED',
+  rpcTimeout: 'FRONTS_RPC_TIMEOUT',
   unsupportedProtocol: 'FRONTS_UNSUPPORTED_PROTOCOL',
 } as const;
 

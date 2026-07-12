@@ -18,6 +18,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./iframe": {
+      "import": {
+        "types": "./dist/iframe.d.ts",
+        "default": "./dist/iframe.js"
+      },
+      "require": {
+        "types": "./dist/iframe.d.cts",
+        "default": "./dist/iframe.cjs"
+      }
     }
   },
   "files": [
