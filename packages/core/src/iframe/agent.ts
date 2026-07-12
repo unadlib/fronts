@@ -43,6 +43,29 @@ interface AgentSession {
   readonly stop: () => Promise<void>;
 }
 
+function createIdentityEnvelope(identity: ApplicationIdentity): ApplicationIdentity {
+  const { expose, instanceId, name, traceId, version } = identity;
+  return Object.freeze({
+    instanceId,
+    name,
+    ...(expose === undefined ? {} : { expose }),
+    ...(version === undefined ? {} : { version }),
+    ...(traceId === undefined ? {} : { traceId }),
+  });
+}
+
+function createResolvedEnvelope<Source>(
+  resolved: ResolvedApp<Source>,
+  ref: NormalizedAppRef,
+): ResolvedApp<Source> {
+  const { metadata, ...deployment } = resolved;
+  return Object.freeze({
+    ...deployment,
+    ref,
+    ...(metadata === undefined ? {} : { metadata: Object.freeze({ ...metadata }) }),
+  });
+}
+
 function isIframeConnectCandidate(value: unknown): boolean {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -153,13 +176,15 @@ function createSession<Source, Props = unknown>(
   const ref = normalizeAppRef(message.ref);
   assertResolvedApp<Source>(message.resolved, ref);
   assertSessionIdentity(message.identity, ref, message.resolved);
+  const identity = createIdentityEnvelope(message.identity);
+  const resolved = createResolvedEnvelope(message.resolved, ref);
   const controller = new AbortController();
   const availableCapabilities = parseIframeCapabilities(
     message.capabilities,
     'Iframe host capabilities',
   );
   const root = options.target.ownerDocument.createElement('div');
-  root.dataset.frontsAgentInstance = message.identity.instanceId;
+  root.dataset.frontsAgentInstance = identity.instanceId;
   options.target.append(root);
   let peer: IframeRpcPeer;
   try {
@@ -181,14 +206,17 @@ function createSession<Source, Props = unknown>(
 
   const loaded = (async () => {
     const module = await raceWithAbort(
-      options.loader.load(message.resolved, {
-        hostId: options.hostId ?? 'fronts-iframe-agent',
-        identity: message.identity,
-        intent: 'mount',
-        operationId: message.channelId,
-        signal: controller.signal,
-        traceId: message.identity.traceId ?? message.channelId,
-      }),
+      options.loader.load(
+        resolved,
+        Object.freeze({
+          hostId: options.hostId ?? 'fronts-iframe-agent',
+          identity,
+          intent: 'mount',
+          operationId: message.channelId,
+          signal: controller.signal,
+          traceId: identity.traceId ?? message.channelId,
+        }),
+      ),
       controller.signal,
       'load',
     );
@@ -226,13 +254,15 @@ function createSession<Source, Props = unknown>(
 
     const mounted = await acquireWithAbort({
       acquire: () =>
-        app.mount({
-          identity: message.identity,
-          props: message.props as Readonly<Props>,
-          services,
-          signal: controller.signal,
-          target: root,
-        }),
+        app.mount(
+          Object.freeze({
+            identity,
+            props: message.props as Readonly<Props>,
+            services,
+            signal: controller.signal,
+            target: root,
+          }),
+        ),
       cleanup: async (handle) => handle.unmount(),
       onAbandoned: (cleanup) => abandonedCleanups.push(cleanup),
       phase: 'mount',

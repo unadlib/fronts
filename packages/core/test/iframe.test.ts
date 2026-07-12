@@ -843,6 +843,96 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('snapshots iframe agent operation and mount context envelopes', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'agent-context-envelopes';
+    const channel = new MessageChannel();
+    let loaderResolved: ResolvedApp<Source> | undefined;
+    let loaderContext: ApplicationHostOperationContext | undefined;
+    let mountContext:
+      | {
+          readonly identity: ApplicationIdentity;
+          readonly props: Readonly<Props>;
+          readonly services: Readonly<object>;
+          readonly signal: AbortSignal;
+          readonly target: Element | ShadowRoot;
+        }
+      | undefined;
+    const remoteApp = defineApp<Props, object>({
+      mount(context) {
+        mountContext = context;
+        return { unmount: vi.fn() };
+      },
+    });
+    const load = vi.fn<AppLoader<Source>['load']>((resolved, context) => {
+      loaderResolved = resolved;
+      loaderContext = context as ApplicationHostOperationContext;
+      return { default: remoteApp };
+    });
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      hostId: 'isolated-agent',
+      loader: { load },
+      parent: window,
+      target: document.createElement('main'),
+      window,
+    });
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    parentPeer.handle('capabilities.negotiate', () => []);
+    let ready = false;
+    parentPeer.on('fronts.ready', () => {
+      ready = true;
+    });
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const metadata = { frame: 'isolated' };
+    const resolved: ResolvedApp<Source> = {
+      metadata,
+      ref,
+      source: { entry: 'checkout.js' },
+      version: '2.0.0',
+    };
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: { value: 'first' },
+      ref,
+      resolved,
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+
+    await vi.waitFor(() => expect(ready).toBe(true));
+    expect(loaderResolved).not.toBe(resolved);
+    expect(loaderResolved?.ref).not.toBe(ref);
+    expect(loaderResolved?.ref).toEqual(ref);
+    expect(loaderResolved?.metadata).not.toBe(metadata);
+    expect(Object.isFrozen(loaderResolved)).toBe(true);
+    expect(Object.isFrozen(loaderResolved?.metadata)).toBe(true);
+    expect(loaderContext).toMatchObject({
+      hostId: 'isolated-agent',
+      identity,
+      intent: 'mount',
+      operationId: channelId,
+      traceId: identity.traceId,
+    });
+    expect(loaderContext?.identity).not.toBe(identity);
+    expect(Object.isFrozen(loaderContext)).toBe(true);
+    expect(Object.isFrozen(loaderContext?.identity)).toBe(true);
+    expect(mountContext?.identity).toBe(loaderContext?.identity);
+    expect(Object.isFrozen(mountContext)).toBe(true);
+
+    await agent.stop();
+    parentPeer.close();
+  });
+
   it('makes concurrent iframe agent stops await the same cleanup', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'concurrent-stop';
