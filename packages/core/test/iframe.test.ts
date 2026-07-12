@@ -799,6 +799,50 @@ describe('secure iframe execution', () => {
     await agent.stop();
   });
 
+  it('stops a failed iframe session when its fatal notification cannot be delivered', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const target = document.createElement('main');
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load: async () => Promise.reject(new Error('remote application failed')) },
+      parent: window,
+      target,
+      window,
+    });
+    const port = {
+      addEventListener: vi.fn(),
+      close: vi.fn(),
+      postMessage: vi.fn(() => {
+        throw new Error('message port transport failed');
+      }),
+      removeEventListener: vi.fn(),
+      start: vi.fn(),
+    } as unknown as MessagePort;
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId: 'failed-fatal-notification',
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [port],
+        source: window,
+      }),
+    );
+
+    await vi.waitFor(() => expect(agent.sessions).toBe(0));
+    expect(target.children).toHaveLength(0);
+    expect(port.close).toHaveBeenCalledOnce();
+    await agent.stop();
+  });
+
   it('makes concurrent iframe agent stops await the same cleanup', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'concurrent-stop';

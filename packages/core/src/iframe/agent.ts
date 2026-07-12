@@ -246,11 +246,6 @@ function createSession<Source, Props = unknown>(
     peer.notify('fronts.ready');
     return mounted;
   })();
-  void loaded.catch((error: unknown) => {
-    if (!peer.closed) {
-      peer.notify('fronts.fatal', serializeIframeError(error));
-    }
-  });
 
   const requireHandle = async (): Promise<AppHandle<Props>> => await loaded;
   peer.handle('lifecycle.update', async (props) => {
@@ -293,6 +288,17 @@ function createSession<Source, Props = unknown>(
       remove();
     }
   };
+
+  void loaded.catch((error: unknown) => {
+    if (peer.closed) {
+      return;
+    }
+    try {
+      peer.notify('fronts.fatal', serializeIframeError(error));
+    } catch {
+      void stop().catch(() => undefined);
+    }
+  });
 
   peer.handle('lifecycle.unmount', async () => {
     controller.abort('Iframe application unmounted');
