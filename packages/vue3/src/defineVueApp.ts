@@ -12,6 +12,7 @@ import {
   FrontsError,
   defineApp,
   frontsErrorCodes,
+  throwIfAborted,
   type ApplicationIdentity,
   type FrontsApp,
   type ServiceKey,
@@ -88,6 +89,7 @@ export function defineVueApp<
 
       try {
         await options.configure?.(app, { ...vueContext, props: context.props });
+        throwIfAborted(context.signal, 'mount');
       } catch (error) {
         if (mountTarget !== context.target) {
           mountTarget.remove();

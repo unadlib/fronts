@@ -16,7 +16,7 @@ import type {
   MountedApplication,
   ResolvedApp,
 } from '@fronts/core';
-import { normalizeAppRef } from '@fronts/core';
+import { frontsErrorCodes, normalizeAppRef } from '@fronts/core';
 
 import {
   RemoteApp,
@@ -134,6 +134,42 @@ describe('Vue application adapter', () => {
         target,
       }),
     ).rejects.toBe(failure);
+    expect(target.childElementCount).toBe(0);
+  });
+
+  it('does not mount after cancellation during asynchronous configuration', async () => {
+    let finishConfigure!: () => void;
+    const configure = new Promise<void>((resolve) => {
+      finishConfigure = resolve;
+    });
+    const vueApp = {
+      config: {},
+      mount: vi.fn(),
+      provide: vi.fn(),
+      unmount: vi.fn(),
+    } as unknown as App;
+    const target = document.createElement('div').attachShadow({ mode: 'open' });
+    const controller = new AbortController();
+    const app = defineVueApp<Props, Services>({
+      configure: () => configure,
+      createApp: (() => vueApp) as typeof createApp,
+      root: ContextConsumer,
+    });
+    const mounting = app.mount({
+      identity,
+      props: { value: 'cancelled' },
+      services: { locale: { language: 'en-US' } },
+      signal: controller.signal,
+      target,
+    });
+    controller.abort('configuration cancelled');
+    finishConfigure();
+
+    await expect(mounting).rejects.toMatchObject({
+      code: frontsErrorCodes.aborted,
+      phase: 'mount',
+    });
+    expect(vueApp.mount).not.toHaveBeenCalled();
     expect(target.childElementCount).toBe(0);
   });
 
