@@ -406,6 +406,58 @@ describe('Fronts host runtime', () => {
     expect(instance.state).toBe('failed');
     expect(target.children).toHaveLength(0);
     expect(host.get(instance.identity.instanceId)).toBeUndefined();
+    expect(host.inspect()).toEqual([
+      expect.objectContaining({
+        cleanupError: expect.objectContaining({ code: frontsErrorCodes.lifecycleFailed }),
+        state: 'failed',
+      }),
+    ]);
+    expect(host.audit()).toMatchObject({
+      cleanupFailures: [
+        { cleanupError: { code: frontsErrorCodes.lifecycleFailed }, state: 'failed' },
+      ],
+      idle: false,
+    });
+    expect(() => host.assertIdle()).toThrowError(
+      expect.objectContaining({
+        code: frontsErrorCodes.runtimeLeak,
+        details: expect.objectContaining({
+          cleanupFailures: [instance.identity.instanceId],
+        }),
+      }),
+    );
+    await expect(host.dispose()).rejects.toMatchObject({ code: frontsErrorCodes.runtimeLeak });
+  });
+
+  it('keeps a mount failure primary while reporting rollback cleanup failures', async () => {
+    const app = defineApp<Props, Services>({
+      mount: () => ({
+        ready: Promise.reject(new Error('render failed')),
+        unmount: () => {
+          throw new Error('framework root cleanup failed');
+        },
+      }),
+    });
+    const { events, host } = createHarness(app);
+
+    await expect(
+      host.mount({
+        instanceId: 'checkout-rollback-failure',
+        props: { value: 'x' },
+        ref: { name: 'checkout' },
+        target: document.createElement('main'),
+      }),
+    ).rejects.toMatchObject({ code: frontsErrorCodes.mountFailed, phase: 'ready' });
+
+    expect(host.inspect()[0]).toMatchObject({
+      cleanupError: { code: frontsErrorCodes.lifecycleFailed, phase: 'unmount' },
+      error: { code: frontsErrorCodes.mountFailed, phase: 'ready' },
+      state: 'failed',
+    });
+    expect(events.filter((event) => event.kind === 'error').map((event) => event.phase)).toEqual([
+      'ready',
+      'unmount',
+    ]);
   });
 
   it('delegates preload without mounting the application', async () => {

@@ -135,6 +135,7 @@ describe('host observability and runtime audits', () => {
 
     expect(host.audit()).toMatchObject({
       activeInstances: [{ identity: { instanceId: 'checkout-live' }, state: 'ready' }],
+      cleanupFailures: [],
       hostId: 'shell-audit',
       idle: false,
       pendingOperations: 0,
@@ -147,6 +148,7 @@ describe('host observability and runtime audits', () => {
     await instance.unmount();
     expect(host.audit()).toMatchObject({
       activeInstances: [],
+      cleanupFailures: [],
       idle: true,
       pendingOperations: 0,
       retainedContainers: [],
@@ -200,6 +202,7 @@ describe('host observability and runtime audits', () => {
 
     target.replaceChildren();
     expect(host.audit().idle).toBe(true);
+    expect(host.inspect()).toEqual([]);
   });
 
   it('shows pending mounts before they become application instances', async () => {

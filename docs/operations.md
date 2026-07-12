@@ -104,6 +104,7 @@ Expected policy:
 | Update failure                        | Instance remains mounted but failure is surfaced; product chooses recovery |
 | Replacement staging failure           | Destroy staging and retain current instance                                |
 | Previous cleanup failure after commit | Return `previousCleanupError`; new instance remains committed              |
+| Any incomplete resource cleanup       | Retain a `cleanupError`; fail audit and host disposal                      |
 | Observer failure                      | Runtime continues; observer is not part of the transaction                 |
 
 ## Audit and shutdown
@@ -114,6 +115,7 @@ release their identity reservation and are observed through host events instead.
 reports:
 
 - active/non-destroyed instances;
+- cleanup failures with their terminal instance snapshots;
 - pending operations;
 - replacement transactions;
 - retained owned containers;
@@ -132,7 +134,9 @@ host.assertIdle();
 ```
 
 `dispose()` aborts direct operations, aborts/unmounts instances, waits for their cleanup, and
-releases host resources. Transport-specific objects with their own lifetime should also be disposed
+releases host resources. It rejects with `FRONTS_RUNTIME_LEAK` if cleanup failed or an owned
+container remains attached; inspect `audit().cleanupFailures` and `audit().retainedContainers` for
+the affected identities. Transport-specific objects with their own lifetime should also be disposed
 by the composition root.
 
 ## Replacement runbook

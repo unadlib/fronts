@@ -84,6 +84,7 @@ export interface ApplicationInstanceSnapshot<Source = unknown> {
   readonly containerType?: string;
   readonly resolved?: ResolvedApp<Source>;
   readonly error?: FrontsError;
+  readonly cleanupError?: FrontsError;
 }
 
 export interface HostStateEvent<Source = unknown> {
@@ -155,6 +156,7 @@ export interface RetainedContainerSnapshot {
 
 export interface HostAuditReport<Source = unknown> {
   readonly activeInstances: readonly ApplicationInstanceSnapshot<Source>[];
+  readonly cleanupFailures: readonly ApplicationInstanceSnapshot<Source>[];
   readonly hostId: string;
   readonly idle: boolean;
   readonly pendingOperations: number;

@@ -73,6 +73,8 @@ interface ApplicationRecord<Source> {
   ownsContainerElement?: boolean;
   resolved?: ResolvedApp<Source>;
   error?: FrontsError;
+  cleanupError?: FrontsError;
+  cleanupCauses?: unknown[];
   deploymentSlot?: HTMLElement;
 }
 
@@ -256,6 +258,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   #operationSequence = 0;
   #eventSequence = 0;
   #disposed = false;
+  #disposePromise: Promise<void> | undefined;
 
   constructor(options: FrontsHostOptions<Source, Services>) {
     this.#options = options;
@@ -474,10 +477,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   inspect(): readonly ApplicationInstanceSnapshot<Source>[] {
+    this.#pruneCleanTerminalRecords();
     return [...this.#records.values()].map((record) => this.#snapshot(record));
   }
 
   audit(): HostAuditReport<Source> {
+    this.#pruneCleanTerminalRecords();
     const activeInstances = [...this.#instances.keys()]
       .map((instanceId) => this.#records.get(instanceId))
       .filter((record): record is ApplicationRecord<Source> => record !== undefined)
@@ -495,14 +500,19 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         identity: record.identity,
         state: record.state,
       }));
+    const cleanupFailures = [...this.#records.values()]
+      .filter((record) => record.cleanupError !== undefined)
+      .map((record) => this.#snapshot(record));
     const replacementTransactions = [...this.#replacing];
     const pendingOperations = this.#pending.size;
 
     return {
       activeInstances,
+      cleanupFailures,
       hostId: this.id,
       idle:
         activeInstances.length === 0 &&
+        cleanupFailures.length === 0 &&
         pendingOperations === 0 &&
         replacementTransactions.length === 0 &&
         retainedContainers.length === 0,
@@ -523,6 +533,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       {
         details: {
           activeInstances: report.activeInstances.map(({ identity }) => identity.instanceId),
+          cleanupFailures: report.cleanupFailures.map(({ identity }) => identity.instanceId),
           pendingOperations: report.pendingOperations,
           replacementTransactions: report.replacementTransactions,
           retainedContainers: report.retainedContainers.map(({ identity }) => identity.instanceId),
@@ -548,11 +559,16 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     await instance.unmount();
   }
 
-  async dispose(): Promise<void> {
-    if (this.#disposed) {
-      return;
+  dispose(): Promise<void> {
+    if (this.#disposePromise !== undefined) {
+      return this.#disposePromise;
     }
     this.#disposed = true;
+    this.#disposePromise = this.#disposeResources();
+    return this.#disposePromise;
+  }
+
+  async #disposeResources(): Promise<void> {
     for (const record of this.#records.values()) {
       if (!record.controller.signal.aborted) {
         record.controller.abort('Fronts host disposed');
@@ -568,9 +584,13 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ...this.#pending,
       ...[...this.#instances.values()].map((instance) => instance.unmount()),
     ];
-    await Promise.allSettled(operations);
-    await this.#drainPending();
-    this.#listeners.clear();
+    try {
+      await Promise.allSettled(operations);
+      await this.#drainPending();
+      this.assertIdle();
+    } finally {
+      this.#listeners.clear();
+    }
   }
 
   async #mount<Props, Request extends ContainerRequest>(
@@ -629,7 +649,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     let container: Awaited<ReturnType<ContainerRegistry['prepare']>> | undefined;
     let appHandle: AppHandle<Props> | undefined;
     let provision: ServiceProvision<Services> | undefined;
-    let cleanupFailed = false;
+    const cleanupErrors: unknown[] = [];
     const abandonedCleanups: Promise<void>[] = [];
     const trackAbandonedCleanup = (cleanup: Promise<void>): void => {
       abandonedCleanups.push(cleanup);
@@ -762,8 +782,8 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       if (appHandle !== undefined) {
         try {
           await appHandle.unmount();
-        } catch {
-          cleanupFailed = true;
+        } catch (cleanupError) {
+          cleanupErrors.push(cleanupError);
           // The original mount failure remains authoritative.
         }
       }
@@ -773,15 +793,15 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
         } else {
           await scope.dispose();
         }
-      } catch {
-        cleanupFailed = true;
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
         // The original mount failure remains authoritative.
       }
       if (container !== undefined) {
         try {
           await container.dispose();
-        } catch {
-          cleanupFailed = true;
+        } catch (cleanupError) {
+          cleanupErrors.push(cleanupError);
           // The original mount failure remains authoritative.
         }
       }
@@ -791,13 +811,21 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       const terminal = failure.code === frontsErrorCodes.aborted ? 'aborted' : 'failed';
       this.#transition(record, terminal, phase);
       this.#reportError(record, failure, phase);
+      if (cleanupErrors.length > 0) {
+        this.#recordCleanupFailure(record, cleanupErrors);
+      }
       if (abandonedCleanups.length === 0) {
-        if (!cleanupFailed) {
+        if (cleanupErrors.length === 0) {
           this.#releaseRecord(record);
         }
       } else {
         const release = Promise.allSettled(abandonedCleanups).then((results) => {
-          if (!cleanupFailed && results.every((result) => result.status === 'fulfilled')) {
+          const lateCleanupErrors = results.flatMap((result) =>
+            result.status === 'rejected' ? [result.reason] : [],
+          );
+          if (lateCleanupErrors.length > 0) {
+            this.#recordCleanupFailure(record, lateCleanupErrors);
+          } else if (cleanupErrors.length === 0) {
             this.#releaseRecord(record);
           }
         });
@@ -808,6 +836,9 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   #releaseRecord(record: ApplicationRecord<Source>): void {
+    if (record.cleanupError !== undefined) {
+      return;
+    }
     if (
       record.ownsContainerElement === true &&
       record.containerElement !== undefined &&
@@ -818,6 +849,29 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
     if (this.#records.get(record.identity.instanceId) === record) {
       this.#records.delete(record.identity.instanceId);
     }
+  }
+
+  #pruneCleanTerminalRecords(): void {
+    for (const record of this.#records.values()) {
+      if (isTerminalState(record.state) && !this.#instances.has(record.identity.instanceId)) {
+        this.#releaseRecord(record);
+      }
+    }
+  }
+
+  #recordCleanupFailure(record: ApplicationRecord<Source>, errors: readonly unknown[]): void {
+    record.cleanupCauses ??= [];
+    record.cleanupCauses.push(...errors);
+    const failure = new FrontsError(
+      frontsErrorCodes.lifecycleFailed,
+      `Application "${record.identity.name}" failed to clean up completely.`,
+      {
+        cause: new AggregateError(record.cleanupCauses),
+        details: { failureCount: record.cleanupCauses.length },
+        phase: 'unmount',
+      },
+    );
+    this.#reportError(record, failure, 'unmount');
   }
 
   async #provideServices(
@@ -1010,6 +1064,7 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
       ...(record.containerType === undefined ? {} : { containerType: record.containerType }),
       ...(record.resolved === undefined ? {} : { resolved: record.resolved }),
       ...(record.error === undefined ? {} : { error: record.error }),
+      ...(record.cleanupError === undefined ? {} : { cleanupError: record.cleanupError }),
     };
   }
 
@@ -1033,7 +1088,12 @@ export class FrontsHostImpl<Source, Services extends object> implements FrontsHo
   }
 
   #reportError(record: ApplicationRecord<Source>, error: FrontsError, phase: FrontsPhase): void {
-    record.error = error;
+    if (phase === 'unmount') {
+      record.cleanupError = error;
+      record.error ??= error;
+    } else {
+      record.error = error;
+    }
     this.#emit({
       error,
       hostId: this.id,
