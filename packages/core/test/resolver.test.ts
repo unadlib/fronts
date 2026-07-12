@@ -49,6 +49,10 @@ describe('application resolution', () => {
       { name: 42 },
       { expose: 42, name: 'checkout' },
       { name: 'checkout', range: false },
+      Object.create({ name: 'checkout' }),
+      Object.assign(Object.create({ expose: './admin' }) as object, { name: 'checkout' }),
+      Object.assign(Object.create({ range: '^2' }) as object, { name: 'checkout' }),
+      Object.assign(Object.create({ channel: 'stable' }) as object, { name: 'checkout' }),
     ]) {
       expect(() => normalizeAppRef(invalid as never)).toThrowError(
         expect.objectContaining<Partial<FrontsError>>({

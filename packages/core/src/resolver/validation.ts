@@ -41,7 +41,7 @@ function normalizeOptional(value: unknown, property: string): string | undefined
 }
 
 export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
-  if (!isRecord(ref) || typeof ref.name !== 'string') {
+  if (!isRecord(ref) || !hasOwn(ref, 'name') || typeof ref.name !== 'string') {
     throw new FrontsError(frontsErrorCodes.resolutionFailed, 'AppRef must contain a string name.', {
       details: { property: 'name' },
       phase: 'resolve',
@@ -54,6 +54,16 @@ export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
       'AppRef.name must be a non-empty value without whitespace.',
       { phase: 'resolve' },
     );
+  }
+
+  for (const property of ['expose', 'range', 'channel'] as const) {
+    if (ref[property] !== undefined && !hasOwn(ref, property)) {
+      throw new FrontsError(
+        frontsErrorCodes.resolutionFailed,
+        `AppRef.${property} must be an own property when provided.`,
+        { details: { property }, phase: 'resolve' },
+      );
+    }
   }
 
   const expose = normalizeOptional(ref.expose, 'expose') ?? './application';
