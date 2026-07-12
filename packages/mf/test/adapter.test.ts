@@ -262,4 +262,24 @@ describe('Module Federation runtime adapter', () => {
     expect(runtime.registerRemotes).not.toHaveBeenCalled();
     expect(runtime.loadRemote).not.toHaveBeenCalled();
   });
+
+  it('validates the expose before registering a remote for preload', async () => {
+    const runtime = createRuntime();
+    const adapter = createModuleFederationAdapter({ instance: runtime.instance });
+    const source = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout.js',
+      name: 'checkout',
+    });
+    const resolved = {
+      ...createResolved(source),
+      ref: normalizeAppRef({ expose: './', name: 'checkout' }),
+    };
+
+    await expect(adapter.preload?.(resolved, createOperation('preload'))).rejects.toMatchObject({
+      code: frontsErrorCodes.loadFailed,
+      phase: 'load',
+    });
+    expect(runtime.registerRemotes).not.toHaveBeenCalled();
+    expect(runtime.preloadRemote).not.toHaveBeenCalled();
+  });
 });

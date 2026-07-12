@@ -78,6 +78,7 @@ export function createModuleFederationAdapter(
 
       try {
         assertModuleFederationSource(resolved.source);
+        toModuleFederationId(resolved.source, resolved.ref);
         remoteName = resolved.source.remote.name;
         const preloadOptions = createPreloadOptions(resolved, options);
         registerRemote(resolved, options);
