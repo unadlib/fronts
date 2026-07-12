@@ -20,5 +20,37 @@ export type {
   MountTarget,
   ServiceKey,
 } from './app/index.js';
-export { FrontsError, frontsErrorCodes, isFrontsError } from './errors.js';
+export {
+  FrontsError,
+  createAbortedError,
+  frontsErrorCodes,
+  isFrontsError,
+  throwIfAborted,
+} from './errors.js';
 export type { FrontsErrorCode, FrontsErrorOptions, FrontsPhase } from './errors.js';
+export {
+  MemoryResolutionCache,
+  assertResolvedApp,
+  createCachedResolver,
+  createFallbackResolver,
+  createRegistryResolver,
+  createResolutionCacheKey,
+  createStaticResolver,
+  normalizeAppRef,
+} from './resolver/index.js';
+export type {
+  AppRef,
+  AppResolver,
+  CachedResolverOptions,
+  NormalizedAppRef,
+  RegistryRequestContext,
+  RegistryResolverOptions,
+  ResolutionCache,
+  ResolutionCacheEntry,
+  ResolveContext,
+  ResolveFunction,
+  ResolvedApp,
+  ResolvedAppInit,
+  StaticResolution,
+  StaticResolutionMatch,
+} from './resolver/index.js';

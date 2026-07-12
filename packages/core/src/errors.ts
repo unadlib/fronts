@@ -49,3 +49,16 @@ export class FrontsError extends Error {
 export function isFrontsError(value: unknown): value is FrontsError {
   return value instanceof FrontsError;
 }
+
+export function createAbortedError(phase: FrontsPhase, cause?: unknown): FrontsError {
+  return new FrontsError(frontsErrorCodes.aborted, `The Fronts ${phase} operation was aborted.`, {
+    cause,
+    phase,
+  });
+}
+
+export function throwIfAborted(signal: AbortSignal, phase: FrontsPhase): void {
+  if (signal.aborted) {
+    throw createAbortedError(phase, signal.reason);
+  }
+}
