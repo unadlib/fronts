@@ -16,7 +16,7 @@ export function normalizeAppRef(ref: AppRef): NormalizedAppRef {
     );
   }
 
-  const expose = copyOptional(ref.expose) ?? './app';
+  const expose = copyOptional(ref.expose) ?? './application';
   if (!expose.startsWith('./')) {
     throw new FrontsError(
       frontsErrorCodes.resolutionFailed,

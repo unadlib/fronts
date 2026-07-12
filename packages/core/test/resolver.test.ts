@@ -22,7 +22,7 @@ const context: ResolveContext = {
 describe('application resolution', () => {
   it('normalizes and validates application references', () => {
     expect(normalizeAppRef({ name: ' checkout ', range: ' ^2 ' })).toEqual({
-      expose: './app',
+      expose: './application',
       name: 'checkout',
       range: '^2',
     });

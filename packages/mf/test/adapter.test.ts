@@ -102,7 +102,7 @@ describe('Module Federation runtime adapter', () => {
     const source = createModuleFederationSource({ name: 'checkout', version: '^2.0.0' });
     expect(source.remote).toEqual({ name: 'checkout', version: '^2.0.0' });
     expect(toModuleFederationId(source, normalizeAppRef({ name: 'checkout' }))).toBe(
-      'checkout/app',
+      'checkout/application',
     );
   });
 
