@@ -28,6 +28,7 @@
     "eslint": "^10.0.1",
     "happy-dom": "^20.10.6",
     "prettier": "^3.9.5",
+    "publint": "^0.3.21",
     "tsdown": "^0.22.7",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
