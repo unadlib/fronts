@@ -346,6 +346,68 @@ describe('secure iframe execution', () => {
     parentPeer.close();
   });
 
+  it('waits for an abandoned iframe mount to clean up before stopping', async () => {
+    const parentOrigin = 'https://shell.example.test';
+    const channelId = 'abandoned-mount';
+    let finishMount!: (handle: { unmount(): Promise<void> }) => void;
+    const mounted = new Promise<{ unmount(): Promise<void> }>((resolve) => {
+      finishMount = resolve;
+    });
+    let finishCleanup!: () => void;
+    const cleanup = new Promise<void>((resolve) => {
+      finishCleanup = resolve;
+    });
+    const unmount = vi.fn(() => cleanup);
+    const mount = vi.fn(() => mounted);
+    const remoteApp = defineApp({ mount });
+    const target = document.createElement('main');
+    const agent = createIframeAgent({
+      allowedOrigins: [parentOrigin],
+      loader: { load: async () => ({ default: remoteApp }) },
+      parent: window,
+      target,
+      window,
+    });
+    const channel = new MessageChannel();
+    const parentPeer = new IframeRpcPeer(channel.port1, { channelId, idPrefix: 'parent' });
+    parentPeer.handle('capabilities.negotiate', () => []);
+    const ref = normalizeAppRef({ name: 'checkout' });
+    const message = createIframeConnectMessage({
+      capabilities: [],
+      channelId,
+      identity,
+      props: {},
+      ref,
+      resolved: { ref, source: { entry: 'checkout.js' } },
+    });
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: message,
+        origin: parentOrigin,
+        ports: [channel.port2],
+        source: window,
+      }),
+    );
+    await vi.waitFor(() => expect(mount).toHaveBeenCalledOnce());
+
+    let stopped = false;
+    const stopping = agent.stop().then(() => {
+      stopped = true;
+    });
+    await Promise.resolve();
+    expect(stopped).toBe(false);
+
+    finishMount({ unmount });
+    await vi.waitFor(() => expect(unmount).toHaveBeenCalledOnce());
+    expect(stopped).toBe(false);
+
+    finishCleanup();
+    await stopping;
+    expect(agent.sessions).toBe(0);
+    expect(target.children).toHaveLength(0);
+    parentPeer.close();
+  });
+
   it('reports iframe application failures after stopping every session resource', async () => {
     const parentOrigin = 'https://shell.example.test';
     const channelId = 'failed-stop';

@@ -114,6 +114,7 @@ function createSession<Source, Props = unknown>(
   }
   let handle: AppHandle<Props> | undefined;
   let stopped = false;
+  const abandonedCleanups: Promise<void>[] = [];
 
   const loaded = (async () => {
     const module = await raceWithAbort(
@@ -170,6 +171,7 @@ function createSession<Source, Props = unknown>(
           target: root,
         }),
       cleanup: async (handle) => handle.unmount(),
+      onAbandoned: (cleanup) => abandonedCleanups.push(cleanup),
       phase: 'mount',
       signal: controller.signal,
     });
@@ -214,6 +216,7 @@ function createSession<Source, Props = unknown>(
       } else {
         await loaded.then((mounted) => mounted.unmount()).catch(() => undefined);
       }
+      await Promise.all(abandonedCleanups);
     } finally {
       root.remove();
       peer.close('Iframe session stopped');
