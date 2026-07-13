@@ -51,6 +51,14 @@ function resolveProducer(value: string | null): ProducerConfig {
         id: 'vite-plugin-federation',
         remoteName: 'fronts_vite_plugin_federation_remote',
       };
+    case 'originjs':
+      return {
+        appName: 'originjs-catalog',
+        displayName: '@originjs/vite-plugin-federation',
+        entry: 'http://127.0.0.1:4203/assets/remoteEntry.js',
+        id: 'originjs',
+        remoteName: 'fronts_originjs_vite_remote',
+      };
     default:
       throw new Error(`Unsupported Vite federation producer "${value}".`);
   }

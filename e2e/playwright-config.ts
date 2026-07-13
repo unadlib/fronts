@@ -11,6 +11,7 @@ const examples = [
   ['@fronts-example/vite-host', 4200],
   ['@fronts-example/vite-remote', 4201],
   ['@fronts-example/vite-plugin-federation-remote', 4202],
+  ['@fronts-example/originjs-vite-remote', 4203],
 ] as const;
 
 export function createPlaywrightConfig(mode: ExampleServerMode): PlaywrightTestConfig {

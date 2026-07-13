@@ -1,0 +1,20 @@
+{
+  "name": "@fronts-example/originjs-vite-remote",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf dist",
+    "dev": "pnpm build && vite preview",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fronts/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "vite": "^5.4.21"
+  }
+}

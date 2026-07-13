@@ -124,6 +124,9 @@ The Vite runtime examples pair:
   Fronts application ABI
 - a Vite remote on `http://127.0.0.1:4202` that uses `vite-plugin-federation` and is consumed through
   its MF2 manifest by the same host at `/?producer=vite-plugin-federation`
+- a production-only Vite 5.4 compatibility remote on `http://127.0.0.1:4203` that uses
+  `@originjs/vite-plugin-federation`; the same host consumes its ESM `remoteEntry.js` at
+  `/?producer=originjs` and validates the remote's shared `@fronts/core` fallback
 
 Run every example service with:
 
