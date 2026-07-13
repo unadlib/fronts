@@ -1,12 +1,13 @@
 # Fronts 2.0
 
 Fronts is a framework-neutral **application runtime** for independently delivered web
-applications. It uses Module Federation 2 for module discovery and loading, then adds the
-application-level contract and production controls that a module loader intentionally does not
-own.
+applications. Its core accepts any application loader. When a platform chooses Module Federation
+2 for discovery and loading, `@fronts/mf` connects the official runtime to the application-level
+contract and production controls that a module loader intentionally does not own.
 
-> Status: Fronts 2.0 prerelease, published under the `next` tag. The architecture and protocol are
-> implemented and tested, but the public API may still change before the first stable release.
+> Status: Fronts 2.0 is in prerelease development and has not yet been published to npm. The
+> repository is prepared to publish prereleases under the `next` tag. The architecture and protocol
+> are implemented and tested, but the public API may still change before the first stable release.
 
 ## Why Fronts still exists after Module Federation 2
 
@@ -160,7 +161,8 @@ pnpm test:e2e          # development servers
 pnpm test:e2e:preview  # fresh production builds served by preview servers
 ```
 
-Node.js 22.18 or newer and pnpm 10 are required.
+Node.js 22.18 or newer and pnpm 10 or 11 are required. The workspace currently pins pnpm 10 through
+the `packageManager` field.
 
 ## License
 

@@ -26,6 +26,7 @@ Changesets keeps their public versions synchronized while the protocol is stabil
 pnpm install --frozen-lockfile
 pnpm check
 pnpm test:e2e
+pnpm test:e2e:preview
 ```
 
 `pnpm check` performs formatting/lint, a topological clean build, tarball consumption checks,
@@ -34,6 +35,10 @@ TypeScript checks, all unit/integration tests, and enforced coverage thresholds.
 `pnpm verify:packages` packs each public workspace, rejects missing README/LICENSE/dist or leaked
 source/test directories, installs the four tarballs in an isolated temporary consumer, and imports
 every public entry through both ESM and CommonJS.
+
+The development-server E2E run catches local composition regressions. The production-preview run
+performs a fresh build and is the release gate used by CI; it also exercises producer output that is
+only available after bundling.
 
 ## Automated flow
 

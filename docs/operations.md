@@ -2,9 +2,9 @@
 
 ## Observability model
 
-Every host has a `hostId`; every application has an `instanceId` and `traceId`. Host events carry a
-monotonic sequence number, timestamp, current snapshot, and state duration. Errors additionally
-carry a stable Fronts error code and phase.
+Every host has a `hostId`; every application has an `instanceId` and `traceId`. All host events
+carry a monotonic sequence number, timestamp, and current snapshot. State events additionally carry
+the duration of the previous state; error events carry a stable Fronts error code and phase.
 
 Every `resolve`, `load`, `preload`, `mount`, and `replace` action has one logical operation. Each
 extension receives an immutable context carrying the same `operationId`, `hostId`, `traceId`,
@@ -183,16 +183,20 @@ lifetime should also be disposed by the composition root.
 
 ## Testing strategy
 
-The repository uses four layers:
+The repository uses five evidence layers:
 
 1. unit tests for protocol, resolver, service scope, adapters, and error behavior;
 2. host contract tests for lifecycle transitions, cancellation, replacement, and audit;
 3. a real MF Runtime integration test serving a real remote container over HTTP;
-4. browser E2E for the four-service React/Vue/iframe vertical slice.
+4. Chromium E2E for the core-only lifecycle and the React/Vue/iframe vertical slice;
+5. Chromium E2E for official and compatible Vite producers, covering the official MF Vite plugin,
+   `vite-plugin-federation`, and the production-only OriginJS ESM path.
 
-Mocks are appropriate for error matrices, but at least one runtime test must execute the official
-MF instance. Official MF also recommends real-runtime integration/E2E testing to avoid a false
-gap between bundler fixtures and production behavior.
+`pnpm test:e2e` runs the browser suite against development servers. `pnpm test:e2e:preview` performs
+a fresh production build and runs the same behavior against preview servers; CI uses this production
+path. Mocks are appropriate for error matrices, but at least one runtime test must execute the
+official MF instance. Official MF also recommends real-runtime integration/E2E testing to avoid a
+false gap between bundler fixtures and production behavior.
 
 ## Incident correlation
 
