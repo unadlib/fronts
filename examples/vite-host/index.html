@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fronts plain Vite host</title>
+  </head>
+  <body>
+    <main class="shell">
+      <p class="eyebrow">Runtime-first host</p>
+      <h1>Plain Vite shell</h1>
+      <p>
+        This host uses the official Module Federation Runtime directly; the MF Vite plugin belongs
+        only to the remote producer.
+      </p>
+      <div class="controls">
+        <button id="update-application" type="button">Update remote props</button>
+        <button id="unmount-application" type="button">Unmount remote</button>
+      </div>
+      <p class="status" id="service-event">Waiting for remote service event…</p>
+      <p class="status" data-state="mounting" id="host-audit">Loading Vite remote…</p>
+      <section aria-label="Vite remote application" id="application-slot"></section>
+    </main>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

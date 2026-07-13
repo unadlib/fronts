@@ -1,0 +1,20 @@
+{
+  "name": "@fronts-example/vite-host",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf dist",
+    "dev": "vite",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fronts/core": "workspace:^",
+    "@fronts/mf": "workspace:^",
+    "@module-federation/runtime": "^2.7.0"
+  },
+  "devDependencies": {
+    "vite": "^8.1.4"
+  }
+}

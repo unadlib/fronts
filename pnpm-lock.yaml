@@ -139,6 +139,35 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.17)
 
+  examples/vite-host:
+    dependencies:
+      '@fronts/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@fronts/mf':
+        specifier: workspace:^
+        version: link:../../packages/mf
+      '@module-federation/runtime':
+        specifier: ^2.7.0
+        version: 2.7.0
+    devDependencies:
+      vite:
+        specifier: ^8.1.4
+        version: 8.1.4(@types/node@26.1.1)(jiti@2.4.2)
+
+  examples/vite-remote:
+    dependencies:
+      '@fronts/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+    devDependencies:
+      '@module-federation/vite':
+        specifier: ^1.16.16
+        version: 1.16.16(typescript@6.0.3)(vite@8.1.4(@types/node@26.1.1)(jiti@2.4.2))
+      vite:
+        specifier: ^8.1.4
+        version: 8.1.4(@types/node@26.1.1)(jiti@2.4.2)
+
   examples/vue3-remote:
     dependencies:
       '@fronts/vue3':
@@ -526,6 +555,12 @@ packages:
 
   '@module-federation/third-party-dts-extractor@2.7.0':
     resolution: {integrity: sha512-hZJKkngQ4hwe0U+vrT3KOsU11qoHCQK0wB4x1bXoTgpTfV9j5NSuddOyRmwbvXpir9bDWh3xy7ghqsx3mFf3kA==}
+
+  '@module-federation/vite@1.16.16':
+    resolution: {integrity: sha512-XtgLXydgUblSzIJaRljVrg5xyogABEUUnTsSXX11W/q55XR+mnpKInsGY3uBgX09GbjSW5DNHWal+1zKt2d7uw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
 
   '@module-federation/webpack-bundler-runtime@2.7.0':
     resolution: {integrity: sha512-3qLRIqcZVBNgJrZpiEzcTP8a6+mCdUV1QGk/XljawsQHyNieMVdLQtdLvkoF5Z5kRXNMovq+wv3vchKOMWyA8w==}
@@ -2913,6 +2948,18 @@ snapshots:
     dependencies:
       empathic: 2.0.0
       exsolve: 1.0.8
+
+  '@module-federation/vite@1.16.16(typescript@6.0.3)(vite@8.1.4(@types/node@26.1.1)(jiti@2.4.2))':
+    dependencies:
+      '@module-federation/dts-plugin': 2.7.0(typescript@6.0.3)
+      '@module-federation/runtime': 2.7.0
+      '@module-federation/sdk': 2.7.0
+      vite: 8.1.4(@types/node@26.1.1)(jiti@2.4.2)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - vue-tsc
 
   '@module-federation/webpack-bundler-runtime@2.7.0':
     dependencies:

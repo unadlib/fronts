@@ -1,0 +1,66 @@
+:root {
+  background: #f6f4ff;
+  color: #252044;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  background: #5c43c7;
+  border: 0;
+  border-radius: 0.65rem;
+  color: white;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.shell {
+  margin: 0 auto;
+  max-width: 52rem;
+  padding: 4rem 1.5rem;
+}
+
+.eyebrow {
+  color: #604dc1;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(2.2rem, 7vw, 4.5rem);
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin: 0.4rem 0 1rem;
+}
+
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  margin: 2rem 0 1rem;
+}
+
+.status {
+  color: #655f83;
+}
+
+[data-state='error'] {
+  color: #a52c35;
+}
+
+#application-slot > * {
+  margin-top: 1.5rem;
+}

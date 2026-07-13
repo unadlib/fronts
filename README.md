@@ -116,6 +116,13 @@ independently served applications:
 - Vue 3 over Module Federation in a Shadow DOM container
 - React over Module Federation inside an iframe with its own MF runtime instance
 
+The Vite runtime example pairs:
+
+- a plain Vite host on `http://127.0.0.1:4200` that uses `@module-federation/runtime` directly and
+  does not install the MF Vite plugin
+- a Vite remote on `http://127.0.0.1:4201` that uses `@module-federation/vite` to expose the same
+  Fronts application ABI
+
 Run every example service with:
 
 ```sh
@@ -124,7 +131,7 @@ pnpm build
 pnpm dev:examples
 ```
 
-Then open either example URL above.
+Then open any host URL above.
 
 ## Documentation
 

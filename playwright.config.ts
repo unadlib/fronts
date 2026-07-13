@@ -6,6 +6,8 @@ const servers: NonNullable<PlaywrightTestConfig['webServer']> = [
   ['@fronts-example/vue3-remote', 4102],
   ['@fronts-example/iframe-remote', 4103],
   ['@fronts-example/core-only', 4110],
+  ['@fronts-example/vite-host', 4200],
+  ['@fronts-example/vite-remote', 4201],
 ].map(([workspace, port]) => ({
   command: `pnpm --filter ${workspace} dev`,
   reuseExistingServer: process.env.CI === undefined,
