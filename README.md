@@ -147,6 +147,7 @@ Then open any host URL above.
 - [Host Runtime API](docs/host-runtime-api.md) — resolution, lifecycle, replacement, and shutdown workflows
 - [Module Federation integrations](docs/module-federation-integrations.md) — producer compatibility and support boundaries
 - [Resolution and delivery](docs/resolution-and-delivery.md) — versions, channels, caching, and rollback
+- [Iframe deployment](docs/iframe-deployment.md) — cross-origin wiring, capabilities, and production security
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance

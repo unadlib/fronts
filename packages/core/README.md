@@ -77,6 +77,8 @@ Additional entry points:
 
 See the [Host Runtime API guide](../../docs/host-runtime-api.md) for resolution, preload, mount,
 replacement, contextual services, observability, and shutdown workflows.
+See the [iframe deployment guide](../../docs/iframe-deployment.md) for cross-origin parent/child
+wiring, capability negotiation, browser policy, and production teardown.
 
 The core package has no React, Vue, bundler, or Module Federation dependency. Pair it with
 `@fronts/mf`, a custom loader, or both.
