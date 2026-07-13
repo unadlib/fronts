@@ -105,13 +105,18 @@ resolved application source to `registerRemotes()`, `preloadRemote()`, and `load
 
 ## Examples
 
-The vertical slice contains a React host plus three independently served applications:
+The core-only example on `http://127.0.0.1:4110` demonstrates a custom loader, vanilla DOM
+application, capability-scoped service, updates, unmounting, and leak audit using only
+`@fronts/core`.
+
+The Module Federation vertical slice on `http://127.0.0.1:4100` contains a React host plus three
+independently served applications:
 
 - React over Module Federation in a DOM container
 - Vue 3 over Module Federation in a Shadow DOM container
 - React over Module Federation inside an iframe with its own MF runtime instance
 
-Run all four services with:
+Run every example service with:
 
 ```sh
 pnpm install
@@ -119,7 +124,7 @@ pnpm build
 pnpm dev:examples
 ```
 
-Then open `http://127.0.0.1:4100`.
+Then open either example URL above.
 
 ## Documentation
 

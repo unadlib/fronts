@@ -51,6 +51,16 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(happy-dom@20.10.6)(vite@8.1.4(@types/node@26.1.1)(jiti@2.4.2))
 
+  examples/core-only:
+    dependencies:
+      '@fronts/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^2.1.4
+        version: 2.1.5(@module-federation/runtime-tools@2.7.0)
+
   examples/iframe-remote:
     dependencies:
       '@fronts/core':
