@@ -1,0 +1,165 @@
+{
+  "categories": [
+    {
+      "id": "concepts",
+      "titles": { "en": "Core concepts", "zh": "核心概念" },
+      "pages": [
+        "decision-record",
+        "architecture",
+        "application-contract",
+        "documentation-website-decision"
+      ]
+    },
+    {
+      "id": "runtime",
+      "titles": { "en": "Runtime guides", "zh": "运行时指南" },
+      "pages": [
+        "host-runtime-api",
+        "resolution-delivery",
+        "module-federation",
+        "isolation-security",
+        "iframe-deployment"
+      ]
+    },
+    {
+      "id": "packages",
+      "titles": { "en": "Packages", "zh": "软件包" },
+      "pages": ["core", "mf", "react", "vue3"]
+    },
+    {
+      "id": "operations",
+      "titles": { "en": "Operate and release", "zh": "运维与发布" },
+      "pages": [
+        "runtime-operations",
+        "support-policy",
+        "troubleshooting",
+        "releasing",
+        "contributing",
+        "security",
+        "documentation-website"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "index",
+      "english": "content/authored/en/index.mdx",
+      "chinese": "content/authored/zh/index.mdx"
+    },
+    {
+      "slug": "getting-started",
+      "english": "content/authored/en/getting-started.mdx",
+      "chinese": "content/authored/zh/getting-started.mdx"
+    },
+    {
+      "slug": "concepts/decision-record",
+      "source": "docs/decision-record.md",
+      "english": "content/authored/en/concepts/decision-record.mdx",
+      "chinese": "content/authored/zh/concepts/decision-record.mdx"
+    },
+    {
+      "slug": "concepts/architecture",
+      "source": "docs/architecture.md",
+      "chinese": "content/authored/zh/concepts/architecture.mdx"
+    },
+    {
+      "slug": "concepts/application-contract",
+      "source": "docs/application-contract.md",
+      "chinese": "content/authored/zh/concepts/application-contract.mdx"
+    },
+    {
+      "slug": "concepts/documentation-website-decision",
+      "source": "docs/adr/0002-fumadocs-static-pages.md",
+      "chinese": "content/authored/zh/concepts/documentation-website-decision.mdx"
+    },
+    {
+      "slug": "runtime/host-runtime-api",
+      "source": "docs/host-runtime-api.md",
+      "chinese": "content/authored/zh/runtime/host-runtime-api.mdx"
+    },
+    {
+      "slug": "runtime/resolution-delivery",
+      "source": "docs/resolution-and-delivery.md",
+      "chinese": "content/authored/zh/runtime/resolution-delivery.mdx"
+    },
+    {
+      "slug": "runtime/module-federation",
+      "source": "docs/module-federation-integrations.md",
+      "chinese": "content/authored/zh/runtime/module-federation.mdx"
+    },
+    {
+      "slug": "runtime/isolation-security",
+      "source": "docs/isolation-and-security.md",
+      "chinese": "content/authored/zh/runtime/isolation-security.mdx"
+    },
+    {
+      "slug": "runtime/iframe-deployment",
+      "source": "docs/iframe-deployment.md",
+      "chinese": "content/authored/zh/runtime/iframe-deployment.mdx"
+    },
+    {
+      "slug": "packages/core",
+      "source": "packages/core/README.md",
+      "title": "@fronts/core",
+      "description": "Framework-neutral application protocol, Host runtime, resolvers, containers, services, errors, and iframe entry point.",
+      "chinese": "content/authored/zh/packages/core.mdx"
+    },
+    {
+      "slug": "packages/mf",
+      "source": "packages/mf/README.md",
+      "english": "content/authored/en/packages/mf.mdx",
+      "title": "@fronts/mf",
+      "description": "Adapter from resolved Fronts applications to an explicit official Module Federation Runtime instance.",
+      "chinese": "content/authored/zh/packages/mf.mdx"
+    },
+    {
+      "slug": "packages/react",
+      "source": "packages/react/README.md",
+      "title": "@fronts/react",
+      "description": "React producer and Host adapters for the framework-neutral Fronts application contract.",
+      "chinese": "content/authored/zh/packages/react.mdx"
+    },
+    {
+      "slug": "packages/vue3",
+      "source": "packages/vue3/README.md",
+      "title": "@fronts/vue3",
+      "description": "Vue 3 producer and Host adapters for the framework-neutral Fronts application contract.",
+      "chinese": "content/authored/zh/packages/vue3.mdx"
+    },
+    {
+      "slug": "operations/runtime-operations",
+      "source": "docs/operations.md",
+      "chinese": "content/authored/zh/operations/runtime-operations.mdx"
+    },
+    {
+      "slug": "operations/support-policy",
+      "source": "docs/support-policy.md",
+      "chinese": "content/authored/zh/operations/support-policy.mdx"
+    },
+    {
+      "slug": "operations/troubleshooting",
+      "source": "docs/troubleshooting.md",
+      "chinese": "content/authored/zh/operations/troubleshooting.mdx"
+    },
+    {
+      "slug": "operations/releasing",
+      "source": "docs/releasing.md",
+      "chinese": "content/authored/zh/operations/releasing.mdx"
+    },
+    {
+      "slug": "operations/contributing",
+      "source": "CONTRIBUTING.md",
+      "chinese": "content/authored/zh/operations/contributing.mdx"
+    },
+    {
+      "slug": "operations/security",
+      "source": "SECURITY.md",
+      "chinese": "content/authored/zh/operations/security.mdx"
+    },
+    {
+      "slug": "operations/documentation-website",
+      "source": "docs/features/documentation-website/spec.md",
+      "chinese": "content/authored/zh/operations/documentation-website.mdx"
+    }
+  ]
+}

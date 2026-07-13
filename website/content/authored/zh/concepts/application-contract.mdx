@@ -1,0 +1,143 @@
+---
+title: 应用契约
+description: Fronts 2.0 的框架无关应用协议、生命周期所有权、就绪、服务和兼容规则。
+---
+
+## 协议身份
+
+每个 producer 都导出由 `defineApp()`、`defineReactApp()` 或 `defineVueApp()` 创建的
+`FrontsApp`。helper 添加不可枚举的 symbol brand，并公开可枚举的协议名称和版本。symbol 只是
+同一 JavaScript realm 内的标记；跨 package ABI 是结构化 mount shape、协议名称和 major 版本。
+Host 始终验证 ABI，symbol 不能绕过协议版本检查。
+
+Module Federation expose 通常导出默认应用：
+
+```ts
+export interface FrontsAppModule<Props, Services extends object> {
+  readonly default: FrontsApp<Props, Services>;
+}
+```
+
+默认 expose 为 `./application`，也可在 `AppRef` 中显式选择其他 expose。
+
+## Mount 输入
+
+```ts
+interface MountContext<Props, Services extends object> {
+  readonly identity: {
+    readonly instanceId: string;
+    readonly name: string;
+    readonly version?: string;
+    readonly expose?: string;
+    readonly traceId?: string;
+  };
+  readonly props: Readonly<Props>;
+  readonly services: Readonly<Services>;
+  readonly signal: AbortSignal;
+  readonly target: Element | ShadowRoot;
+}
+```
+
+`instanceId` 在挂载事务或 retained record 存在期间唯一。Host 在事务开始时捕获 props 引用，
+但不深拷贝也不冻结调用者对象，双方必须把它当作只读输入。services 只包含应用声明且被 Host
+授权的能力；signal 在取消或强制 abort 时触发；target 由当前容器提供并控制。producer 只能在
+target 内渲染，除非通过已声明的平台 capability 明确取得其他副作用权限。
+
+## Mount 输出与就绪
+
+```ts
+interface AppHandle<Props> {
+  readonly ready?: PromiseLike<void>;
+  update?(props: Readonly<Props>): void | PromiseLike<void>;
+  activate?(): void | PromiseLike<void>;
+  deactivate?(): void | PromiseLike<void>;
+  unmount(): void | PromiseLike<void>;
+}
+```
+
+`mount()` 表示应用已接受资源，`ready` 表示可用 UI 已提交；省略 `ready` 时，mount 返回即视为
+就绪。首次渲染失败必须让 ready reject，不能等待可选 analytics、后台任务或不一定发生的交互。
+替换事务只有在候选 ready 后才能提交。
+
+`update()` 在身份、部署、target、service scope 不变的情况下更新 props；不支持时 Host 报 typed
+lifecycle error，不会悄悄 remount。`activate()`/`deactivate()` 是可选活动提示，必须保留状态，
+适合暂停 timer、subscription、media 或昂贵渲染。`unmount()` 必须存在，并释放 render root、
+listener、timer、observer、subscription 和 producer DOM；container element 由 adapter 清理。
+
+## 状态机与取消
+
+```text
+resolving → loading → preparing → mounting → ready
+                                             │
+                 ┌──────── updating ◄────────┤
+                 ├──────── active   ◄────────┤
+                 └──────── inactive ◄────────┘
+                                             ▼
+                                      unmounting → destroyed
+
+任一 pending phase ── failure/abort + rollback ──► failed | aborted
+```
+
+每个实例的操作串行执行；当前状态不允许的调用会以 `FrontsError` 拒绝，不会跨 destruction 隐式排队。
+外部 mount signal 与实例 signal 合并，任一 abort 都阻止新阶段并触发回滚。resolver/loader 应继续
+把 signal 传给网络请求。取消是协作式的：同 realm 已执行的 JavaScript 无法强制停止；需要更强
+隔离时使用 iframe，并在必要时销毁 child realm。
+
+## Capability 与实例服务
+
+应用用字符串声明所需能力：
+
+```ts
+export default defineApp<Props, HostServices>({
+  capabilities: ['navigation', 'telemetry'],
+  // ...
+});
+```
+
+声明是必要条件而非授权。`capabilityPolicy` 针对具体 identity 判断每个 key，并收到 instance
+signal；取消时 runtime 会停止等待异步授权。能力不存在或被拒绝会让普通挂载失败；未声明 service
+永远不会进入 facade。清理时 facade 先 revoke，因此应用即使保留 method proxy 也不能继续影响 Host。
+
+静态 `services` 适合简单情况；需要绑定 identity、tenant、trace 或资源时使用 `createServices`：
+
+```ts
+createServices({ identity, operation, resolved, resolution, capabilities, signal }) {
+  const channel = telemetry.open({
+    app: identity.name,
+    instanceId: identity.instanceId,
+    tenant: resolution.tenant,
+    traceId: operation.traceId,
+    version: resolved.version,
+    signal,
+  });
+  return {
+    services: { telemetry: channel },
+    dispose: () => channel.close(),
+  };
+}
+```
+
+provider 每个 mount/replace 事务只运行一次。它返回的同名服务覆盖静态服务，之后 Host 才做可用性
+与 policy 检查。返回即把所有权交给 Host；`dispose` 最多调用一次，覆盖授权失败、取消、普通卸载和
+shutdown。若 provider 在返回前抛错，它仍负责清理自己已分配但尚未移交的资源。
+
+iframe 中，proxy 配置的 capability 是 Host 控制的最大集合，不是最终 grant。child agent 加载
+真实应用后协商声明子集，只有精确交集生成 RPC stub，父端每次调用还会复核 grant；child 自己声明
+但 offer 中不存在的能力仍会拒绝挂载。应优先提供 `navigation.go()`、`telemetry.emit()` 这类窄意图
+API，而不是 `window`、整个 Redux store 或泛化全局 event bus。
+
+## 框架适配器与兼容规则
+
+`defineReactApp()` 管理 React root、context、error boundary、commit-based readiness、props
+更新、可选 Strict Mode 和卸载；`defineVueApp()` 管理 Vue app、provide context、reactive props、
+`nextTick()` readiness、configure hook 和卸载。它们刻意少于官方 MF Bridge 的路由、数据、SSR
+功能：需要这些能力时直接用 Bridge，需要参与 Fronts Host ABI 时才用 Fronts adapter。
+
+协议 major 严格匹配。Host 必须拒绝未知 major，不能猜测行为；新增可选 handle method 可以兼容，
+改变 mount 语义、readiness、服务授权或 cleanup 所有权必须提升 protocol major。
+
+## 验证
+
+`packages/core/test/app.test.ts` 与 `host.test.ts` 验证品牌、校验、顺序、就绪和清理；
+`services.test.ts` 与 `iframe.test.ts` 验证 service scope、provider cleanup 和 iframe 协商；
+React/Vue package 测试证明两个 producer 实现相同契约。

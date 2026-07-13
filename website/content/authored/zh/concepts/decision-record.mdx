@@ -1,0 +1,72 @@
+---
+title: MF 2 之后的 Fronts 2.0
+description: 保留 Fronts 应用运行时的决策、替代方案、所有权边界、非目标与发布条件。
+---
+
+状态：Fronts 2.0 alpha 已接受。最近复核日期为 2026-07-13，基线是 Module Federation 2.7
+和本地提供的 `module-federation/core` 源码提交
+[`37c97f6ec`](https://github.com/module-federation/core/commit/37c97f6ec96bcca573282cfba781ca42aefcd08d)。
+
+## 决策
+
+Fronts 2.0 有独立价值，但前提是它不重复 Module Federation 已成熟的能力。MF 已经提供独立
+Runtime、manifest/snapshot、预加载、Runtime Plugin、动态类型、DevTools、shared 选择，以及
+React/Vue Bridge。若 Fronts 再包装 `remoteEntry`、自建 shared resolver、重写 bundler plugin，
+或只是给 React remote app 换一个名字，它就会变成脆弱的官方 Runtime 分叉。
+
+仍然存在的空白位于更高一层：企业宿主需要把“一个远程模块”提升为“一个可治理的应用实例”。
+这包括稳定生命周期、租户与发布策略、多种隔离容器、最小权限宿主能力、就绪门控替换、回滚、
+取消和跨框架观测。MF 负责可靠取得模块，应用级策略不应反向塞入 MF。
+
+因此 Fronts 2.0 是位于 Module Federation 之上、传输无关且框架无关的 application runtime
+与 orchestration layer；它既不是另一个 MF Runtime，也不是完整微前端云平台。
+
+## 官方 Bridge 的重叠
+
+官方 React Bridge 已能导出、加载、渲染和销毁完整 React 应用，并提供路由与数据预取；Vue 3
+Bridge 方向相同。若系统只有 React/Vue + MF 且不需要平台治理，应直接使用官方 Bridge。
+
+`@fronts/react` 和 `@fronts/vue3` 是 Fronts ABI producer，而不是 Bridge 替代品。Fronts 的
+合理性必须由框架无关 Host、resolver、隔离容器、capability scope、替换事务和治理能力共同证明。
+以后可以提供 Bridge ↔ Fronts ABI 适配器，但 core 不应依赖 Bridge 内部实现。
+
+## 决策矩阵
+
+| 场景                                      | 建议                            |
+| ----------------------------------------- | ------------------------------- |
+| 加载共享工具函数或组件                    | 直接用 MF Runtime               |
+| 官方 Bridge 已满足 React/Vue 应用         | 使用 MF Bridge                  |
+| 单框架、同信任域、固定 remote 地址        | 通常不需要 Fronts               |
+| 跨框架统一挂载、更新和清理                | Fronts                          |
+| 按环境、租户、cohort 或 channel 选版本    | Fronts resolver + 外部 registry |
+| DOM、Shadow DOM、iframe 使用统一 Host API | Fronts container                |
+| 根据应用声明和策略裁剪宿主 API            | Fronts service scope            |
+| 候选 ready 后才切换，失败保留当前应用     | Fronts replacement transaction  |
+
+## 已接受的所有权边界
+
+Fronts 负责应用 ABI（`mount → ready → update/activate/deactivate → unmount`）、实例状态与取消、
+不可变部署解析、容器选择、scoped service、就绪门控替换、生命周期事件、泄漏审计和框架适配。
+
+Module Federation 继续负责 remote 注册、manifest/snapshot、expose 和资源加载、预加载、shared
+依赖选择、Runtime Plugin 与底层 hook、类型产物、DevTools 和 bundler 集成。
+
+MVP 明确不做新的 bundler plugin、shared resolver、MF 全局 snapshot 修改、第三方 CSS 重排、
+完整 JavaScript sandbox、registry SaaS、router 替代、SSR/RSC 应用编排和隐式全局事件总线。
+
+## 发布条件
+
+只有以下条件同时成立才值得发布：`@fronts/mf` 仅使用官方公开 Runtime API；core 不依赖框架、
+bundler；每种容器和失败阶段都有契约测试；真实 Runtime 能加载真实 remote；替换失败不会破坏
+当前实例；iframe 不使用通配 `targetOrigin`；capability 约束可见服务；所有公开 subpath 可通过
+ESM 和 CommonJS 导入；清空产物后安装、构建、测试、发布检查可以重复通过。
+
+如果官方 Runtime/Bridge 未来完整吸收这些职责，Fronts 应缩小甚至退役，而不是为项目存在而复制能力。
+
+## 验证
+
+[MF 集成矩阵](/zh/docs/runtime/module-federation)、
+[Host Runtime API](/zh/docs/runtime/host-runtime-api)、
+[应用契约](/zh/docs/concepts/application-contract)和
+[隔离模型](/zh/docs/runtime/isolation-security)把保留职责映射到公开契约。`pnpm check`、开发态
+E2E 与 production preview E2E 验证可执行条件；发布与人工安全门禁记录在运维文档中。

@@ -9,6 +9,8 @@ contract and production controls that a module loader intentionally does not own
 > repository is prepared to publish prereleases under the `next` tag. The architecture and protocol
 > are implemented and tested, but the public API may still change before the first stable release.
 
+Read the complete bilingual documentation at [fronts.js.org](https://fronts.js.org/).
+
 ## Why Fronts still exists after Module Federation 2
 
 Module Federation 2 now has an excellent runtime, manifests, preloading, runtime plugins, type
@@ -141,6 +143,7 @@ Then open any host URL above.
 
 ## Documentation
 
+- [Documentation website](https://fronts.js.org/) — searchable English and Chinese guides
 - [Documentation index](docs/index.md) — guided reading paths and maintenance rules
 - [Decision record](docs/decision-record.md) — whether Fronts 2.0 is justified after MF 2
 - [Architecture](docs/architecture.md) — layers, ownership, and dependency rules
@@ -171,6 +174,8 @@ pnpm test:coverage
 pnpm build
 pnpm test:e2e          # development servers
 pnpm test:e2e:preview  # fresh production builds served by preview servers
+pnpm dev:website       # bilingual Fumadocs website on port 4300
+pnpm website:check     # content, types, export, links, search, and browser E2E
 ```
 
 Node.js 22.18 or newer and pnpm 10 or 11 are required. The workspace currently pins pnpm 10 through

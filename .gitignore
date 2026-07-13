@@ -68,6 +68,11 @@ typings/
 
 # next.js build output
 .next
+website/.source/
+website/content/docs/
+website/next-env.d.ts
+website/out/
+website/*.tsbuildinfo
 
 # build files
 build/

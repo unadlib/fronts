@@ -24,6 +24,7 @@
     "check": "pnpm lint && pnpm build && pnpm verify:packages && pnpm typecheck && pnpm test:coverage",
     "clean": "pnpm -r --if-present clean",
     "dev:examples": "pnpm --parallel --filter './examples/*' dev",
+    "dev:website": "pnpm --filter @fronts/website dev",
     "docs:check": "node scripts/check-docs.mjs",
     "format": "prettier --write .",
     "lint": "eslint . && prettier --check . && pnpm docs:check",
@@ -34,6 +35,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
     "verify:packages": "node scripts/verify-packages.mjs",
+    "website:build": "pnpm --filter @fronts/website build",
+    "website:check": "pnpm --filter @fronts/website check",
+    "website:deploy": "node scripts/deploy-website.mjs",
     "version-packages": "changeset version",
     "release": "pnpm check && changeset publish"
   },

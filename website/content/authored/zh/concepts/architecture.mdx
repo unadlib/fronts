@@ -1,0 +1,100 @@
+---
+title: Fronts 2.0 架构
+description: 运行时分层、所有权边界、依赖方向、挂载与替换事务，以及显式扩展点。
+---
+
+## 系统边界
+
+Fronts 把逻辑应用引用变成受治理的应用实例。它刻意分层，让发布策略、代码传输、渲染框架和
+执行隔离可以独立演进：
+
+```text
+AppRef + ResolveContext
+          │
+          ▼
+      AppResolver ───────────────► ResolvedApp<Source>
+                                        │
+                                        ▼
+                              container 选择 AppLoader
+                              ├─ @fronts/mf → 官方 MF instance
+                              └─ iframe proxy → child agent + 自有 MF instance
+                                        │
+                                        ▼
+                                  FrontsApp 协议
+                                        │
+                         ┌──────────────┼──────────────┐
+                         ▼              ▼              ▼
+                       DOM          Shadow DOM       iframe
+                         └──── scoped services + lifecycle ────┘
+                                        │
+                                        ▼
+                         events、replacement、audit、cleanup
+```
+
+## 依赖规则
+
+依赖只能向内：`@fronts/core` 不依赖框架、bundler 或 Module Federation；`@fronts/mf` 依赖 core，
+并把公开的 `@module-federation/runtime` 声明为 peer；React/Vue3 包依赖 core，并 peer 对应框架。
+示例负责组合软件包，软件包不能反向导入示例或平台策略。
+
+任何 Fronts 源码都不得导入 `@module-federation/runtime-core` 私有边界。公开 Runtime package
+是兼容契约；纯运行时 consumer 可直接依赖 `@module-federation/runtime`，不必引入 build plugin。
+
+## 核心抽象
+
+- `AppRef` 是逻辑请求：name、expose、可选语义版本范围和 channel，不含 CDN URL。
+- `ResolveContext` 携带 environment、tenant、cohort、metadata，以及不可变 operation envelope；
+  Host 不解释业务策略字段，resolver/registry 才负责选版本。
+- `ResolvedApp<Source>` 是不可变决策，包含规范化引用、opaque transport source、已选版本和 metadata。
+- `AppLoader<Source>` 负责 `load()` 与可选 `preload()`，返回 unknown module；Host 随后验证协议。
+- `ContainerAdapter` 准备执行目标并拥有清理，还能为 iframe 等容器选择专用 loader。
+- `FrontsApp` 是框架无关 producer contract；React/Vue 只是生成该契约的适配器。
+- `FrontsHost` 是有状态编排器，串起解析、加载、验证、service scope、容器、挂载、就绪、替换、
+  事件、审计与回收。
+
+## 与 Module Federation 2 的所有权对照
+
+| 能力                                    | MF 2        | Fronts                          |
+| --------------------------------------- | ----------- | ------------------------------- |
+| Manifest/Snapshot、资源图               | 拥有        | 视为 opaque runtime 行为        |
+| Remote 注册、expose 加载                | 拥有        | 通过适配器调用公开 instance API |
+| Shared dependency 选择                  | 拥有        | 不拦截                          |
+| Runtime hook/plugin、远程类型、DevTools | 拥有        | 只在自身边界关联 trace          |
+| 官方 Bridge render/destroy              | Bridge 拥有 | 只拥有自身 ABI adapter          |
+| 逻辑应用到部署的业务策略                | 不规定      | resolver contract 拥有          |
+| 跨 transport 生命周期                   | 不规定      | 拥有                            |
+| DOM/Shadow/iframe 策略                  | 不规定      | 拥有                            |
+| Host service 授权、就绪替换、泄漏审计   | 不规定      | 拥有                            |
+
+URL 重写、manifest fetch、script/link 创建、shared resolution 和 remote-load fallback 应使用
+MF runtime plugin；环境、租户、cohort、channel 等业务部署选择使用 Fronts resolver。混合两类
+职责会让缓存、回滚和观测都难以推理。
+
+## Host 挂载事务
+
+Host 按顺序执行：规范化引用并生成 operation/identity/trace ID；解析部署；若配置了动态容器则
+根据 `resolved` 生成 container request，随后选择默认或容器专用 loader；加载并验证应用协议；
+为当前实例创建服务、授权声明的 capability 并构造可撤销 facade；准备容器；调用 `mount()`；
+在 deadline 内等待 `ready`；最后才把实例发布为可用。
+
+任何阶段失败都会以确定顺序回滚已经取得的资源。原始异常保持为主错误，清理异常通过带 phase 的
+Fronts error 和事件另行呈现，不会覆盖根因。
+
+## 替换事务
+
+`replace(currentId, nextOptions)` 不是修改运行中的 MF cache。Host 先在目标内创建隐藏 staging
+slot，解析并挂载候选部署；候选未 ready 时失败，只销毁 staging，当前实例继续服务；候选 ready
+后先提交新 slot，再卸载旧实例。旧实例清理失败单独返回，不能伪装成新应用未就绪。同一实例的并发
+替换会被拒绝，从而保持清楚的事务边界。
+
+## 扩展点与验证
+
+可以实现 `AppResolver` 接 registry、`ResolutionCache` 接共享缓存、resolution-aware container
+按 metadata 选择 iframe origin、`AppLoader` 接非 MF transport、`ContainerAdapter` 接新目标，
+或把 `HostEvent` 映射到 OpenTelemetry。用 `createServices` 创建实例绑定能力并确定性释放，用
+`capabilityPolicy` 按 identity、tenant、deployment 授权。所有扩展点都是显式对象，不是进程全局变量。
+
+`pnpm check` 验证包边界、公开 exports、类型、生命周期和覆盖率；`pnpm test:e2e` 与
+`pnpm test:e2e:preview` 分别验证开发服务和全新生产产物。源码权威边界位于
+[`packages/core/src`](https://github.com/unadlib/fronts/tree/main/packages/core/src) 与
+[`packages/mf/src`](https://github.com/unadlib/fronts/tree/main/packages/mf/src)。

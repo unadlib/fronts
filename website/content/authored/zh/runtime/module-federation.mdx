@@ -1,0 +1,100 @@
+---
+title: Module Federation 集成
+description: Fronts 使用 Module Federation 交付时的所有权边界、producer 兼容等级与验证路径。
+---
+
+## 目的与所有权
+
+Fronts core 不依赖 Module Federation。只有选择 MF 作为交付 transport 时，才使用 `@fronts/mf`
+把一个显式传入的官方 Runtime instance 适配到 Fronts loader；它不实现第二套 manifest parser、share
+resolver、remote registry 或 bundler plugin。
+
+```mermaid
+flowchart LR
+  Policy[Fronts resolver policy] --> Resolved[Resolved application]
+  Resolved --> Adapter[@fronts/mf]
+  Adapter --> Runtime[Official MF runtime instance]
+  Runtime --> Artifact[Manifest or remote entry]
+  Artifact --> Export[FrontsApp export]
+  Export --> Lifecycle[Fronts lifecycle and container]
+```
+
+Fronts 选择部署并治理应用生命周期；官方 Runtime 负责 remote 注册、manifest 解释、expose 加载和
+shared dependency。Host 必须把显式官方 instance 传给 adapter。producer 必须 expose 有效
+`FrontsApp`（通常是 `./application`）；只有 React/Vue component 不满足契约。Fronts 不依赖 producer
+插件私有/virtual Host API，不推断或改写 share graph。部署应使用不可变 remote name，因为 Runtime
+会缓存 registration 与 loaded module。
+
+## 兼容等级
+
+| 等级                            | 含义                                                            |
+| ------------------------------- | --------------------------------------------------------------- |
+| Core-native                     | 不依赖 MF；自定义 `AppLoader` 提供相同 Fronts protocol          |
+| Official integration            | 官方 Runtime + 官方 producer plugin，仓库集成与 E2E 覆盖        |
+| Verified producer compatibility | 第三方产物由官方 Runtime 消费，并通过规定的 Fronts 生命周期 E2E |
+| Narrow compatibility fixture    | 只承诺仓库锁定的版本、输出格式和运行模式，不泛化为整个插件支持  |
+
+“Verified”只说明仓库证明了表中路径，不把第三方插件所有权转移给 Fronts，也不承诺所有版本和输出格式。
+
+## 集成矩阵
+
+| 交付路径                            | Host loader                                       | Producer 产物             | 开发模式        | production preview | 等级                            |
+| ----------------------------------- | ------------------------------------------------- | ------------------------- | --------------- | ------------------ | ------------------------------- |
+| 自定义 loader、无 MF                | 用户 `AppLoader`                                  | 任意有效 FrontsApp source | 是              | 是                 | Core-native                     |
+| `@module-federation/rsbuild-plugin` | `@fronts/mf` + 官方 Runtime                       | MF manifest               | 是              | 是                 | Official integration            |
+| `@module-federation/vite`           | 无 federation plugin 的 Vite shell + 官方 Runtime | MF manifest               | 是              | 是                 | Official integration            |
+| `vite-plugin-federation`            | 同一 plain shell + 官方 Runtime                   | MF manifest               | 是              | 是                 | Verified producer compatibility |
+| `@originjs/vite-plugin-federation`  | 同一 plain shell + 官方 Runtime                   | ESM `remoteEntry.js`      | build + preview | 是                 | Narrow fixture                  |
+
+所有 Vite 路径都复用 `examples/vite-host` 的普通 Vite Host。Host 不安装 federation build plugin，
+而是在运行时创建官方 instance 并交给 `@fronts/mf`。
+
+## 官方 Rsbuild 与 Vite producer
+
+两者是首选路径，并输出由官方 Runtime 消费的 manifest。相较裸 entry，manifest 保留预加载、
+snapshot、类型提示和 DevTools 需要的 metadata；Fronts 不直接读取内部字段。仓库证明官方 Rsbuild
+暴露 React/Vue 应用，官方 Vite 暴露框架无关应用，并验证 mount、framework readiness、update、
+Host service、unmount，以及完整示例中的 DOM、Shadow DOM 和跨源 iframe。
+
+## `vite-plugin-federation`
+
+未加 scope 的插件作为兼容 producer 支持，不是 Fronts Host runtime。fixture 输出
+`mf-manifest.json`，Host 通过自己的官方 Runtime instance 消费；插件自带 runtime 不能传给
+`@fronts/mf`。同一 lifecycle E2E 覆盖 Vite dev server 与全新 production preview，承诺范围只限
+仓库中 manifest producer 路径。
+
+## OriginJS 的窄边界
+
+OriginJS fixture 以 ESM 构建并从 `assets/remoteEntry.js` 加载。由于没有可用的 bundleless remote
+dev，fixture 的 `dev` 实际是 build + preview；它固定 Vite 5.4，因为当前 transform 与仓库 Vite 8/
+Rolldown producer pipeline 不兼容。生成的 `@fronts/core` fallback 被保留，并通过 share-scope
+初始化验证。Fronts 不使用或支持 OriginJS `virtual:__federation__` Host API。
+
+这不代表支持 SystemJS/`var` 输出、OriginJS 充当 Host loader 或任意更新版 Vite pipeline。扩展
+声明必须新建 fixture，同时验证 lifecycle 与 shared dependency。
+
+## 依赖选择
+
+| 场景                       | Consumer 依赖                                                    |
+| -------------------------- | ---------------------------------------------------------------- |
+| Fronts 不使用 MF           | `@fronts/core`                                                   |
+| Fronts Host 加载 MF remote | `@fronts/core`、`@fronts/mf`、`@module-federation/runtime`       |
+| React/Vue producer         | 对应 Fronts adapter、框架、选择的 MF producer plugin             |
+| 框架无关官方 Vite remote   | `@fronts/core`、`@module-federation/vite`                        |
+| 第三方 Vite producer       | core 或框架 adapter + producer plugin；不增加 Fronts Runtime API |
+
+精确 peer range 以 package manifest 为准。
+
+## 增加新 producer 的完成条件
+
+新兼容声明必须：expose 有效 `./application`；由 plain Host 的显式官方 instance 加载；测试
+mount/readiness、Host service、update、unmount 和 idle audit；产物带 share graph/fallback 时验证
+shared 行为；分别记录 dev 与 production，不能用未支持模式扩大声明；从不同 Host origin 验证 CORS
+和 public asset URL；最后在矩阵中写明精确证据边界。仅仅兼容一个 producer artifact 不需要新增
+Fronts Runtime API。
+
+## 验证
+
+MF 单测验证 source、官方 instance 调用、不可变绑定、preload、取消和真实 remote container；
+`pnpm test:e2e` 覆盖开发命令，`pnpm test:e2e:preview` 重建所有 producer 后覆盖生产产物。
+`vite-runtime.spec.ts`、`originjs-runtime.spec.ts` 和 `vertical-slice.spec.ts` 分别提供对应证据。

@@ -1,0 +1,70 @@
+---
+title: @fronts/react
+description: 面向框架无关 Fronts 应用契约的 React producer 与 Host 适配器。
+---
+
+```sh
+pnpm add @fronts/core @fronts/react react react-dom
+```
+
+`@fronts/react` 让 React 应用参与 Fronts Host ABI；若纯 MF React 架构只需要框架/路由集成，应先
+评估官方 `@module-federation/bridge-react`。Fronts 当前为 alpha，stable 前协议与 API 可能变化。
+
+## Producer
+
+```tsx
+import { defineReactApp, useHostServices } from '@fronts/react';
+
+interface Props {
+  readonly cartId: string;
+}
+interface Services {
+  readonly telemetry: { emit(name: string, data?: unknown): void };
+}
+
+function Checkout({ cartId }: Props) {
+  const services = useHostServices<Services>();
+  return (
+    <button onClick={() => services.telemetry.emit('checkout.open', { cartId })}>
+      Cart {cartId}
+    </button>
+  );
+}
+
+export default defineReactApp<Props, Services>({
+  name: 'checkout',
+  capabilities: ['telemetry'],
+  root: Checkout,
+});
+```
+
+`defineReactApp()` 拥有 React root、commit-based readiness、props update、context、error boundary、
+可选 Strict Mode 与 unmount。render error 会 reject 当前 lifecycle operation 并显示配置 fallback；
+之后一次有效 update 会重建 boundary，允许恢复。返回对象可以作为 MF expose，也可通过任意 Fronts
+loader 加载。`useHostServices()`、identity 和 abort signal hooks 只读取当前 scope，不能绕过 Host 授权。
+
+## React Host
+
+```tsx
+import { RemoteApp } from '@fronts/react';
+
+<RemoteApp
+  host={host}
+  app={{ name: 'checkout', expose: './application' }}
+  appProps={{ cartId: 'C-42' }}
+  loading={<p>Loading…</p>}
+  fallback={(error) => <p>{error.message}</p>}
+/>;
+```
+
+`RemoteApp` 管理 React 组件与 Host 实例生命周期；`useRemoteApp()` 适合 headless integration。
+组件 unmount 时会清理对应 Fronts instance，错误进入 fallback，loading 持续到应用真正 ready。
+
+## Container 与职责
+
+`container` 接收静态 request，或在 resolved deployment 出现后异步生成 request 的 resolver。因此
+React shell 可以根据 registry metadata 选择 DOM、Shadow DOM 或 iframe，而不需要改变 producer。
+
+React adapter 不接管 resolver、MF manifest、shared dependency、release channel 或 Host service
+authorization。这些分别属于 Fronts Host 与 Module Federation。producer 只负责框架 root、readiness、
+prop commit 和框架级 cleanup，并最终导出同一个框架无关应用协议。

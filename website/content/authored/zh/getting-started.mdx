@@ -1,0 +1,118 @@
+---
+title: 快速开始
+description: 安装 Fronts，定义框架无关应用，组合 Host，并决定是否把 Module Federation 放入交付链路。
+---
+
+Fronts 2.0 目前只能从本仓库使用，尚未发布到 npm。以下安装命令表达正式发布后的预期用法；
+第一个 prerelease 发布前，请通过 workspace 或 Git 依赖进行评估，不要把示例版本当成已发布承诺。
+
+## 选择依赖组合
+
+```sh
+# 使用自定义或本地 loader 的 Fronts
+pnpm add @fronts/core
+
+# Host 在运行时加载 MF remote
+pnpm add @fronts/core @fronts/mf @module-federation/runtime
+
+# 框架 producer 适配器
+pnpm add @fronts/react react react-dom
+pnpm add @fronts/vue3 vue
+```
+
+Vite remote 还要选择一个 producer 插件。官方 `@module-federation/vite` 拥有最完整的 Fronts
+fixture；`vite-plugin-federation` 通过 MF2 manifest 路径验证；OriginJS 则是刻意收窄的、仅生产
+构建的 ESM `remoteEntry.js` 兼容路径。
+
+## 定义应用
+
+```ts
+import { defineApp } from '@fronts/core';
+
+interface Props {
+  readonly accountId: string;
+}
+
+interface Services {
+  readonly telemetry: {
+    emit(name: string, data?: unknown): void;
+  };
+}
+
+export default defineApp<Props, Services>({
+  name: 'account',
+  capabilities: ['telemetry'],
+  mount({ identity, props, services, target }) {
+    const element = document.createElement('p');
+    element.textContent = `Account ${props.accountId}`;
+    target.append(element);
+    services.telemetry.emit('account.mounted', identity);
+
+    return {
+      update(nextProps) {
+        element.textContent = `Account ${nextProps.accountId}`;
+      },
+      unmount() {
+        element.remove();
+      },
+    };
+  },
+});
+```
+
+React 与 Vue producer 分别使用 `defineReactApp()` 和 `defineVueApp()`，但导出的仍是同一个带
+协议品牌的应用契约，因此 Host 不需要成为某个框架的特殊模式。
+
+## 组合本地 Host
+
+```ts
+import { createDomContainer, createFrontsHost, createStaticResolver } from '@fronts/core';
+
+const host = createFrontsHost({
+  resolver: createStaticResolver([
+    {
+      match: { name: 'account' },
+      resolve: { source: localSource, version: '2.0.0' },
+    },
+  ]),
+  loader: localLoader,
+  containers: [createDomContainer()],
+  services: { telemetry },
+});
+
+const application = await host.mount({
+  ref: { name: 'account' },
+  target: document.querySelector('#slot')!,
+  props: { accountId: 'A-42' },
+});
+
+await application.update({ accountId: 'A-43' });
+await application.unmount();
+host.assertIdle();
+```
+
+Shell、producer 本地开发页、Storybook 和集成测试都应复用这套 Host transaction。Fronts 2.0
+没有另一套全局注册机制，也不需要一个行为不同的 standalone 生命周期 API。
+
+## 加入 Module Federation 交付
+
+显式创建官方 Runtime instance，再把它传给 `@fronts/mf`。适配器把一次已经解析的部署映射到
+公开的 `registerRemotes()`、`preloadRemote()` 与 `loadRemote()`；它不拥有 manifest，也不
+接管 share graph。
+
+继续阅读 [Host Runtime API](/zh/docs/runtime/host-runtime-api)，了解取消、基于解析结果的容器、
+上下文服务、替换、审计与关闭。在宣称 producer 兼容前，请阅读
+[Module Federation 集成](/zh/docs/runtime/module-federation)中的验证矩阵和限制。
+
+## 验证仓库 checkout
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:e2e
+pnpm test:e2e:preview
+```
+
+非浏览器门禁会构建并打包所有公开软件包，通过 ESM 与 CommonJS 导入 tarball，执行 workspace
+类型检查并强制覆盖率。两套浏览器模式分别证明开发态组合与全新生产产物，不能互相替代。

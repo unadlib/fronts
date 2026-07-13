@@ -1,0 +1,83 @@
+---
+title: @fronts/core
+description: 框架无关的应用协议、Host Runtime、resolver、container、service、错误与 iframe 入口。
+---
+
+`@fronts/core` 是 Fronts 2.0 的框架与 transport 中立层，不依赖 React、Vue、bundler 或 Module
+Federation。它可以与 `@fronts/mf`、自定义 loader 或两者同时组合。
+
+```sh
+pnpm add @fronts/core
+```
+
+Fronts 当前处于 alpha；2.0 stable 前协议和 API 仍可能变化。
+
+## 定义应用
+
+```ts
+import { defineApp } from '@fronts/core';
+
+export default defineApp<{ message: string }, HostServices>({
+  name: 'notice',
+  capabilities: ['telemetry'],
+  mount({ props, services, target }) {
+    const element = document.createElement('p');
+    element.textContent = props.message;
+    target.append(element);
+    services.telemetry.emit('notice.mounted');
+
+    return {
+      update(next) {
+        element.textContent = next.message;
+      },
+      unmount() {
+        element.remove();
+      },
+    };
+  },
+});
+```
+
+应用只声明能力并实现 lifecycle；Host 决定真实服务、目标和 identity。producer 必须在 target 内渲染，
+并在 unmount 中释放自己拥有的 root、listener、timer 和 subscription。
+
+## 创建 Host
+
+```ts
+import { createDomContainer, createFrontsHost, createStaticResolver } from '@fronts/core';
+
+const host = createFrontsHost({
+  resolver: createStaticResolver([
+    { match: { name: 'notice' }, resolve: { source: mySource, version: '2.0.0' } },
+  ]),
+  loader: myLoader,
+  containers: [createDomContainer()],
+  services: { telemetry },
+});
+
+const app = await host.mount({
+  ref: { name: 'notice' },
+  target: document.querySelector('#slot')!,
+  props: { message: 'Hello' },
+});
+await app.update({ message: 'Updated' });
+await app.unmount();
+host.assertIdle();
+```
+
+## 公开能力面
+
+主入口导出：
+
+- `defineApp()` 与协议校验；
+- `createFrontsHost()` 与 mounted-instance controls；
+- static、registry、cached 与 fallback resolver；
+- DOM/Shadow DOM container；
+- 在 loader 选择之前执行的 resolution-aware container planning；
+- 静态和实例提供的 capability-scoped services；
+- 供 resolver、loader、container 使用的 correlated operation context；
+- typed error、lifecycle event、readiness replacement 与 leak audit。
+
+额外入口 `@fronts/core/iframe` 提供 origin-bound iframe container/proxy、child agent 与协商式 RPC
+capability。接入前请阅读 [Host Runtime API](/zh/docs/runtime/host-runtime-api) 与
+[Iframe 部署](/zh/docs/runtime/iframe-deployment)，尤其是 cleanup、exact origin 和 browser policy。

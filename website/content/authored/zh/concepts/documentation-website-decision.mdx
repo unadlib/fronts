@@ -1,0 +1,53 @@
+---
+title: 在 GitHub Pages 上部署 Fumadocs 静态站
+description: 在 main 构建显式双语静态路由，并以单个根提交替换 gh-pages 的架构决策。
+---
+
+## 背景
+
+Fronts 需要与当前 2.0 实现一致的中英文文档，但不能让 package 发布依赖文档服务器。自定义域名已经
+指向 GitHub Pages，现有 branch 却是六年前生成的 Docusaurus 产物。npm package release 仍以
+`master` 为源，而文档站按明确要求以 `main` 为 source branch。
+
+网站需要嵌套技术导航、MDX、diagram、source link、本地化搜索、纯静态 hosting、确定性部署，以及能
+证明线上实际对应哪个源码提交的机制。
+
+## 决策
+
+使用 Fumadocs 与 Next.js `output: 'export'`。源码位于 `main` 的 `website` pnpm workspace；package
+publication 继续在 `master`。语言使用显式 `/en` 和 `/zh`，通过目录 content parser 构建，不做隐式
+fallback。搜索在 build 时生成 Orama 静态 endpoint，中文使用 Mandarin tokenizer。
+
+每次部署把 `website/out` 发布成 `gh-pages` 上没有 parent 的新 commit。逐字节保留当前 `CNAME`，
+增加 `.nojekyll`，并用绑定到已 fetch remote SHA 的 `force-with-lease` push。所有应用 HTML 嵌入完整
+`main` revision，脚本轮询 custom domain，直到新 revision 真正出现才成功。
+
+## 评估过的方案
+
+- 保留旧 Docusaurus：内容和 provenance 都不能代表 Fronts 2.0，拒绝。
+- 为每页手工维护两份英文/中文：canonical English 会漂移；采用 source mapping + 显式中文。
+- middleware、cookie 或 redirect 自动选语言：静态 Pages 无可靠 server negotiation，显式 URL 更稳定。
+- 保留长期 gh-pages generated history：评审价值在 main；单一 root commit 更直接证明 live tree。
+- 只用 Pages artifact：不满足保留 branch-visible CNAME 与静态输出的明确要求。
+- 把文档塞进 package release workflow：两者权限、rollback 和 cadence 不同，保持独立。
+
+## 结果与代价
+
+静态导出后网站不需要服务器，复用当前域名，并能从一个已评审 source commit 重现。canonical English
+变化自动进入 generated tree；中文仍是明确的人工维护责任。独立 workflow 只需 contents write，不扩大
+npm OIDC/release secret 权限。
+
+由于生成 branch 刻意 rewrite，它不是 durable rollback history。恢复方式是 checkout 一个已知良好的
+`main` revision，重新构建并发布另一个 root commit。Orama 与 Mermaid 必须保持 static export 兼容。
+增加语言不只是 label，还需要 inventory、tokenizer、navigation、metadata、output check 和 browser evidence。
+
+## 安全、运行与验证
+
+部署脚本拒绝 dirty、未 push 或非 main source；exact lease 防止静默覆盖并发 Pages 更新；它从当前 remote
+commit 读取 CNAME，并在 push 前逐字节对比新 blob。在线 revision polling 区分“git push 成功”和
+“Pages 已发布”。首次 rollout 仍需人工检查 Pages branch/root 配置、domain/TLS、root commit、语言导航
+和公开文章渲染。
+
+`pnpm website:check` 验证内容、MDX/TypeScript、static export、link、asset、search 与浏览器行为；
+`scripts/deploy-website.mjs` 验证 branch/source、CNAME、parentless commit、lease、remote SHA 与线上 revision；
+`.github/workflows/docs.yml` 在 Node 24 + Chromium 上从 main 执行。

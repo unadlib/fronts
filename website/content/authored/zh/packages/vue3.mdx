@@ -1,0 +1,79 @@
+---
+title: @fronts/vue3
+description: 面向框架无关 Fronts 应用契约的 Vue 3 producer 与 Host 适配器。
+---
+
+```sh
+pnpm add @fronts/core @fronts/vue3 vue
+```
+
+`@fronts/vue3` 让 Vue 3 应用实现 Fronts Host ABI。纯 MF Vue 架构若只需要框架与 router 集成，应先
+评估官方 `@module-federation/bridge-vue3`。Fronts 当前为 alpha，2.0 stable 前 API 可能变化。
+
+## Producer
+
+```ts
+import { defineComponent, h } from 'vue';
+import { defineVueApp, useHostServices } from '@fronts/vue3';
+
+interface Services {
+  readonly telemetry: { emit(name: string, data?: unknown): void };
+}
+
+const Account = defineComponent({
+  props: { accountId: { type: String, required: true } },
+  setup(props) {
+    const services = useHostServices<Services>();
+    return () =>
+      h(
+        'button',
+        { onClick: () => services.telemetry.emit('account.open', props.accountId) },
+        `Account ${props.accountId}`,
+      );
+  },
+});
+
+export default defineVueApp<{ accountId: string }, Services>({
+  name: 'account',
+  capabilities: ['telemetry'],
+  root: Account,
+});
+```
+
+`defineVueApp()` 拥有 Vue app、Fronts provide context、reactive prop update、`nextTick()` readiness、
+可选 application configure 与 unmount。它同时支持 Element 和 ShadowRoot target；对于 shadow target
+会建立合适的内部挂载元素。identity、abort signal 和 scoped Host service 通过 composable 取得，
+仍受 Host declaration/policy 限制。
+
+## Vue Host
+
+```vue
+<script setup lang="ts">
+import { RemoteApp } from '@fronts/vue3';
+import { host } from './runtime';
+</script>
+
+<template>
+  <RemoteApp
+    :host="host"
+    :app="{ name: 'account', expose: './application' }"
+    :app-props="{ accountId: 'A-42' }"
+    :container="{ type: 'shadow' }"
+  >
+    <template #loading>Loading…</template>
+    <template #error="{ error }">{{ error.message }}</template>
+  </RemoteApp>
+</template>
+```
+
+也可使用 `useRemoteApp()` composable 进行 headless integration。loading 持续到 Fronts readiness，
+error slot 接 lifecycle failure，Vue component 清理时卸载 Host instance。
+
+## Container 与职责
+
+`container` prop 可是静态 request，也可是根据 `resolved` 异步生成的 resolver，并在 Fronts 选择
+loader 前完成。这样同一 Vue producer 可在 DOM、Shadow DOM 或 iframe 执行。
+
+adapter 只拥有 Vue root、reactive props、commit readiness 和框架 cleanup；resolver、release policy、
+service authorization、replacement 与 MF loading 仍属于 Host/transport 层。它输出的不是 Vue 专用
+Host 模式，而是和 core、React producer 相同的框架无关 Fronts application contract。

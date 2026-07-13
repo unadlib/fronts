@@ -1,0 +1,56 @@
+---
+title: @fronts/mf
+description: 把已经解析的 Fronts 应用映射到显式官方 Module Federation Runtime instance 的适配器。
+---
+
+`@fronts/mf` 是 Fronts application 对 Module Federation 2 Runtime 的 transport adapter。
+
+```sh
+pnpm add @fronts/core @fronts/mf @module-federation/runtime
+```
+
+`@module-federation/runtime` 是 peer dependency。调用者必须创建并传入显式官方 Runtime instance；
+adapter 不创建、不发现进程全局默认 instance。Fronts 当前处于 alpha，2.0 stable 前 API 可能变化。
+
+## 创建适配器
+
+```ts
+import { createInstance } from '@module-federation/runtime';
+import { createFrontsHost, createStaticResolver } from '@fronts/core';
+import { createModuleFederationAdapter, createModuleFederationSource } from '@fronts/mf';
+
+const federation = createInstance({ name: 'shell', remotes: [] });
+const source = createModuleFederationSource({
+  name: 'checkout_2_4_1',
+  entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
+});
+
+const host = createFrontsHost({
+  resolver: createStaticResolver([
+    { match: { name: 'checkout' }, resolve: { source, version: '2.4.1' } },
+  ]),
+  loader: createModuleFederationAdapter({ instance: federation }),
+});
+```
+
+每个 resolved application 只通过公开 instance method 调用 `registerRemotes()`、
+`preloadRemote()` 和 `loadRemote()`。adapter 不解析 manifest、不选择 shared dependency、不修改
+snapshot，也不导入 `@module-federation/runtime-core`；这些都是官方 Runtime 职责。
+
+## Remote 绑定规则
+
+官方 Runtime 在同名 remote 未指定 `force` 再注册时保留第一次绑定。adapter 因此会记录自己在同一
+instance 上观察到的 registration，并拒绝把同一 remote name 换成不同 source 或已知 resolved
+version。应使用 deployment-specific、不可变 remote name；只有确实要替换 Runtime cache 时才显式
+使用 force，普通版本发布更适合 registry promotion + Fronts replacement transaction。
+
+remote module 必须默认导出有效 `FrontsApp`，通常 expose 为 `./application`。单独导出组件或官方
+Bridge app 不会自动满足 Fronts ABI；需要先由对应 producer adapter 形成完整 mount/update/unmount
+契约。完整 producer 兼容范围见 [Module Federation 集成](/zh/docs/runtime/module-federation)。
+
+## 边界与生命周期
+
+resolver 负责从逻辑 ref 选择具体 source，MF adapter 只负责 transport load，Host 负责验证、service
+scope、container、ready 与 cleanup。显式 instance 让一个 shell 可以控制 plugin、share scope 和
+transport lifecycle，也避免多个 Host 意外共享隐藏全局状态。Host dispose 之后，composition root
+仍需单独释放自己创建的 Runtime plugin 或外部 client 资源。

@@ -56,6 +56,14 @@ function trackedMarkdownFiles() {
     .map((path) => join(root, path));
 }
 
+function markdownFilesBelow(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return markdownFilesBelow(path);
+    return entry.name.endsWith('.md') ? [path] : [];
+  });
+}
+
 function lineAt(text, index) {
   return text.slice(0, index).split('\n').length;
 }
@@ -209,9 +217,9 @@ function validateConceptDocument(path) {
 }
 
 function validateDocumentationInventory() {
-  const conceptFiles = readdirSync(docsDirectory)
-    .filter((name) => name.endsWith('.md') && name !== 'index.md' && name !== 'log.md')
-    .map((name) => join(docsDirectory, name));
+  const conceptFiles = markdownFilesBelow(docsDirectory).filter(
+    (path) => !['index.md', 'log.md'].includes(relative(docsDirectory, path)),
+  );
   const currentConcepts = [];
 
   for (const file of conceptFiles) {
@@ -326,8 +334,8 @@ if (errors.length > 0) {
   }
   process.exitCode = 1;
 } else {
-  const conceptCount = readdirSync(docsDirectory).filter(
-    (name) => name.endsWith('.md') && !['index.md', 'log.md'].includes(name),
+  const conceptCount = markdownFilesBelow(docsDirectory).filter(
+    (path) => !['index.md', 'log.md'].includes(relative(docsDirectory, path)),
   ).length;
   const fileCount = markdownFiles.filter((path) => statSync(path).isFile()).length;
   stdout.write(

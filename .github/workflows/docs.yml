@@ -1,0 +1,42 @@
+name: Documentation website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Verify and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm website:check
+      - name: Replace gh-pages with the verified static export
+        run: pnpm website:deploy -- --skip-check
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-website-report
+          path: |
+            website/test-results/
+            website/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7

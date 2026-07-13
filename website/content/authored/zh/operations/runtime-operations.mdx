@@ -1,0 +1,96 @@
+---
+title: 运行时运维
+description: Fronts Host 的可观测性、失败处理、替换、timeout、测试证据与事故关联。
+---
+
+## 可观测模型
+
+每个 Host 有 `hostId`，每个应用有 `instanceId` 与 `traceId`。Host event 包含单调 sequence、timestamp
+和当前 snapshot；state event 还带上一状态 duration，error event 带稳定 code 与 phase。每次 resolve、
+load、preload、mount、replace 是一个 operation，扩展收到相同且不可变的 `operationId`、hostId、
+traceId、intent、signal，以及存在实例时由 Host 颁发的 identity。
+
+mount/replace 的 resolver 在版本未知前就看到 identity；resolution 后的 context 与 identity 会被冻结
+并补充版本。扩展必须用 ID 关联，不能依赖 object identity。Host 快照自己拥有的 ref、context、policy、
+resolved envelope 和 container request；opaque source、props、services、signal、DOM target 仍由各领域
+所有者管理。动态 container resolver 在 resolution 后、loader 选择前运行并立即快照结果。
+
+公开 phase 是 `resolve`、`load`、`container`、`mount`、`ready`、`update`、`activate`、`deactivate`、
+`unmount`。replacement 由这些 phase 组成，audit 是同步报告而不是 error phase。MF manifest、entry、
+expose、shared 和 resource hook 属于官方 Runtime；在 `@fronts/mf` load boundary 关联两条 trace，
+不要把所有 MF payload 复制到 core。
+
+## 订阅与指标
+
+```ts
+const host = createFrontsHost({
+  observer(event) {
+    telemetry.emit('fronts.lifecycle', event);
+  },
+  // ...
+});
+const unsubscribe = host.subscribe((event) => {
+  if (event.kind === 'error') reportError(event.error, event);
+});
+```
+
+observer 必须非阻塞且不得抛错；通过 buffered client 发出，并移除 props、service argument、带凭证 URL
+和敏感 tenant metadata。建议监控 resolution、MF load/preload、mount-to-ready、update/activation、
+replacement、active instance、stale cache、capability denial、iframe handshake/RPC timeout/origin rejection、
+retained container 与 non-idle audit。instance/trace ID 只放 trace/log，metric 按 app、version、phase、
+container、error code 聚合。
+
+## 失败语义
+
+Fronts 用 `FrontsError` 包装失败，包含稳定 code、责任 phase、原始 cause 和无需解析 message 的 details。
+
+| 失败                    | Host 行为                                       |
+| ----------------------- | ----------------------------------------------- |
+| resolution/registry     | 使用已配置 cache/fallback，否则 reject          |
+| MF load                 | 回滚已取得资源；replacement 当前目标保持活跃    |
+| 无效协议                | mount 前拒绝                                    |
+| container prepare       | revoke service、dispose provider、reject        |
+| mount/ready/timeout     | 尽可能 unmount，再 dispose scope/container      |
+| update                  | 实例仍 mounted，向调用者暴露失败                |
+| replacement staging     | 销毁 staging，保留 current                      |
+| commit 后旧实例 cleanup | 返回 `previousCleanupError`，新实例仍 committed |
+| 任一不完整 cleanup      | 保留 `cleanupError`，audit/dispose 失败         |
+| observer 抛错           | runtime 继续，observer 不在事务内               |
+
+## Audit 与关闭
+
+`inspect()` 返回 live transaction 和因无法证明 cleanup 而保留的 terminal record。`audit()` 进一步
+报告 active instance、cleanup failure、pending operation、replacement transaction、retained owned
+container 和总体 idle。direct resolve/load/preload 也在 pending 中，并会在 Host dispose 时 abort。
+
+测试、route teardown 和 shell shutdown 后执行：
+
+```ts
+await host.dispose();
+host.assertIdle();
+```
+
+`dispose()` abort direct operation，abort/unmount instance，等待 replacement 与 late cleanup，再释放
+Host 资源。如果 cleanup failure 或 owned container 仍 attached，会以 `FRONTS_RUNTIME_LEAK` reject；
+查看 audit 的 cleanupFailures/retainedContainers 找到 owner。transport-specific object 仍由 composition
+root 单独 dispose。
+
+## 替换 runbook 与 timeout
+
+确认新旧 registry response 和不可变 artifact；可预加载候选但不把 preload 当 ready；带稳定 product
+trace 和全新 resolution context 调 replace；staging 失败时验证旧实例仍活跃；commit 后若有
+previousCleanupError，继续服务新实例但按泄漏事故处理；确认 old container 不再 retained；业务验证
+失败则回退 registry/channel 后再次 replace，不能原地重写 active artifact。
+
+所有 timeout 必须有限非负，`0` 只关闭 deadline；生产 readiness 来自实际 SLO，iframe handshake/RPC
+保持有限，registry fetch/custom loader 继续传 signal。timeout 必须触发 cleanup，绝不能留下 hidden app。
+
+## 测试与事故关联
+
+证据分五层：protocol/resolver/service/adapter 单测；Host lifecycle/cancellation/replacement/audit contract；
+真实 HTTP remote + 官方 MF Runtime 集成；core-only 与 React/Vue/iframe Chromium E2E；官方及兼容 Vite
+producer E2E。`pnpm test:e2e` 测 dev server，`pnpm test:e2e:preview` 全新构建后测生产产物，CI 使用后者。
+
+事故中同时记录 hostId、operationId/intent、traceId、instanceId、app/version/expose、container type、
+registry deployment/policy revision、MF instance/remote/entry 与 Fronts phase/code，便于把所有权定位到
+部署策略、MF 资源、producer render、容器或 Host service。

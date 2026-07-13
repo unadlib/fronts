@@ -1,0 +1,61 @@
+---
+title: @fronts/mf
+description: Adapter from resolved Fronts applications to an explicit official Module Federation Runtime instance.
+---
+
+`@fronts/mf` is the Module Federation 2 transport adapter for Fronts applications.
+
+```sh
+pnpm add @fronts/core @fronts/mf @module-federation/runtime
+```
+
+`@module-federation/runtime` is a peer dependency. Supply an explicit official runtime instance;
+the adapter does not create or discover a global default instance. Fronts is currently alpha, so
+protocol and API changes may occur before 2.0 stable.
+
+## Create the adapter
+
+```ts
+import { createInstance } from '@module-federation/runtime';
+import { createFrontsHost, createStaticResolver } from '@fronts/core';
+import { createModuleFederationAdapter, createModuleFederationSource } from '@fronts/mf';
+
+const federation = createInstance({ name: 'shell', remotes: [] });
+const source = createModuleFederationSource({
+  name: 'checkout_2_4_1',
+  entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
+});
+
+const host = createFrontsHost({
+  resolver: createStaticResolver([
+    { match: { name: 'checkout' }, resolve: { source, version: '2.4.1' } },
+  ]),
+  loader: createModuleFederationAdapter({ instance: federation }),
+});
+```
+
+For each resolved application, the adapter uses only public instance methods:
+`registerRemotes()`, `preloadRemote()`, and `loadRemote()`. It does not parse manifests, select
+shared dependencies, modify snapshots, or import `@module-federation/runtime-core`; those remain
+official Module Federation responsibilities.
+
+## Remote binding rules
+
+The official runtime keeps the first registration when a remote name is registered again without
+`force`. The adapter therefore rejects a different source or known resolved version previously
+registered through Fronts on the same runtime instance. Prefer an immutable, deployment-specific
+remote name. Use force only when intentionally replacing runtime cache; normal rollout should use
+registry promotion and a Fronts replacement transaction.
+
+The remote module must default-export a valid `FrontsApp`, normally from an expose named
+`./application`. A component or Bridge application alone does not automatically satisfy the Fronts
+ABI. See the [Module Federation integration matrix](/en/docs/runtime/module-federation) for the
+verified producer boundary.
+
+## Lifecycle ownership
+
+The resolver chooses a concrete source, this adapter performs transport loading, and the Host owns
+validation, service scope, container preparation, readiness, and cleanup. An explicit runtime
+instance lets the composition root control plugins, share scopes, and transport lifetime without
+accidentally sharing hidden process-wide state. After disposing the Fronts Host, dispose any
+runtime plugin or external-client resources separately owned by that composition root.

@@ -1,0 +1,88 @@
+---
+title: 隔离与安全
+description: 信任模型、DOM 与 realm 隔离、iframe 协议权威、capability service 和供应链边界。
+---
+
+## 威胁模型
+
+Fronts 假设独立交付的应用可能有缺陷，也可能具有不同信任级别。它降低意外干扰并约束显式 Host
+API，但绝不声称同 realm JavaScript 是安全 sandbox。安全评估必须分别处理三面：允许执行哪份代码
+（provenance）、代码可访问哪些 globals/DOM（execution realm）、应用能调用哪些宿主操作（authority）。
+
+## 容器对照
+
+| 容器       | CSS 隔离                            | JS realm 隔离                         | Host service       | 典型用途               |
+| ---------- | ----------------------------------- | ------------------------------------- | ------------------ | ---------------------- |
+| DOM        | 仅靠 producer 约定                  | 无                                    | 直接 scoped object | 同设计系统的可信应用   |
+| Shadow DOM | 强 selector 边界，但有继承/逃逸限制 | 无                                    | 直接 scoped object | 可信代码的样式封装     |
+| iframe     | document/origin 边界                | 独立 realm，强度取决于 sandbox/origin | scoped RPC         | 较低信任或依赖冲突应用 |
+
+官方 Module Federation 不自动做 CSS 隔离，因为 shared dependency 和 runtime 注入样式让所有权模糊。
+Fronts 同样不抓取或搬运 parent document 中的 style；Shadow container 只提供 shadow target。
+
+## DOM 与 Shadow DOM
+
+DOM adapter 创建并拥有带 tag、class、attributes 和 Fronts identity data 的子元素，先卸载应用再
+移除元素。它只适合允许共享页面的可信代码：应用仍能访问 `window`、`document`、页面 cookie 和
+target 外 DOM。通用 DOM attribute 交给浏览器验证，Fronts 不把它描述成同 realm 安全 allowlist。
+
+Shadow adapter 创建 host element，并 attach open/closed shadow root。producer 必须用 inline style、
+constructable stylesheet、指向 shadow root 的 CSS-in-JS 或 custom element。Shadow DOM 不隔离 JS
+globals、network、storage、继承属性和 CSS variable、渲染到外部的 portal 或 shared singleton state；
+它是样式/DOM 封装，不是 hostile-code boundary。
+
+## Iframe 容器与 agent
+
+parent 负责解析策略、创建 iframe、授权 capability 和代理 lifecycle；child agent 拥有独立 loader
+与 MF instance，在 child document 内加载、验证和挂载；RPC 用不可预测 channel ID 与协议版本关联。
+
+必需控制包括：精确 `targetOrigin`，拒绝通配；只在 connect 消息中 transfer 专用 `MessagePort`，
+child 校验 sender origin/source；agent 有 exact parent allowlist；sandbox 保留专用 child origin；Host
+显式选择 `allow`；真实应用加载后只协商一次 capability；每次调用校验 capability 和 method；参数/
+结果可 structured clone；connection/lifecycle timeout 有限且可配置（`0` 明确关闭 deadline）；dispose
+关闭 channel 并 reject pending promise。
+
+child 自建 MF instance，避免 parent 先执行 remote 再假装 iframe 提供隔离。shared dependency 因此
+限于 child runtime，以一些重复换取真正 realm isolation。
+
+### Sandbox 与 origin
+
+精确 origin handshake 需要 `allow-scripts` 和 `allow-same-origin`：opaque sandbox origin 无法接收
+发往部署 exact origin 的 connect 消息，而 Fronts 不会降级到 `targetOrigin="*"`。agent 必须部署在
+不同于 shell 的专用 origin；跨源时 allow-same-origin 只保留 child 自己的 origin，不赋予 parent
+origin 访问。绝不能把同配置移到 shell origin。
+
+默认 sandbox 就是这两个 token；其他 browser permission 与 token 必须逐项授权。CSP、Trusted Types、
+COOP/COEP、cookie 和 server header 仍由部署负责。generic attributes 不能覆盖 `src`、`sandbox`、
+`allow` 等 typed fields、Fronts `data-*` 或 inline `on*` handler。
+
+## Capability-scoped services
+
+producer 声明 `capabilities: ['navigation', 'telemetry']`，Host 再按可信 identity 与 signal 授权。
+需要实例、tenant、deployment、trace 绑定时使用 `createServices`；它得到 Host-issued context，并可返回
+async disposer。静态与 provider service 合并（provider 优先），再做 policy。最终 scope 只暴露允许的
+own key，拒绝 prototype-mutating 名称；abort/unmount 立即 revoke proxy，然后 dispose provider 一次。
+
+iframe authority 是三者交集：proxy 配置的最大集合、parent 实例 scope 实际授权服务、child 真实应用
+声明。最大集合只是上限，不是 proxy 的 mandatory dependency。协议 v2 中 child 加载后提交自己的
+声明，parent 锁定一次 grant；child 只为 exact grant 创建 RPC stub，parent 每次 `service.call` 又独立
+检查。协商前调用、重复协商或 grant 外调用都 fail closed；child 从未得到原始 service object。
+
+service 应暴露意图而不是 ambient authority；Host 实现校验参数并把可信 identity/tenant 绑定在闭包，
+限制敏感/昂贵调用并审计。不要暴露 raw token、storage、unrestricted `fetch`、DOM root、泛化
+`eval/execute` 或整份全局 store。provider 必须 abort-aware，返回前抛错要自行回滚部分分配。
+
+## 供应链清单与非目标
+
+registry、manifest、entry、chunk、iframe agent 全部用 HTTPS 与不可变 URL；限制 CDN 写权限；在流水线
+做签名/attestation、依赖与 license 扫描；CSP 明确 script/connect/frame origin；registry response
+必须认证授权；保留上一版本 artifact；把 registry deployment ID、MF loading trace 和 Fronts trace ID
+关联起来。
+
+Fronts 不实现 SES、Realm、DOM membrane virtualization、network interception 或完整 browser sandbox。
+不可信代码应放入加固的跨源 iframe，或者更独立的应用/执行边界。
+
+## 验证
+
+container/services 单测证明 DOM/Shadow 所有权、capability filtering、revocation 和 provider cleanup；
+iframe 单测证明 origin/source、协议、grant、取消和清理；两套浏览器 E2E 在真实不同 origin 中验证边界。

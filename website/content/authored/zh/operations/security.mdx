@@ -1,0 +1,70 @@
+---
+title: Fronts 安全策略
+description: Fronts 的漏洞范围、私密报告要求、披露处理与安全发布门禁。
+---
+
+## 私密报告漏洞
+
+不要在 GitHub issue、discussion、PR、社交媒体或其他公开渠道发布漏洞技术细节。预期渠道是 GitHub
+Security 页中的 **Report a vulnerability**，私密提交影响、复现、受影响版本与建议缓解。
+
+`unadlib/fronts` 当前尚未启用 Private Vulnerability Reporting，因此还没有已经验证的私密技术入口。
+启用前，报告者只能创建不含任何细节的公开 issue：“Private security contact requested”，不能附 PoC、
+受影响 URL、secret 或 exploit；等待 maintainer 建立私密渠道后再分享。启用并实际测试 PVR 是首次公开
+Fronts 2.0 package 的 release blocker。
+
+私密报告应包含 package/commit/entry/runtime mode，Host/producer/browser/framework/MF/plugin 版本，跨越的
+安全边界与现实影响，最小 PoC、步骤/权限/交互，redacted Fronts/MF trace，涉及 DOM/origin/capability/
+identity/shared/artifact 的说明，以及 workaround 和协调披露限制。绝不要发送真实 credential、token、
+cookie、private key、生产个人数据或未脱敏 tenant metadata。
+
+## 范围内边界
+
+以下 Fronts 行为属于范围：接受伪造/不支持的 FrontsApp 或 iframe protocol；服务超出应用声明和 Host
+授权；把 child-supplied identity/tenant 当可信授权；abort/unmount 后仍能使用 revoked facade；接受
+禁止 origin/错误 parent window；built-in container 接受通配/不匹配 targetOrigin；畸形 RPC 绕过 grant；
+跨实例 lifecycle/service/identity/container/channel 混淆；不安全 source mutation/registration reuse 跨越
+resolved boundary；package export/provenance/release automation 发布非预期 artifact；Host 报成功 unmount
+后 privileged channel/provider/app 仍活跃。
+
+边界详情见[隔离与安全](/zh/docs/runtime/isolation-security)和
+[Iframe 部署](/zh/docs/runtime/iframe-deployment)。
+
+## 范围外与研究者责任
+
+单纯存在于 React、Vue、MF、bundler、browser 或 producer plugin、且 Fronts 未引入/绕过边界的漏洞；
+应用业务逻辑/服务端授权；部署主动关闭 CSP/origin/sandbox/TLS/capability 要求；恶意应用使用 Host 明确
+授予的 ambient 权限；已被信任在 parent realm 任意执行的应用造成 DoS；unsupported deep import/runtime/
+browser/producer；或需要越权访问/披露 secret 的发现，本身不构成 Fronts 漏洞。若 Fronts 能提供有效
+defense、safer default、detection 或文档，仍可私密报告并说明 Fronts-specific impact。
+
+研究者只能测试自己拥有或获授权的系统与数据，最小化收集/留存，一旦可能影响可用性、其他用户或
+生产完整性就停止；不得社会工程、物理攻击、撞库、破坏或无界 DoS；修复前保持私密并给合理响应时间。
+本策略不授予第三方系统权限，也不承诺法律 safe harbor。
+
+## 支持版本
+
+Fronts 2.0 尚未发布；欢迎针对当前 `master` 的报告，但没有已发 2.0 artifact 可 patch。当前 unreleased
+2.0 接受报告并在 master 修复；首次 prerelease 后只计划支持最新 `next`；stable 2.x 维护窗口尚未接受；
+旧 package line 不在本策略支持范围。每次 release-line/maintenance-policy 变化必须同步此表与支持策略。
+
+## Maintainer 响应与披露
+
+maintainer 应在 private advisory 确认并指派 owner；在受支持/候选配置复现；识别 trust boundary 与版本；
+评估 CIA、权限和 exploitability；可行时加 regression test；在 private fork/受控 branch 修复；验证 tarball、
+lifecycle cleanup、相关 browser E2E 与 rollback；协调 release/advisory/credit/CVE；同步发布修复与 advisory；
+最后更新版本表和架构/威胁/runbook。prerelease 暂无量化 SLA，stable 前必须接受 owner 与响应目标。
+
+未修复前不在 public commit/issue 讨论 exploit。security release 必须有 Changeset、affected/fixed version、
+provenance 与受保护 workflow。上游漏洞先遵循上游私密流程；披露后只保留持久架构经验，不把 exploit
+secret 写入普通文档。
+
+## 首次发布前人工门禁
+
+- 启用 GitHub Private Vulnerability Reporting，并提交无害测试报告验证收发。
+- 指派 security response owner 与 backup，决定确认/修复目标。
+- 接受 supported-version 和 coordinated-disclosure policy，决定是否需要独立安全邮箱。
+- 运行 iframe/services 高风险测试、`pnpm check` 与 production-preview E2E。
+
+API 检查必须返回 `{"enabled":true}` 后才能发布。仓库测试不能替代 report intake、severity、披露时间、
+受影响版本和部署 CSP/cookie/origin 的人工判断。

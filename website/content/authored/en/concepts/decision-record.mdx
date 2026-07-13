@@ -1,0 +1,84 @@
+---
+title: Fronts 2.0 after Module Federation 2
+description: Decision, alternatives, ownership boundaries, non-goals, and release criteria for retaining a Fronts application runtime.
+---
+
+Status: accepted for the 2.0 alpha. Reviewed on 2026-07-13 against Module Federation 2.7 and the
+provided `module-federation/core` source at commit
+[`37c97f6ec`](https://github.com/module-federation/core/commit/37c97f6ec96bcca573282cfba781ca42aefcd08d).
+
+## Decision
+
+Fronts 2.0 has independent value only when it does not duplicate mature Module Federation
+capabilities. MF already provides an independent Runtime, manifests and snapshots, preloading,
+runtime plugins, dynamic types, DevTools, shared-dependency selection, and React/Vue Bridges.
+Wrapping `remoteEntry`, creating another share resolver, or renaming a React remote application
+would make Fronts a fragile fork.
+
+The remaining gap is one layer higher. An enterprise host must turn a remote module into a governed
+application instance: stable lifecycle, tenant and release policy, multiple isolation containers,
+least-privilege host capabilities, ready-gated replacement, rollback, cancellation, and
+cross-framework observability. MF owns reliable module delivery; application policy should not be
+forced into that layer.
+
+Fronts 2.0 is therefore a transport-neutral, framework-neutral application runtime and
+orchestration layer above Module Federation. It is neither another MF Runtime nor a complete
+micro-frontend cloud platform.
+
+## Official Bridge overlap
+
+The official React Bridge already exports, loads, renders, and destroys complete React applications
+with routing and data-prefetch support; Vue 3 Bridge follows the same direction. A React/Vue-only
+system that needs no platform governance should use the official Bridge directly.
+
+`@fronts/react` and `@fronts/vue3` are producers for the Fronts ABI, not replacements for those
+Bridges. Fronts is justified by the combined value of its framework-neutral Host, resolver,
+containers, capability scopes, replacement transaction, and governance. Optional Bridge-to-Fronts
+adapters may be added later without coupling core to Bridge internals.
+
+## Decision matrix
+
+| Situation                                                                     | Recommendation                            |
+| ----------------------------------------------------------------------------- | ----------------------------------------- |
+| Load a shared utility or component                                            | Use MF Runtime directly                   |
+| Official Bridge already satisfies a React/Vue application                     | Use MF Bridge                             |
+| One framework, one trust domain, fixed remote addresses                       | Fronts is usually unnecessary             |
+| Govern mount, update, and cleanup across frameworks                           | Fronts                                    |
+| Select versions by environment, tenant, cohort, or channel                    | Fronts resolver plus an external registry |
+| Use one Host API for DOM, Shadow DOM, and iframe                              | Fronts containers                         |
+| Restrict host APIs by declaration and policy                                  | Fronts service scopes                     |
+| Replace only after a candidate is ready and retain the current app on failure | Fronts replacement transaction            |
+
+## Accepted ownership boundary
+
+Fronts owns the application ABI (`mount → ready → update/activate/deactivate → unmount`), per-instance
+state and cancellation, immutable deployment resolution, container selection, scoped services,
+ready-gated replacement, lifecycle events, leak audit, and framework adapters.
+
+Module Federation continues to own remote registration, manifests and snapshots, expose and asset
+loading, preloading, shared dependency selection, runtime plugins and low-level hooks, generated
+types, DevTools, and bundler integration.
+
+The MVP explicitly excludes a bundler plugin, another shared resolver, mutation of MF global
+snapshots, third-party CSS rewriting, a complete JavaScript sandbox, registry SaaS, a router
+replacement, SSR/RSC orchestration, and an implicit global event bus.
+
+## Release criteria
+
+Fronts 2.0 is worth publishing only if `@fronts/mf` uses public official Runtime APIs; core stays
+independent from frameworks and bundlers; every container and failure phase has contract tests; a
+real Runtime loads a real remote; replacement failure preserves the usable instance; iframe
+messaging never uses wildcard `targetOrigin`; capabilities constrain services; public package
+subpaths work through ESM and CommonJS; and a clean install/build/test/release check is repeatable.
+
+If the official Runtime or Bridges later absorb these responsibilities completely, Fronts should
+shrink or retire instead of preserving overlap for its own sake.
+
+## Verification
+
+The [MF integration matrix](/en/docs/runtime/module-federation),
+[Host Runtime API](/en/docs/runtime/host-runtime-api),
+[application contract](/en/docs/concepts/application-contract), and
+[isolation model](/en/docs/runtime/isolation-security) map each retained responsibility to a public
+contract. `pnpm check`, development E2E, and production-preview E2E verify executable criteria;
+publication and human security gates remain documented under operations.

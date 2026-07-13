@@ -4,7 +4,19 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/.__mf__temp/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', 'old/**'],
+    ignores: [
+      '**/.__mf__temp/**',
+      '**/.next/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
+      'old/**',
+      'website/.source/**',
+      'website/content/docs/**',
+      'website/out/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strict,

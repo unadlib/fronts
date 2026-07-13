@@ -1,0 +1,53 @@
+---
+title: Fronts 2.0 Documentation
+description: Learn the framework-neutral application contract, Host Runtime, delivery integrations, isolation boundaries, operations, and release policy.
+---
+
+Fronts is a framework-neutral **application runtime** for independently delivered web applications.
+It starts where a module loader stops: after code can be discovered, a platform still needs a stable
+application ABI, trusted identity, lifecycle ownership, deployment policy, isolation, scoped host
+capabilities, readiness, replacement, cancellation, observability, and cleanup.
+
+<Callout type="warn" title="Prerelease status">
+  Fronts 2.0 is implemented and tested but has not yet been published to npm. Public APIs and
+  protocols may still change before the first stable release.
+</Callout>
+
+## Choose the right layer
+
+| Need                                                                         | Use                                                                          |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Load an MF remote or use an official React/Vue Bridge                        | Module Federation Runtime or Bridge directly                                 |
+| Run a Fronts application without Module Federation                           | `@fronts/core` with any application loader                                   |
+| Load a Fronts application through MF Runtime                                 | `@fronts/core`, `@fronts/mf`, and `@module-federation/runtime`               |
+| Build an MF producer                                                         | A supported producer plugin such as the official Vite or Rsbuild integration |
+| Govern apps across frameworks, loaders, isolation levels, and release policy | A Fronts Host                                                                |
+
+Fronts deliberately does not parse MF manifests, choose shared dependencies, mutate snapshots, or
+replace bundler plugins. Those remain Module Federation responsibilities.
+
+## Recommended reading path
+
+1. [Quick start](/en/docs/getting-started) — define and mount one application.
+2. [Decision record](/en/docs/concepts/decision-record) — understand why Fronts remains useful after MF 2.
+3. [Architecture](/en/docs/concepts/architecture) — learn layers and ownership boundaries.
+4. [Application contract](/en/docs/concepts/application-contract) — learn the producer ABI.
+5. [Host Runtime API](/en/docs/runtime/host-runtime-api) — compose and operate a Host.
+6. [Module Federation integrations](/en/docs/runtime/module-federation) — choose a verified delivery path.
+
+## What the repository proves
+
+The repository verifies the core-only lifecycle, real official MF Runtime loading, React and Vue
+producers, DOM and Shadow DOM targets, a cross-origin iframe agent, readiness-gated replacement,
+contextual capability services, and compatible Vite producers. Development-server and fresh
+production-preview browser suites exercise the same application contract.
+
+Use the [support policy](/en/docs/operations/support-policy) to distinguish declared, CI-verified,
+fixture-verified, best-effort, and unsupported combinations.
+
+## Documentation sources
+
+The English technical pages are generated from the repository's canonical Markdown and package
+READMEs. Chinese pages use the same slug inventory and are validated as a complete parallel tree.
+Exact TypeScript signatures and package ranges remain authoritative in source code and package
+manifests; this site explains intent, boundaries, workflows, and verification.

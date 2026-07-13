@@ -1,0 +1,82 @@
+---
+title: 支持策略
+description: Fronts 2.0 对软件包、运行时、框架、浏览器、模块格式与预发布版本的支持边界。
+---
+
+Fronts 2.0 尚未发布。stable 前公开 API、package boundary 和 protocol 可能变化，但所有用户可见 package
+变更仍必须有 Changeset。package manifest 的精确 engine/peer range 最权威；本文解释“声明”与“验证”
+的区别，一个绿色 fixture 只证明一个组合，不证明整个相邻版本空间。
+
+## 支持术语
+
+| 术语             | 含义                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| Declared support | 位于发布 package engine/peer range 内，回归按 Fronts issue 处理 |
+| CI-verified      | 仓库在该环境运行必需 build/package/test/browser gate            |
+| Fixture-verified | 只有一个 checked-in 组合通过，不推导相邻版本或模式              |
+| Best effort      | 可能可用、欢迎报告，但没有持续门禁                              |
+| Unsupported      | 在 package contract 外或违反已记录边界                          |
+
+仅因为 JavaScript engine 提供某个 Web API，并不能称为 CI-verified；新声明必须有可重复检查。
+
+## Package 与 toolchain
+
+| Surface                  | 声明边界                              | 当前验证                                |
+| ------------------------ | ------------------------------------- | --------------------------------------- |
+| 公开 package Node engine | `>=22.18.0`                           | Node 22 与 24 上 `pnpm check`           |
+| 仓库 package manager     | pnpm `>=10 <12`                       | workspace 固定 pnpm 10                  |
+| JavaScript 输出          | ES2022、ESM、CommonJS                 | 构建并以隔离 tarball 导入每个公开 entry |
+| TypeScript declaration   | ESM/CJS 均输出                        | 固定 compiler 的 workspace typecheck    |
+| MF Runtime               | `@module-federation/runtime` `^2.7.0` | adapter 单测与真实 HTTP Runtime 集成    |
+| React                    | React/DOM `>=18.2.0 <20`              | workspace 版本的 contract/example       |
+| Vue                      | `>=3.4.0 <4`                          | workspace 版本的 contract/example       |
+
+当前没有 consumer TypeScript compiler matrix，因此不能宣称最低 TS 版本。React 18.2 与 Vue 3.4 是合法
+peer lower bound，但尚未分别 matrix-test；stable 前应新增最低版本 job，或缩窄范围。
+
+## 浏览器与运行环境
+
+Core Host 需要 ES2022、DOM、AbortController、`Proxy.revocable`、promise 与 module/bundler output；
+Shadow 路径需要 Shadow DOM；iframe 还需要 cross-origin sandbox、postMessage、transferable MessagePort、
+structured clone 与 `crypto.randomUUID()`。框架 adapter 还受对应 React/Vue browser requirement 限制。
+
+当前 CI 只安装 Playwright Chromium，所以只有 Chromium 是 CI-verified。Firefox/WebKit 是 best effort，
+直到同一 lifecycle/replacement/service/Shadow/iframe suite 成为 required project。mobile browser、embedded
+WebView 不声明支持；IE 与非 ES2022 legacy browser 不支持。Fronts 不发 polyfill，consumer 可自行
+transpile/polyfill，但不能削弱 exact iframe origin 或 secure channel ID。
+
+浏览器 shell + DOM 是主要 target。Node ESM/CommonJS 只验证公开 entry 可导入，不代表能 mount DOM。
+SSR/hydration、Web/Service Worker、React Native/native WebView 不支持；Deno/Bun build runtime 为 best effort。
+
+## MF producer 与公开 package contract
+
+官方 Rsbuild/官方 Vite 是首选集成；未加 scope 的 `vite-plugin-federation` 是 verified producer
+compatibility；OriginJS 是锁定 Vite 5.4 的 production ESM narrow fixture；所有 MF Host 都使用显式
+官方 Runtime instance。插件 README 或 peer range 不会自动成为 Fronts 支持声明。新增 producer/version
+必须用 fixture 证明完整 lifecycle、service、cleanup 和适用时 shared behavior。
+
+唯一支持的 entry 是 `@fronts/core`、`@fronts/core/iframe`、`@fronts/mf`、`@fronts/react`、
+`@fronts/vue3`。深导入 `dist`、`src`、runtime-core 或其他私有文件不支持。ESM import 与 CommonJS
+require 都是 package gate；四个公开 package 通过 Changesets fixed group 同步版本。application 与 iframe
+protocol major 是运行时兼容门禁，伪造 brand 或绕过 validation 不支持。
+
+## Prerelease 与 stable gate
+
+stable 前可能 breaking，四包一起移动；consumer 应 pin 精确 prerelease/受控 lockfile，并在生产 rollout
+前测试自己的 Host、producer、browser、policy 组合。第一次发布后 npm `next` 才表示 prerelease；当前
+没有已发布 2.0 package。
+
+发布 `latest` 前必须完成：公开 protocol/entry compatibility review；tarball ESM/CJS/declaration/subpath
+检查；每个声明 minimum framework/runtime 持续验证或缩窄；browser matrix 明确且绿色；iframe origin、
+capability、cancellation、timeout、cleanup 为 required test；production-preview 覆盖全部 producer tier；
+provenance、rollback 和 vulnerability intake 实际可运行。之后才按 semver 在 minor 加兼容能力、patch 修复、
+new major 破坏契约。
+
+## 报告兼容问题与验证
+
+报告应含 Fronts 版本/lock、Node/browser/framework/MF/plugin 版本、manifest 或 raw entry 与格式、dev/preview
+差异、最小 ref/source/container、Fronts code/phase/event、redacted MF trace、unmount 后 audit，以及最小
+reproduction。安全问题必须走[安全策略](/zh/docs/operations/security)，不能公开发布。
+
+`pnpm check` 覆盖格式、构建、tarball、类型、单测和 coverage；`pnpm test:e2e:preview` 重建当前 producer
+matrix 并在 Chromium 验证。上述缺失 matrix 必须如实标成 Missing，不能宣传为 CI-verified。

@@ -44,6 +44,13 @@ Repository-wide workflow and disclosure policies live at the root:
 - [Contributing](../CONTRIBUTING.md) — setup, change workflow, tests, documentation, and review.
 - [Security policy](../SECURITY.md) — vulnerability scope, reporting, and disclosure handling.
 
+## Documentation platform
+
+- [Bilingual documentation website specification](features/documentation-website/spec.md) — content,
+  reader, verification, deployment, rollout, and rollback contract for `fronts.js.org`.
+- [Fumadocs static Pages ADR](adr/0002-fumadocs-static-pages.md) — why the site uses explicit static
+  locales on `main` and a single generated root commit on `gh-pages`.
+
 ## Maintenance rules
 
 - Update behavior and its affected documentation in the same concern commit.

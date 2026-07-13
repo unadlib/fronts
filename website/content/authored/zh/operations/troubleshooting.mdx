@@ -1,0 +1,117 @@
+---
+title: Fronts Runtime 故障排查
+description: 按错误 phase、稳定 code、MF 加载、capability、iframe 与 cleanup 证据定位运行时故障。
+---
+
+## 从哪里开始
+
+保留原始 `FrontsError`，按 `code` 与 `phase` 分类，不要解析 message。先查看 `cause`、Host event、
+`inspect()` 和 `audit()`；replacement 的 staging failure 按实际 phase 诊断，而
+`previousCleanupError` 表示新实例已经 commit、旧实例 unmount 失败。
+
+| Code family                                          | 第一检查点                                            |
+| ---------------------------------------------------- | ----------------------------------------------------- |
+| `FRONTS_RESOLUTION_FAILED`                           | ref/policy、registry、取消、cache/fallback            |
+| `FRONTS_LOAD_FAILED`                                 | loader、MF registration/network cause                 |
+| `FRONTS_INVALID_APP` / `FRONTS_UNSUPPORTED_PROTOCOL` | producer expose 与 protocol major                     |
+| `FRONTS_CONTAINER_FAILED`                            | request planner、adapter lookup/prepare/rollback      |
+| `FRONTS_IFRAME_PROTOCOL`                             | origin、sandbox、envelope、identity、grant、RPC frame |
+| `FRONTS_CAPABILITY_DENIED`                           | declaration、provider、policy、iframe intersection    |
+| `FRONTS_MOUNT_FAILED` / `FRONTS_READY_TIMEOUT`       | producer mount、framework commit、deadline            |
+| `FRONTS_LIFECYCLE_FAILED` / `FRONTS_INVALID_STATE`   | handle callback 与当前 state                          |
+| `FRONTS_ABORTED` / `FRONTS_HOST_DISPOSED`            | signal owner 与 shutdown order                        |
+| `FRONTS_RPC_TIMEOUT` / `FRONTS_RPC_CLOSED`           | child agent 与 channel 生命周期                       |
+| `FRONTS_RUNTIME_LEAK`                                | pending、cleanup failure、replacement、retained DOM   |
+
+控制流应导入 `frontsErrorCodes`，不要重复字符串常量。
+
+## Resolution 故障
+
+依次检查 ref 的 name/expose/range/channel 是 own、类型正确且非空；environment/tenant/cohort 来自可信
+shell policy；resolver 返回同一 normalized ref、有效 source 与非空可选 version；caller signal 或 Host
+dispose 是否中止 registry；cached/fallback 是否把授权失败错误地转成 stale hit。
+
+用 `host.resolve(ref, context)` 单独复现。如果此处失败，MF、container、service provider 与 producer
+均未参与，不要先修改它们。
+
+## Module Federation 与 loader
+
+manifest/entry 取不到时，从同一 browser context 打开 exact URL，检查 status、redirect、CORS、MIME、
+TLS、CSP、public base；确认 manifest 不是 HTML fallback/gateway JSON，并检查每个引用 chunk 可从 Host
+或 iframe agent origin 访问。dev 成功不证明 build output，必须比较 production preview。
+
+ESM raw entry 需要兼容的 entry type（如 `module`）；global format 需要 producer 的预期 global/container
+name。优先 manifest。仓库 OriginJS 只声明 production ESM，其 dev 命令实际 build + preview。
+
+remote/expose 不存在时，对照 source remote name/alias、`AppRef.expose` 的大小写与 `./` normalization，
+确认传入预期官方 Runtime instance，并用官方 Runtime hook/DevTools 区分 registration、manifest、entry、
+expose 与 shared failure。同一 Runtime 中 remote name 已绑定时，使用 deployment-specific name；不要为
+消除错误盲目 force，因为 force 清理 loaded-module cache 并改变共享 runtime state。
+
+shared 版本由 MF 而非 Fronts 选择。检查两端 share scope、package/version、singleton/eager 和 fallback。
+plugin-free runtime Host 不会自动提供 producer build-time share graph；OriginJS fixture 刻意保留 core
+fallback，官方与 unscoped Vite fixture 则 bundle 小型 Fronts protocol。
+
+## 无效应用与 container
+
+expose 必须 default-export `defineApp()`、`defineReactApp()` 或 `defineVueApp()` 的对象，并返回带
+`unmount()` 的 handle。常见问题是导出组件、错误 named/default 层、`default.default`、无 handle、
+缺 unmount、手写旧 brand/protocol。用 `host.load()` 把 resolver/loader/protocol validation 与 mount 分开。
+
+container 失败时确认 request 有已注册且非空 own `type`，在动态 planner 中先验证 registry metadata，
+target 属于 live document 且能 append，custom adapter 返回 matching type、element、mount target 与
+`dispose()`。`ownsElement` 为 true 时，partial failure 也必须 detach；传入 Host 后不要 mutate request 或
+resolved envelope。Fronts 会尝试回滚无效 prepared result，因此同时检查 validation 与 cleanup cause。
+
+## Capability 与 service
+
+依次看 producer 声明、静态/provider 是否有 own-key service、policy 对 Host-issued identity 的判断、
+`createServices` 是否在取消前返回合法对象；iframe 再比较 proxy maximum、parent-authorized scope 与 child
+declaration。provider 同名值覆盖静态值，disposer 必须能处理 partial rollback 且恰好一次。
+
+不要通过暴露所有 services “修复” denial；只增加实际需要的窄 capability、policy、argument validation
+和 audit attribution。
+
+## Mount、ready 与 lifecycle
+
+mount failure 表示 service setup、producer `mount()`、handle validation 或 framework immediate setup
+失败；ready failure 表示 handle 已返回但 commit promise reject、超时或被取消。检查 framework error
+boundary/handler 与最初 render exception。readiness 必须在可用 UI commit 后 settle，不能只代表 scheduling；
+每条 mount path 即便无 update/activation 也必须返回 unmount。timeout 会回滚；只有测量 SLO 证明需要时
+才增大它，增大数值修不好永不 settle 的 promise。
+
+update 可选但调用缺失实现会有意失败；update/activate/deactivate 串行，先检查上一操作；unmount、abort、
+failed 或 disposed 后不要再调用。replacement 要求 current 为 ready/active/inactive，同一实例只有一个；
+staging failure 保留 current；previousCleanupError 继续服务新实例但调查旧资源；业务验证失败回退 registry
+后再次 replace，不覆盖已加载 MF binding。
+
+## Iframe
+
+frame 不连接时确认 src 与 targetOrigin 是同一 exact canonical child origin，且不同于 shell；sandbox
+同时有 allow-scripts/allow-same-origin；shell 有 `crypto.randomUUID()`；child allowedOrigins 精确包含 shell，
+不含 `*`；agent bundle 在 load 前运行，且 frame-src、frame-ancestors、script/connect CSP、CORS 未阻断。
+
+handshake/RPC timeout 时对比 Host ready、proxy handshake、parent request、child request 四个 deadline；
+检查 child loader 是否取到 artifact、真实 app 是否 ready、两端 console、source/metadata/props/RPC payload
+是否 structured clone，以及 navigation/shutdown 是否 abort。parent 有 service 但 child 无时，检查 maximum、
+provision/policy 和 declaration 三者，不能手动操作低层 negotiation 或 `IframeRpcPeer`。
+
+## Non-idle audit 与恢复
+
+```ts
+await host.dispose();
+host.assertIdle();
+```
+
+`activeInstances` 通常是漏 unmount；`pendingOperations` 是 resolver/loader/provider/mount/late cleanup 未 settle；
+`replacementTransactions` 是仍在 staging/cleanup；`cleanupFailures` 属于 producer/provider/container disposer；
+`retainedContainers` 表示 terminal owned element 仍 attached。不要手工删 DOM 或丢弃 Host 来隐藏泄漏，
+修复真正 owner，并保留 audit 作为 CI gate。
+
+复现顺序为 `pnpm check`、`pnpm test:e2e`、`pnpm test:e2e:preview`。事故证据要包含 ID、app/version、
+container、Fronts code/phase/cause、registry/cache、MF instance/entry/trace、browser/framework/plugin/mode、
+network waterfall 与失败前后 audit；不要附 token、cookie、敏感 props/tenant/service arguments。
+
+恢复优先 registry/channel rollback；网络失败仅有限 backoff + cancellation，不盲目重试执行、protocol、policy
+或 capability failure；首个失败保持主因，cleanup failure 单独保留；replacement staging 期间保持当前应用；
+即使新 UI 已服务，previousCleanupError/non-idle audit 仍按事故处理。

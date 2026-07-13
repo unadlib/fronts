@@ -1,0 +1,121 @@
+---
+title: Quick start
+description: Install Fronts, define a framework-neutral application, compose a Host, and choose whether Module Federation belongs in the delivery path.
+---
+
+Fronts 2.0 is currently available from this repository rather than npm. The package commands below
+describe the intended published setup; until the first prerelease is published, use the workspace or
+a Git dependency for evaluation.
+
+## Pick a dependency set
+
+```sh
+# Fronts with a custom/local loader
+pnpm add @fronts/core
+
+# Fronts Host loading MF remotes at runtime
+pnpm add @fronts/core @fronts/mf @module-federation/runtime
+
+# Framework producer adapters
+pnpm add @fronts/react react react-dom
+pnpm add @fronts/vue3 vue
+```
+
+A Vite remote additionally chooses one producer plugin. The official `@module-federation/vite` path
+has the broadest Fronts fixture. `vite-plugin-federation` is verified through its MF2 manifest.
+OriginJS is intentionally a narrower, production-only ESM `remoteEntry.js` compatibility path.
+
+## Define an application
+
+```ts
+import { defineApp } from '@fronts/core';
+
+interface Props {
+  readonly accountId: string;
+}
+
+interface Services {
+  readonly telemetry: {
+    emit(name: string, data?: unknown): void;
+  };
+}
+
+export default defineApp<Props, Services>({
+  name: 'account',
+  capabilities: ['telemetry'],
+  mount({ identity, props, services, target }) {
+    const element = document.createElement('p');
+    element.textContent = `Account ${props.accountId}`;
+    target.append(element);
+    services.telemetry.emit('account.mounted', identity);
+
+    return {
+      update(nextProps) {
+        element.textContent = `Account ${nextProps.accountId}`;
+      },
+      unmount() {
+        element.remove();
+      },
+    };
+  },
+});
+```
+
+React and Vue producers use `defineReactApp()` and `defineVueApp()` but export the same branded
+application contract.
+
+## Compose a local Host
+
+```ts
+import { createDomContainer, createFrontsHost, createStaticResolver } from '@fronts/core';
+
+const host = createFrontsHost({
+  resolver: createStaticResolver([
+    {
+      match: { name: 'account' },
+      resolve: { source: localSource, version: '2.0.0' },
+    },
+  ]),
+  loader: localLoader,
+  containers: [createDomContainer()],
+  services: { telemetry },
+});
+
+const application = await host.mount({
+  ref: { name: 'account' },
+  target: document.querySelector('#slot')!,
+  props: { accountId: 'A-42' },
+});
+
+await application.update({ accountId: 'A-43' });
+await application.unmount();
+host.assertIdle();
+```
+
+Use this same Host transaction in a shell, producer development page, Storybook, or integration
+test. There is no separate global registration or standalone lifecycle API.
+
+## Add Module Federation delivery
+
+Create an explicit official Runtime instance and pass it to `@fronts/mf`. The adapter maps one
+resolved deployment to public `registerRemotes()`, `preloadRemote()`, and `loadRemote()` calls. It
+does not own manifests or the share graph.
+
+Continue with the [Host Runtime API](/en/docs/runtime/host-runtime-api) for cancellation,
+resolution-aware containers, contextual services, replacement, audit, and shutdown. Read
+[Module Federation integrations](/en/docs/runtime/module-federation) before claiming producer
+compatibility.
+
+## Verify a repository checkout
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:e2e
+pnpm test:e2e:preview
+```
+
+The non-browser gate builds and packs every public package, imports tarballs through ESM and
+CommonJS, typechecks the workspace, and enforces coverage. The two browser modes prove development
+composition and fresh production output.

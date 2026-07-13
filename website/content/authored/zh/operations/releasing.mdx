@@ -1,0 +1,64 @@
+---
+title: 发布 Fronts
+description: Changesets、本地和 CI 验证、npm trusted publishing 初始化、预发布与 stable 门禁。
+---
+
+Fronts 同步发布 `@fronts/core`、`@fronts/mf`、`@fronts/react` 和 `@fronts/vue3` 四个公开 package。
+仓库当前处于 Changesets prerelease mode，npm tag 为 `next`。
+
+## 添加变更
+
+每个用户可见 package 变更都需要 changeset：
+
+```sh
+pnpm changeset
+```
+
+选择受影响 package 与 semantic impact，并描述 consumer 影响而不是实现细节。四包属于 fixed group，
+因此在协议稳定期间保持公开版本同步；不要手工编辑版本或 changelog。
+
+## 本地发布验证
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:e2e
+pnpm test:e2e:preview
+```
+
+`pnpm check` 执行 format/lint、topological clean build、tarball consumer、TypeScript、unit/integration 与
+coverage threshold。`pnpm verify:packages` 打包每个公开 workspace，拒绝缺失 README/LICENSE/dist 或
+泄露 src/test，再在隔离临时 consumer 中通过 ESM 与 CommonJS 导入所有 entry。dev E2E 捕获实时组合
+问题，production preview 全新构建后验证最终 manifest、entry、chunk 和 share fallback，是 CI release gate。
+
+## 自动发布流程
+
+push 到 `master` 会运行 Changesets action：有 pending changeset 时创建/更新 release PR；合并该 PR 后
+执行 `pnpm release` 并发布。GitHub environment 应把此 repo 与精确 `release.yml` 配置为 npm trusted
+publisher。workflow 使用 Node 24、OIDC-capable npm、`id-token: write` 和 provenance，且不缓存发布依赖。
+
+npm trusted publishing 只能在 package 已存在后配置。第一次发布前：确认 publisher 拥有 `@fronts`
+scope；按安全策略启用并测试 GitHub Private Vulnerability Reporting；创建短期 granular npm token 作为
+`NPM_TOKEN`；从受保护 workflow 发布首个 prerelease；给四包配置 `unadlib/fronts` + `release.yml`
+trusted publisher；最后删除 secret 并吊销 bootstrap token。之后依赖 OIDC 短期 credential，不保留长期
+token fallback。`master` 应保护 Node 22/24 checks 与 Chromium E2E。
+
+文档站源码位于 `main`、静态站部署到 `gh-pages`，不会改变 package release 仍以 `master` 为源的规则。
+
+## 离开 prerelease mode
+
+协议达到 stable compatibility criteria 后：
+
+```sh
+pnpm changeset pre exit
+pnpm version-packages
+```
+
+在 pull request 中审查 stable version 和 changelog。最终候选未通过 compatibility、security、browser、
+packed consumer 与 rollback gate 时，不得发布 `latest`。
+
+## 验证与人工门禁
+
+`pnpm check` 是非浏览器 release gate，两套 E2E 分别验证开发组合和全新生产 artifact。CI/release workflow
+是自动化权威来源；[支持策略](/zh/docs/operations/support-policy)与
+[安全策略](/zh/docs/operations/security)列出的外部配置和 maintainer acceptance 不能由本地测试替代。

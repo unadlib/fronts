@@ -1,0 +1,49 @@
+---
+title: Fronts 2.0 文档
+description: 了解框架无关的应用契约、Host Runtime、交付集成、隔离边界、运行维护与发布策略。
+---
+
+Fronts 是一个面向独立交付 Web 应用的、框架无关的**应用运行时**。模块加载器解决“如何取得代码”，
+Fronts 从下一层问题开始：平台如何为应用提供稳定 ABI、可信身份、生命周期所有权、部署策略、隔离、
+最小权限宿主能力、就绪判断、原子替换、取消、可观测性和确定性清理。
+
+<Callout type="warn" title="预发布状态">
+  Fronts 2.0 已实现并经过测试，但尚未发布到 npm。第一次稳定版发布前，公开 API 与协议仍可能调整。
+</Callout>
+
+## 选择正确的层
+
+| 需求                                        | 建议使用                                                     |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| 加载 MF remote，或使用官方 React/Vue Bridge | 直接使用 Module Federation Runtime 或 Bridge                 |
+| 不通过 Module Federation 运行 Fronts 应用   | `@fronts/core` 加任意应用 loader                             |
+| 通过 MF Runtime 加载 Fronts 应用            | `@fronts/core`、`@fronts/mf` 与 `@module-federation/runtime` |
+| 构建 MF producer                            | 官方 Vite、Rsbuild 等受支持的 producer 插件                  |
+| 跨框架、loader、隔离级别和发布策略治理应用  | Fronts Host                                                  |
+
+Fronts 不解析 MF manifest，不选择 shared dependency，不修改 snapshot，也不替代 bundler 插件；
+这些职责继续属于 Module Federation。
+
+## 推荐阅读顺序
+
+1. [快速开始](/zh/docs/getting-started)：定义并挂载第一个应用。
+2. [决策记录](/zh/docs/concepts/decision-record)：理解 MF 2 之后 Fronts 为什么仍有价值。
+3. [架构](/zh/docs/concepts/architecture)：掌握分层和所有权边界。
+4. [应用契约](/zh/docs/concepts/application-contract)：掌握 producer ABI。
+5. [Host Runtime API](/zh/docs/runtime/host-runtime-api)：组合并运行一个 Host。
+6. [Module Federation 集成](/zh/docs/runtime/module-federation)：选择已经验证的交付路径。
+
+## 仓库实际证明了什么
+
+仓库验证了仅使用 core 的完整生命周期、通过官方 MF Runtime 加载真实 remote、React 与 Vue
+producer、DOM 与 Shadow DOM 目标、跨源 iframe agent、就绪门控替换、上下文能力服务，以及多种
+兼容 Vite producer。开发服务器和全新 production preview 两套浏览器测试运行同一份应用契约。
+
+请通过[支持策略](/zh/docs/operations/support-policy)区分“声明支持”“CI 验证”“fixture 验证”
+“尽力兼容”和“不支持”，避免把一个可构建示例误当作长期兼容承诺。
+
+## 文档来源与权威性
+
+英文技术页面由仓库的规范 Markdown 与各软件包 README 自动生成；中文页面具有完全相同的 slug
+目录，并通过结构、链接和内容完整性检查。精确 TypeScript 签名和依赖范围以源代码及 package
+manifest 为最终依据；本站负责解释设计意图、边界、工作流与验证证据。

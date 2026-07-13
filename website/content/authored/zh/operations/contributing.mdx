@@ -1,0 +1,80 @@
+---
+title: 参与 Fronts 开发
+description: Fronts contributor 的开发环境、变更边界、测试、文档、Changesets 与评审要求。
+---
+
+## 环境与仓库地图
+
+需要 Node.js 22.18+、Corepack 管理的 pnpm 10/11，以及 Playwright Chromium。CI 在 Node 22 与 24
+运行主检查。用 `corepack enable` 与 `pnpm install --frozen-lockfile` 安装，不要用 npm/Yarn 改写 lockfile。
+
+`packages/core` 负责协议、Host、resolver、container、service、error 与 iframe；`packages/mf` 只适配
+官方公开 Runtime API；React/Vue3 包生产同一契约；`examples` 是可执行集成证据，`e2e` 在 dev/preview
+复用行为，`docs` 记录 architecture/contract/operations/runbook，`.changeset` 保存发布说明。修改 package
+边界或 lifecycle 前先读[架构](/zh/docs/concepts/architecture)和[应用契约](/zh/docs/concepts/application-contract)。
+
+## 变更流程与 Changesets
+
+从最新分支开始并确认 worktree 不含他人变更；先复现行为或定义契约；一次改变一个 concern 并补最窄
+证明；同步所有相关 README、contract、architecture、runbook 与 example；公开 package 对 consumer
+可见时添加 changeset；迭代时跑 focused check，交付前跑完整 gate；最后检查 unrelated formatting、
+generated output、secret 与意外 API expansion。commit 应可独立评审，常用 `fix(core): ...`、
+`feat(mf): ...`、`test(examples): ...`、`docs: ...`。
+
+`pnpm changeset` 选择全部受影响 package，描述用户影响。runtime behavior、error、export、type、peer
+range、metadata、安全修复需要；纯内部重构通常不需要；test/example-only 不需要；非 package README 的
+docs-only 不需要；会随 package 发布且实质改变指南的 README 应有。不要手工改 version/changelog。
+
+## 检查命令
+
+```sh
+pnpm lint
+pnpm docs:check
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm build
+pnpm check
+```
+
+迭代可运行单个 Vitest 文件，但 focused test 不能代替完整 `pnpm check`。首次浏览器测试安装 Chromium：
+
+```sh
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm test:e2e:preview
+```
+
+CI 要求 fresh production preview。修改 Host orchestration、remote output、asset URL、manifest、shared、
+iframe、framework adapter 或 example server 时两套都跑。OriginJS dev 刻意是 build + preview，不是
+bundleless remote dev。
+
+## 公开 API 与 MF 变更
+
+公开 API 完成条件：只从预期 package exports 导出；contract test 覆盖成功、失败、取消、cleanup；
+README/guide 解释意图与边界；ID/envelope/context 遵循 validation/snapshot；packed ESM/CJS 仍通过；有
+Changeset；stable 前评审 compatibility/rollback。不要增加绕过 Host transaction 的 convenience API；
+独立开发也用 static resolver + local loader 组合正常 Host。
+
+`@fronts/mf` 必须只调用公开官方 instance method，不得解析/修改 manifest/snapshot、导入 runtime-core、
+实现 shared selection、发现 hidden global instance 或把 bundler-specific behavior 放入 core。新 producer
+声明必须证明 ready、service、update、unmount、idle、production output，以及适用时 shared behavior；
+load-only smoke 不够。
+
+## Iframe、安全与文档
+
+iframe/identity/capability/service scope 属于安全敏感变更：保持 exact origin、不用 `*`；专用 child origin
+与必需 sandbox；同时校验 origin/source；random channel 与单一 port；grant 是 maximum、Host 授权、child
+声明交集；parent 每次 privileged call 验证；abort/unmount revoke，并确定性清理 provider、peer、agent、
+container。必须跑完整 iframe 单测和跨源 E2E，并人工安全评审。
+
+文档记录意图、所有权、不变量、trade-off 和 verification，而不是逐行复述实现。新 canonical doc 需要
+YAML type/title/description/owner/status，未接受承诺为 proposed；链接 source/test；包含 Verification；加入
+index；只有真正澄清复杂关系时用 Mermaid；跑 docs check 与 Prettier。当前 2.0 文档不加入旧版迁移内容。
+
+## 交付清单
+
+确认 concern 单一、success/failure/cancellation/cleanup 证据齐全、`pnpm check` 通过、文档检查通过、相关
+两套 E2E 通过、公开包有 changeset、兼容矩阵边界精确、安全变更人工评审、输出无凭证/tenant data，
+且 commit history 可审查。普通问题走 GitHub issue 并附 troubleshooting 证据；漏洞绝不能公开，遵循
+[安全策略](/zh/docs/operations/security)。
