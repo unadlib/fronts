@@ -75,6 +75,9 @@ Additional entry points:
 - `@fronts/core/iframe` — origin-bound iframe container/proxy, child agent, and negotiated RPC
   capabilities
 
+See the [Host Runtime API guide](../../docs/host-runtime-api.md) for resolution, preload, mount,
+replacement, contextual services, observability, and shutdown workflows.
+
 The core package has no React, Vue, bundler, or Module Federation dependency. Pair it with
 `@fronts/mf`, a custom loader, or both.
 
