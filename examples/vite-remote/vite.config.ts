@@ -14,6 +14,9 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       manifest: true,
       name: 'fronts_vite_remote',
+      // A runtime-only host does not provide a build-plugin share graph. Keep the small Fronts
+      // protocol implementation inside this remote instead of auto-sharing package dependencies.
+      shared: {},
     }),
   ],
   preview: { cors, host: '127.0.0.1', port: 4201, strictPort: true },

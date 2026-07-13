@@ -29,6 +29,7 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:e2e": "playwright test",
+    "test:e2e:preview": "pnpm build && playwright test --config playwright.preview.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
     "verify:packages": "node scripts/verify-packages.mjs",

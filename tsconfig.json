@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.base.json",
-  "files": ["playwright.config.ts", "vitest.config.ts"],
+  "files": ["playwright.config.ts", "playwright.preview.config.ts", "vitest.config.ts"],
   "include": ["e2e/**/*.ts"]
 }

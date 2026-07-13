@@ -151,6 +151,8 @@ pnpm typecheck
 pnpm test
 pnpm test:coverage
 pnpm build
+pnpm test:e2e          # development servers
+pnpm test:e2e:preview  # fresh production builds served by preview servers
 ```
 
 Node.js 22.18 or newer and pnpm 10 are required.
