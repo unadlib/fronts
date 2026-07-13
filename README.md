@@ -116,12 +116,14 @@ independently served applications:
 - Vue 3 over Module Federation in a Shadow DOM container
 - React over Module Federation inside an iframe with its own MF runtime instance
 
-The Vite runtime example pairs:
+The Vite runtime examples pair:
 
 - a plain Vite host on `http://127.0.0.1:4200` that uses `@module-federation/runtime` directly and
   does not install the MF Vite plugin
 - a Vite remote on `http://127.0.0.1:4201` that uses `@module-federation/vite` to expose the same
   Fronts application ABI
+- a Vite remote on `http://127.0.0.1:4202` that uses `vite-plugin-federation` and is consumed through
+  its MF2 manifest by the same host at `/?producer=vite-plugin-federation`
 
 Run every example service with:
 

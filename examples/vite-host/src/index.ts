@@ -24,6 +24,38 @@ interface ViteHostServices {
   };
 }
 
+interface ProducerConfig {
+  readonly appName: string;
+  readonly displayName: string;
+  readonly entry: string;
+  readonly id: string;
+  readonly remoteName: string;
+}
+
+function resolveProducer(value: string | null): ProducerConfig {
+  switch (value) {
+    case null:
+    case 'official':
+      return {
+        appName: 'vite-catalog',
+        displayName: '@module-federation/vite',
+        entry: 'http://127.0.0.1:4201/mf-manifest.json',
+        id: 'official',
+        remoteName: 'fronts_vite_remote',
+      };
+    case 'vite-plugin-federation':
+      return {
+        appName: 'vite-plugin-catalog',
+        displayName: 'vite-plugin-federation',
+        entry: 'http://127.0.0.1:4202/mf-manifest.json',
+        id: 'vite-plugin-federation',
+        remoteName: 'fronts_vite_plugin_federation_remote',
+      };
+    default:
+      throw new Error(`Unsupported Vite federation producer "${value}".`);
+  }
+}
+
 function requireElement(id: string): HTMLElement {
   const element = document.getElementById(id);
   if (element === null) {
@@ -37,9 +69,10 @@ const eventOutput = requireElement('service-event');
 const auditOutput = requireElement('host-audit');
 const updateButton = requireElement('update-application') as HTMLButtonElement;
 const unmountButton = requireElement('unmount-application') as HTMLButtonElement;
+const producer = resolveProducer(new URL(window.location.href).searchParams.get('producer'));
 const source = createModuleFederationSource({
-  entry: 'http://127.0.0.1:4201/mf-manifest.json',
-  name: 'fronts_vite_remote',
+  entry: producer.entry,
+  name: producer.remoteName,
   type: 'module',
 });
 const federation = createInstance({ name: 'fronts_plain_vite_host', remotes: [] });
@@ -59,7 +92,7 @@ const host = createFrontsHost<ModuleFederationSource, ViteHostServices>({
   hostId: 'fronts-plain-vite-host',
   loader: createModuleFederationAdapter({ instance: federation }),
   resolver: createStaticResolver([
-    { match: { name: 'vite-catalog' }, resolve: { source, version: '2.0.0' } },
+    { match: { name: producer.appName }, resolve: { source, version: '2.0.0' } },
   ]),
   services,
 });
@@ -85,11 +118,11 @@ async function main(): Promise<void> {
   application = await host.mount<CatalogProps>({
     instanceId: 'vite-catalog-example',
     props: { revision },
-    ref: { expose: './application', name: 'vite-catalog' },
+    ref: { expose: './application', name: producer.appName },
     target,
-    traceId: 'vite-runtime-example',
+    traceId: `${producer.id}-runtime-example`,
   });
-  auditOutput.textContent = 'Host audit: Vite remote ready';
+  auditOutput.textContent = `Host audit: ${producer.displayName} remote ready`;
   auditOutput.dataset.state = 'ready';
 
   updateButton.addEventListener('click', () => {

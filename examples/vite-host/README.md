@@ -4,4 +4,6 @@ Runs on `http://127.0.0.1:4200`. Vite only builds and serves the shell. The host
 not install `@module-federation/vite`; it creates an explicit `@module-federation/runtime` instance
 and passes that instance to `@fronts/mf`.
 
-The host loads the application exposed by `@fronts-example/vite-remote`.
+The default route loads the application exposed by `@fronts-example/vite-remote`. Open
+`/?producer=vite-plugin-federation` to load the manifest emitted by
+`@fronts-example/vite-plugin-federation-remote` through the same official runtime instance.
