@@ -152,6 +152,7 @@ Then open any host URL above.
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
 - [Support policy](docs/support-policy.md) — versions, environments, browsers, and prerelease guarantees
 - [Troubleshooting](docs/troubleshooting.md) — phase-oriented diagnosis and recovery
+- [Security policy](SECURITY.md) — private vulnerability reporting and disclosure boundaries
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development

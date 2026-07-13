@@ -184,8 +184,8 @@ An actionable report should include:
 - whether unmount followed by `host.audit()` is idle;
 - a minimal repository or failing test when possible.
 
-Security reports MUST follow the repository's vulnerability-reporting policy rather than being
-posted as a public compatibility issue.
+Security reports MUST follow [SECURITY.md](../SECURITY.md) rather than being posted as a public
+compatibility issue.
 
 ## Verification
 

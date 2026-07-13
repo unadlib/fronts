@@ -55,10 +55,12 @@ npm provenance.
 Trusted publishing can only be configured after a package exists. Before the first release:
 
 1. confirm the publisher owns the npm `@fronts` scope;
-2. add a short-lived granular npm token as the `NPM_TOKEN` repository secret;
-3. publish the first prerelease through the protected workflow;
-4. configure all four packages to trust `unadlib/fronts` + `release.yml` for `npm publish`;
-5. delete the `NPM_TOKEN` secret and revoke the bootstrap token.
+2. enable and test GitHub Private Vulnerability Reporting as required by
+   [`SECURITY.md`](../SECURITY.md);
+3. add a short-lived granular npm token as the `NPM_TOKEN` repository secret;
+4. publish the first prerelease through the protected workflow;
+5. configure all four packages to trust `unadlib/fronts` + `release.yml` for `npm publish`;
+6. delete the `NPM_TOKEN` secret and revoke the bootstrap token.
 
 After bootstrap, the empty token environment values fall through to npm's short-lived OIDC
 credential. Do not retain a long-lived publish token as a permanent fallback.
