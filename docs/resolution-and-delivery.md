@@ -1,3 +1,12 @@
+---
+type: architecture
+title: Resolution and Delivery
+description: Deployment resolution, policy context, caching, preload, immutable promotion, rollback, and transport ownership.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [resolution, delivery, cache, rollback]
+---
+
 # Resolution and delivery
 
 ## Separate policy from loading
@@ -192,3 +201,14 @@ replacement are easier to audit.
 
 Fronts does not publish assets, sign manifests, generate types, run a deployment registry, or
 choose shared dependency versions. Those remain producer/deployment/MF responsibilities.
+
+## Verification
+
+- `pnpm exec vitest run packages/core/test/resolver.test.ts packages/core/test/host.test.ts` verifies
+  normalization, policy snapshots, cache windows, cancellation, preload, and resolved deployments.
+- `pnpm exec vitest run packages/mf/test` verifies that concrete deployments map to public official
+  Runtime registration, preload, and loading operations without taking ownership of MF policy.
+- `pnpm exec vitest run packages/core/test/replacement.test.ts` verifies safe staged promotion and
+  rollback behavior after resolution.
+- [Module Federation integrations](module-federation-integrations.md) defines delivery-plugin support
+  separately from the resolver contract.

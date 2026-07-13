@@ -214,7 +214,7 @@ For a new concept document under `docs`:
 - use `status: proposed` until maintainers accept new policy or design commitments;
 - link source types/tests instead of copying volatile field lists and defaults;
 - include a `## Verification` section with commands or explicit missing evidence;
-- add it to the root README documentation index;
+- add it to [`docs/index.md`](docs/index.md) and link that index from any relevant package README;
 - use Mermaid only when it materially clarifies a boundary, sequence, lifecycle, or decision tree;
 - run Prettier and verify every relative link resolves.
 

@@ -1,3 +1,12 @@
+---
+type: runbook
+title: Releasing Fronts
+description: Changesets, local and CI verification, npm trusted publishing bootstrap, prerelease, and stable-release gates.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [release, changesets, npm, provenance]
+---
+
 # Releasing
 
 Fronts publishes four public packages with synchronized versions:
@@ -80,3 +89,14 @@ pnpm version-packages
 Review the resulting stable versions and changelogs in a pull request. Do not publish `latest`
 until compatibility, security, browser, package-consumer, and rollback gates have passed on the final
 candidate.
+
+## Verification
+
+- `pnpm check` runs the required non-browser release gate, including isolated packed-package
+  consumption through ESM and CommonJS.
+- `pnpm test:e2e` and `pnpm test:e2e:preview` verify development composition and fresh production
+  artifacts.
+- [`ci.yml`](../.github/workflows/ci.yml) and [`release.yml`](../.github/workflows/release.yml) are the
+  automation sources of truth.
+- [Support policy](support-policy.md) and [`SECURITY.md`](../SECURITY.md) identify commitments that
+  still require maintainer acceptance or external repository configuration before stable release.

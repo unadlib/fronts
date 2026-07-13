@@ -1,3 +1,12 @@
+---
+type: architecture
+title: Isolation and Security
+description: Trust model, DOM and realm isolation, iframe protocol authority, capability services, and supply-chain boundaries.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [security, isolation, iframe, capabilities]
+---
+
 # Isolation and security
 
 ## Threat model
@@ -168,3 +177,13 @@ Guidelines:
 Fronts does not implement SES, Realms, DOM membrane virtualization, network interception, or a
 complete browser sandbox. Use a hardened cross-origin iframe or a separate application boundary
 when code is not trusted.
+
+## Verification
+
+- `pnpm exec vitest run packages/core/test/container.test.ts packages/core/test/services.test.ts`
+  verifies DOM/Shadow ownership, capability filtering, revocation, and provider cleanup.
+- `pnpm exec vitest run packages/core/test/iframe.test.ts` verifies origin/source validation,
+  channel negotiation, RPC grants, cancellation, and cleanup.
+- `pnpm test:e2e` and `pnpm test:e2e:preview` exercise the cross-origin iframe boundary in a real
+  Chromium browser.
+- [Iframe deployment](iframe-deployment.md) defines the production wiring and CSP checklist.

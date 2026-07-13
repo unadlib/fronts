@@ -1,3 +1,12 @@
+---
+type: architecture
+title: Fronts 2.0 Architecture
+description: Runtime layers, ownership boundaries, dependency direction, mount transactions, replacement, and extension points.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [architecture, runtime, module-federation, lifecycle]
+---
+
 # Architecture
 
 ## System boundary
@@ -161,3 +170,13 @@ boundary without mutating MF runtime caches behind an active application.
 - Use `capabilityPolicy` for tenant, identity, or deployment-specific authorization.
 
 Extension points are explicit objects, not process-wide globals.
+
+## Verification
+
+- `pnpm check` verifies package boundaries, public exports, types, lifecycle contracts, and test
+  coverage across the workspace.
+- `pnpm test:e2e` and `pnpm test:e2e:preview` verify the documented composition against development
+  servers and fresh production output.
+- [`packages/core/src`](../packages/core/src) owns the framework- and transport-neutral runtime.
+- [`packages/mf/src`](../packages/mf/src) demonstrates the transport adapter boundary over the
+  official Module Federation Runtime API.

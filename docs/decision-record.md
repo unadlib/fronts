@@ -1,3 +1,13 @@
+---
+type: adr
+title: Fronts 2.0 after Module Federation 2
+description: Decision, alternatives, ownership boundaries, non-goals, and release criteria for retaining a Fronts application runtime.
+owner: unadlib/fronts maintainers
+status: accepted
+risk_level: critical
+tags: [decision, module-federation, scope, runtime]
+---
+
 # Decision record: Fronts 2.0 as an application runtime
 
 Status: accepted for the 2.0 alpha
@@ -115,3 +125,14 @@ Fronts 2.0 只有同时满足以下条件才值得发布：
 
 如果这些约束未来被官方 Runtime/Bridge 完整吸收，Fronts 应缩小甚至退役，而不是为了项目存在
 而继续复制官方能力。
+
+## Verification
+
+- [Module Federation integrations](module-federation-integrations.md) records the currently tested
+  producer and runtime boundary.
+- [Host Runtime API](host-runtime-api.md), [Application contract](application-contract.md), and
+  [Isolation and security](isolation-and-security.md) map the retained responsibilities to public
+  contracts.
+- `pnpm check` plus both browser E2E modes verify the release criteria that are executable in this
+  repository; external publication and security-intake gates remain tracked in
+  [Releasing](releasing.md) and [`SECURITY.md`](../SECURITY.md).

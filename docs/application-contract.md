@@ -1,3 +1,12 @@
+---
+type: contract
+title: Application Contract
+description: Framework-neutral application protocol, lifecycle ownership, readiness, services, and compatibility rules for Fronts 2.0.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [application, protocol, lifecycle, services]
+---
+
 # Application contract
 
 ## Protocol identity
@@ -202,3 +211,13 @@ requirement; use Fronts adapters when the application must participate in the Fr
 Protocol major versions are strict. A host must reject an unknown major rather than trying to
 guess behavior. New optional handle methods can be added compatibly; changing mount semantics,
 readiness, service authorization, or cleanup ownership requires a new protocol major.
+
+## Verification
+
+- `pnpm exec vitest run packages/core/test/app.test.ts packages/core/test/host.test.ts` verifies
+  protocol branding, application validation, lifecycle ordering, readiness, and cleanup.
+- `pnpm exec vitest run packages/core/test/services.test.ts packages/core/test/iframe.test.ts`
+  verifies capability scoping, provider cleanup, and the negotiated iframe service contract.
+- [`packages/core/src/app`](../packages/core/src/app) is the public protocol source of truth.
+- [`packages/react/test`](../packages/react/test) and [`packages/vue3/test`](../packages/vue3/test)
+  verify that framework producers implement the same contract.

@@ -1,3 +1,12 @@
+---
+type: operations
+title: Runtime Operations
+description: Observability, failure handling, replacement, timeouts, testing evidence, and incident correlation for Fronts Hosts.
+owner: unadlib/fronts maintainers
+status: proposed
+tags: [operations, observability, failures, testing]
+---
+
 # Operations
 
 ## Observability model
@@ -210,3 +219,13 @@ MF instance name, MF remote name/entry, Fronts phase/error code
 
 This is enough to decide whether ownership lies with deployment policy, MF resource loading,
 producer protocol/rendering, container isolation, or host capability/service code.
+
+## Verification
+
+- `pnpm exec vitest run packages/core/test/observability.test.ts packages/core/test/host.test.ts`
+  verifies event envelopes, phase attribution, audit, cancellation, and cleanup reporting.
+- `pnpm exec vitest run packages/core/test/replacement.test.ts` verifies readiness-gated replacement,
+  rollback, transaction serialization, and previous-instance cleanup evidence.
+- `pnpm test:e2e` and `pnpm test:e2e:preview` verify the documented operational signals against the
+  complete example topology.
+- [Troubleshooting](troubleshooting.md) maps stable error phases and codes to recovery actions.
