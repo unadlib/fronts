@@ -164,6 +164,7 @@ review expectations.
 
 ```sh
 pnpm lint
+pnpm docs:check
 pnpm typecheck
 pnpm test
 pnpm test:coverage

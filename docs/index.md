@@ -50,4 +50,5 @@ Repository-wide workflow and disclosure policies live at the root:
 - Add every new concept document to this index and give it a concrete `## Verification` section.
 - Use `status: proposed` for unresolved or unreviewed commitments; only a responsible maintainer may
   accept them.
-- Verify relative links and format changed Markdown before handoff.
+- Run `pnpm docs:check` after changing Markdown. The repository check also runs it through
+  `pnpm lint`.

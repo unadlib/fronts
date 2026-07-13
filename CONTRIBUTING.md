@@ -96,6 +96,7 @@ Do not edit package versions or changelogs by hand. The Changesets release flow 
 
 ```sh
 pnpm lint
+pnpm docs:check
 pnpm typecheck
 pnpm test
 pnpm test:coverage
@@ -216,7 +217,8 @@ For a new concept document under `docs`:
 - include a `## Verification` section with commands or explicit missing evidence;
 - add it to [`docs/index.md`](docs/index.md) and link that index from any relevant package README;
 - use Mermaid only when it materially clarifies a boundary, sequence, lifecycle, or decision tree;
-- run Prettier and verify every relative link resolves.
+- run `pnpm docs:check` and Prettier so relative links, metadata, API coverage, and navigation remain
+  valid.
 
 Update documentation in the same concern commit as the behavior that makes it stale. Do not add
 pre-2.0 migration or compatibility material to current Fronts 2.0 documentation.
@@ -226,6 +228,7 @@ pre-2.0 migration or compatibility material to current Fronts 2.0 documentation.
 - [ ] The change has one clear responsibility and no unrelated worktree edits.
 - [ ] Public behavior has focused success, failure, cancellation, and cleanup evidence.
 - [ ] `pnpm check` passes.
+- [ ] `pnpm docs:check` passes when Markdown or public Host types changed.
 - [ ] Relevant development and production-preview E2E pass.
 - [ ] Public package changes include a Changeset.
 - [ ] READMEs, contracts, support tables, and runbooks match the new behavior.
