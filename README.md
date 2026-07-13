@@ -151,6 +151,7 @@ Then open any host URL above.
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
 - [Support policy](docs/support-policy.md) — versions, environments, browsers, and prerelease guarantees
+- [Troubleshooting](docs/troubleshooting.md) — phase-oriented diagnosis and recovery
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development
