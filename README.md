@@ -153,9 +153,13 @@ Then open any host URL above.
 - [Support policy](docs/support-policy.md) — versions, environments, browsers, and prerelease guarantees
 - [Troubleshooting](docs/troubleshooting.md) — phase-oriented diagnosis and recovery
 - [Security policy](SECURITY.md) — private vulnerability reporting and disclosure boundaries
+- [Contributing](CONTRIBUTING.md) — development, tests, Changesets, and review expectations
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, focused tests, Changesets, documentation, and
+review expectations.
 
 ```sh
 pnpm lint
