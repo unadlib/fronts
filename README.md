@@ -144,6 +144,7 @@ Then open any host URL above.
 - [Decision record](docs/decision-record.md) — whether Fronts 2.0 is justified after MF 2
 - [Architecture](docs/architecture.md) — layers, ownership, and dependency rules
 - [Application contract](docs/application-contract.md) — lifecycle ABI and invariants
+- [Module Federation integrations](docs/module-federation-integrations.md) — producer compatibility and support boundaries
 - [Resolution and delivery](docs/resolution-and-delivery.md) — versions, channels, caching, and rollback
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
