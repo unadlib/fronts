@@ -150,6 +150,7 @@ Then open any host URL above.
 - [Iframe deployment](docs/iframe-deployment.md) — cross-origin wiring, capabilities, and production security
 - [Isolation and security](docs/isolation-and-security.md) — DOM, Shadow DOM, iframe, and capabilities
 - [Operations](docs/operations.md) — tracing, failure handling, and leak auditing
+- [Support policy](docs/support-policy.md) — versions, environments, browsers, and prerelease guarantees
 - [Releasing](docs/releasing.md) — package verification, prereleases, and npm provenance
 
 ## Development
