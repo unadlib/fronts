@@ -401,6 +401,87 @@ describe('React host adapter', () => {
     await waitFor(() => expect(unmount).toHaveBeenCalled());
   });
 
+  it('does not update the application when a render repeats the same prop values', async () => {
+    const update = vi.fn(async () => undefined);
+    const instance = {
+      identity,
+      ready: Promise.resolve(),
+      ref: normalizeAppRef({ name: 'checkout' }),
+      resolved: { ref: normalizeAppRef({ name: 'checkout' }), source: { entry: 'https://cdn' } },
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update,
+    } as unknown as MountedApplication<Props, Source>;
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<Source, Services>;
+
+    const view = render(
+      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'first' }} host={host} />,
+    );
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
+
+    view.rerender(
+      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'first' }} host={host} />,
+    );
+    view.rerender(
+      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'first' }} host={host} />,
+    );
+    await Promise.resolve();
+    expect(update).not.toHaveBeenCalled();
+
+    view.rerender(
+      <RemoteApp app={{ name: 'checkout' }} appProps={{ value: 'second' }} host={host} />,
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledWith({ value: 'second' }));
+    expect(update).toHaveBeenCalledOnce();
+  });
+
+  it('honours a caller-supplied prop equality function', async () => {
+    const update = vi.fn(async () => undefined);
+    const instance = {
+      identity,
+      ready: Promise.resolve(),
+      ref: normalizeAppRef({ name: 'checkout' }),
+      resolved: { ref: normalizeAppRef({ name: 'checkout' }), source: { entry: 'https://cdn' } },
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update,
+    } as unknown as MountedApplication<Props, Source>;
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<Source, Services>;
+
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        arePropsEqual={() => true}
+        host={host}
+      />,
+    );
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
+
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'second' }}
+        arePropsEqual={() => true}
+        host={host}
+      />,
+    );
+    await Promise.resolve();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it('renders host-level fallbacks when resolving or loading fails', async () => {
     const failure = new Error('registry unavailable');
     const host = {

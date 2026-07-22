@@ -10,6 +10,8 @@ import type {
   MountedApplication,
 } from '@fronts/core';
 
+import { shallowEqual } from './equality.js';
+
 export type RemoteAppStatus = 'idle' | 'mounting' | 'ready' | 'error';
 
 export interface UseRemoteAppOptions<
@@ -21,6 +23,11 @@ export interface UseRemoteAppOptions<
   readonly host: FrontsHost<Source, Services>;
   readonly app: AppRef;
   readonly appProps: Props;
+  /**
+   * Decides whether a render carries new application props. Defaults to a shallow comparison so a
+   * re-rendered prop object with unchanged values does not call `update()`.
+   */
+  readonly arePropsEqual?: (previous: Props, next: Props) => boolean;
   readonly container?: Request | ContainerRequestResolver<Source, Request>;
   readonly instanceId?: string;
   readonly mountKey?: string | number;
@@ -173,7 +180,7 @@ export function useRemoteApp<
     if (
       instance === null ||
       instanceRef.current !== instance ||
-      Object.is(lastProps.current, options.appProps)
+      (options.arePropsEqual ?? shallowEqual)(lastProps.current, options.appProps)
     ) {
       return;
     }
