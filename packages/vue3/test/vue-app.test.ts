@@ -579,6 +579,35 @@ describe('Vue host adapter', () => {
     expect(update).toHaveBeenCalledOnce();
   });
 
+  it('does not remount when a render repeats the same container and resolution policy', async () => {
+    const { instance, unmount } = createMountedApplication();
+    const hostMount = vi.fn(async () => instance);
+    const host = { mount: hostMount } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: {
+        app: { name: 'checkout' },
+        appProps: { value: 'first' },
+        container: { type: 'dom' },
+        host,
+        resolve: { metadata: { release: 'canary' }, tenant: 'acme' },
+      },
+    });
+    await flushPromises();
+    expect(hostMount).toHaveBeenCalledOnce();
+
+    await view.setProps({
+      container: { type: 'dom' },
+      resolve: { metadata: { release: 'canary' }, tenant: 'acme' },
+    });
+    await flushPromises();
+    expect(hostMount).toHaveBeenCalledOnce();
+    expect(unmount).not.toHaveBeenCalled();
+
+    await view.setProps({ resolve: { metadata: { release: 'stable' }, tenant: 'acme' } });
+    await flushPromises();
+    expect(hostMount).toHaveBeenCalledTimes(2);
+  });
+
   it('updates the application when a reactive prop object is mutated in place', async () => {
     const { instance, update } = createMountedApplication();
     const host = {

@@ -10,7 +10,7 @@ import type {
   MountedApplication,
 } from '@fronts/core';
 
-import { shallowEqual } from './equality.js';
+import { nestedShallowEqual, shallowEqual } from './equality.js';
 
 export type RemoteAppStatus = 'idle' | 'mounting' | 'ready' | 'error';
 
@@ -86,6 +86,23 @@ export function useRemoteApp<
   let hasAppliedProps = false;
   let teardown: Promise<void> = Promise.resolve();
 
+  /**
+   * Retains the previously seen value while an incoming one is still equal to it, so a mount input
+   * re-created by an ordinary render does not read as a new deployment request.
+   */
+  const stableSource = <Value>(read: () => Value): (() => Value) => {
+    let retained: Value;
+    let seen = false;
+    return () => {
+      const next = read();
+      if (!seen || !nestedShallowEqual(retained, next)) {
+        retained = next;
+        seen = true;
+      }
+      return retained;
+    };
+  };
+
   const updateMounted = (
     mounted: MountedApplication<Props, Source>,
     nextProps: Props,
@@ -123,11 +140,11 @@ export function useRemoteApp<
       () => toValue(input).app.expose,
       () => toValue(input).app.range,
       () => toValue(input).app.channel,
-      () => toValue(input).container,
+      stableSource(() => toValue(input).container),
       () => toValue(input).instanceId,
       () => toValue(input).mountKey,
       () => toValue(input).readyTimeoutMs,
-      () => toValue(input).resolve,
+      stableSource(() => toValue(input).resolve),
       () => toValue(input).traceId,
     ],
     (_values, _previous, onCleanup) => {
