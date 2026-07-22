@@ -7,6 +7,11 @@ interface ShopContracts {
   readonly checkout: { readonly cartId: string };
 }
 
+interface IncompatibleContracts {
+  readonly account: { readonly email: string };
+  readonly checkout: { readonly orderId: number };
+}
+
 interface Source {
   readonly remote: string;
 }
@@ -32,6 +37,8 @@ const composition: HostComposition<ShopContracts, Source, Services> = {
 
 const inferred = createReactBindings(composition);
 const explicit = createReactBindings<ShopContracts>()(composition);
+// @ts-expect-error a typed composition cannot be rebound to unrelated props contracts
+const incompatible = createReactBindings<IncompatibleContracts>()(composition);
 const Checkout = inferred.component('checkout', { container: 'shadow' });
 const IframeCheckout = inferred.component<'checkout', IframeRequest>('checkout', {
   container: { sandbox: ['allow-scripts'], type: 'iframe' },
@@ -60,3 +67,4 @@ void inlineAccount;
 void wrongComponent;
 void wrongInline;
 void unsafeUnion;
+void incompatible;
