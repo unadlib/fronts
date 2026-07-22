@@ -51,15 +51,26 @@ import { RemoteApp } from '@fronts/react';
   app={{ name: 'checkout', expose: './application' }}
   appProps={{ cartId: 'C-42' }}
   loading={<p>Loading…</p>}
-  fallback={(error) => <p>{error.message}</p>}
+  fallback={({ error, retry }) => (
+    <p>
+      {error.message} <button onClick={retry}>Retry</button>
+    </p>
+  )}
 />;
 ```
 
 The package also exports `useRemoteApp()` for headless integration and hooks for application
 identity, abort signal, and scoped host services.
 
+`retry()` abandons the failed attempt and mounts again with a new operation identity; it never
+resumes a partially failed mount.
+
 The `container` option accepts either a static container request or an async resolver that can
 derive the request from the resolved deployment before Fronts selects its loader.
+
+`appProps`, `container`, and `resolve` are compared by value, so re-creating them inline on every
+render neither updates nor remounts the application. Pass `arePropsEqual` when props need a
+different equality contract.
 
 This adapter is for applications participating in the Fronts host ABI. If an MF-only React
 architecture only needs framework/router integration, evaluate the official

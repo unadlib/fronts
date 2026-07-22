@@ -4,13 +4,19 @@ import type { BuiltInContainerRequest, ContainerRequest, FrontsHost } from '@fro
 
 import { useRemoteApp, type UseRemoteAppOptions, type UseRemoteAppResult } from './useRemoteApp.js';
 
+export interface RemoteFailure {
+  readonly error: Error;
+  /** Starts a new mount attempt with a new operation identity. */
+  readonly retry: () => void;
+}
+
 export interface RemoteAppProps<
   Props,
   Source,
   Services extends object,
   Request extends ContainerRequest = BuiltInContainerRequest,
 > extends UseRemoteAppOptions<Props, Source, Services, Request> {
-  readonly fallback?: ReactNode | ((error: Error) => ReactNode);
+  readonly fallback?: ReactNode | ((failure: RemoteFailure) => ReactNode);
   readonly loading?: ReactNode;
   readonly targetProps?: Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'ref'>;
   readonly wrapperProps?: Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
@@ -27,7 +33,7 @@ export function RemoteApp<
   const status =
     remote.status === 'error' && remote.error !== null
       ? typeof fallback === 'function'
-        ? fallback(remote.error)
+        ? fallback({ error: remote.error, retry: remote.retry })
         : (fallback ?? null)
       : remote.status === 'mounting'
         ? (loading ?? null)

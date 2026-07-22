@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import type { ContainerRequestResolver } from '@fronts/core';
 import type { IframeContainerRequest } from '@fronts/core/iframe';
-import { RemoteApp } from '@fronts/react';
+import { RemoteApp, type RemoteFailure } from '@fronts/react';
 
 import { host, type ExampleSource } from './runtime.js';
 
@@ -31,8 +31,15 @@ function Loading() {
   return <p className="status">Resolving, loading and waiting for readiness…</p>;
 }
 
-function Failure(error: Error) {
-  return <p className="status error">{error.message}</p>;
+function Failure({ error, retry }: RemoteFailure) {
+  return (
+    <p className="status error">
+      {error.message}{' '}
+      <button onClick={retry} type="button">
+        Retry
+      </button>
+    </p>
+  );
 }
 
 export function App() {

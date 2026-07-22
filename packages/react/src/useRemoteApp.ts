@@ -41,6 +41,11 @@ export interface UseRemoteAppOptions<
 export interface UseRemoteAppResult<Props, Source> {
   readonly error: Error | null;
   readonly instance: MountedApplication<Props, Source> | null;
+  /**
+   * Abandons the current application instance and starts a new mount attempt with a new operation
+   * identity. It never resumes a partially failed mount.
+   */
+  readonly retry: () => void;
   readonly status: RemoteAppStatus;
   readonly targetRef: RefCallback<HTMLDivElement>;
 }
@@ -105,8 +110,10 @@ export function useRemoteApp<
 
   const container = useStableValue(options.container, nestedShallowEqual);
   const resolve = useStableValue(options.resolve, nestedShallowEqual);
+  const [attempt, setAttempt] = useState(0);
 
   const targetRef = useCallback<RefCallback<HTMLDivElement>>((node) => setTarget(node), []);
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
     if (target === null) {
@@ -180,6 +187,7 @@ export function useRemoteApp<
         .catch(() => undefined);
     };
   }, [
+    attempt,
     target,
     options.host,
     options.app.name,
@@ -224,5 +232,5 @@ export function useRemoteApp<
     );
   }, [instance, options.appProps]);
 
-  return { error, instance, status, targetRef };
+  return { error, instance, retry, status, targetRef };
 }

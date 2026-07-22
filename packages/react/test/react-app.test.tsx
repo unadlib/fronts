@@ -543,12 +543,54 @@ describe('React host adapter', () => {
       <RemoteApp
         app={{ name: 'checkout' }}
         appProps={{ value: 'first' }}
-        fallback={(error) => <p>Failed: {error.message}</p>}
+        fallback={({ error }) => <p>Failed: {error.message}</p>}
         host={host}
       />,
     );
 
     expect(await screen.findByText('Failed: registry unavailable')).toBeTruthy();
+  });
+
+  it('starts a new mount attempt when the failure fallback retries', async () => {
+    const instance = {
+      identity,
+      ready: Promise.resolve(),
+      ref: normalizeAppRef({ name: 'checkout' }),
+      resolved: { ref: normalizeAppRef({ name: 'checkout' }), source: { entry: 'https://cdn' } },
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+    } as unknown as MountedApplication<Props, Source>;
+    const mount = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('registry unavailable'))
+      .mockResolvedValueOnce(instance);
+    const host = { mount } as unknown as FrontsHost<Source, Services>;
+
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        fallback={({ error, retry }) => (
+          <button onClick={retry} type="button">
+            Retry after: {error.message}
+          </button>
+        )}
+        host={host}
+      />,
+    );
+
+    const button = await screen.findByText('Retry after: registry unavailable');
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await waitFor(() => expect(mount).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(view.container.firstElementChild?.getAttribute('data-fronts-react-status')).toBe(
+        'ready',
+      ),
+    );
   });
 
   it('renders a fallback for unstringifiable host rejection values', async () => {
@@ -562,7 +604,7 @@ describe('React host adapter', () => {
       <RemoteApp
         app={{ name: 'checkout' }}
         appProps={{ value: 'first' }}
-        fallback={(error) => <p>{error.message}</p>}
+        fallback={({ error }) => <p>{error.message}</p>}
         host={host}
       />,
     );
@@ -648,7 +690,7 @@ describe('React host adapter', () => {
       <RemoteApp
         app={{ name: 'checkout' }}
         appProps={{ value: 'first' }}
-        fallback={(failure) => <p>{failure.message}</p>}
+        fallback={({ error }) => <p>{error.message}</p>}
         host={host}
         mountKey={1}
       />,
@@ -664,7 +706,7 @@ describe('React host adapter', () => {
       <RemoteApp
         app={{ name: 'checkout' }}
         appProps={{ value: 'second' }}
-        fallback={(failure) => <p>{failure.message}</p>}
+        fallback={({ error }) => <p>{error.message}</p>}
         host={host}
         mountKey={1}
       />,
@@ -674,7 +716,7 @@ describe('React host adapter', () => {
       <RemoteApp
         app={{ name: 'checkout' }}
         appProps={{ value: 'third' }}
-        fallback={(failure) => <p>{failure.message}</p>}
+        fallback={({ error }) => <p>{error.message}</p>}
         host={host}
         mountKey={2}
       />,

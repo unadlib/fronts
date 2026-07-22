@@ -1,5 +1,10 @@
 export { RemoteApp } from './RemoteApp.js';
-export type { ReactFrontsHost, RemoteAppHookResult, RemoteAppProps } from './RemoteApp.js';
+export type {
+  ReactFrontsHost,
+  RemoteAppHookResult,
+  RemoteAppProps,
+  RemoteFailure,
+} from './RemoteApp.js';
 export {
   FrontsReactContext,
   useApplicationAbortSignal,
