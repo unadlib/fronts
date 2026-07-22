@@ -64,13 +64,50 @@ function escapeRegularExpression(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Blanks out fenced code blocks and inline code spans, preserving every offset so reported line
+ * numbers stay accurate. Markdown does not render links inside code, so link syntax there is a
+ * false positive: a TypeScript mapped type such as `[Name in Keys]: Value` is otherwise read as a
+ * reference link definition.
+ */
+function maskCode(text) {
+  let fence;
+
+  return text
+    .split('\n')
+    .map((line) => {
+      const delimiter = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+
+      if (fence === undefined) {
+        if (delimiter !== undefined) {
+          fence = delimiter;
+          return line;
+        }
+        return line.replace(/`+[^`]*`+/g, (span) => ' '.repeat(span.length));
+      }
+
+      if (
+        delimiter !== undefined &&
+        delimiter[0] === fence[0] &&
+        delimiter.length >= fence.length
+      ) {
+        fence = undefined;
+        return line;
+      }
+
+      return ' '.repeat(line.length);
+    })
+    .join('\n');
+}
+
 function extractLinks(text) {
   const links = [];
+  const prose = maskCode(text);
   const inlinePattern = /!?\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+["'][^"']*["'])?\)/g;
   const referencePattern = /^\s{0,3}\[[^\]]+\]:\s*(<[^>]+>|\S+)/gm;
 
   for (const pattern of [inlinePattern, referencePattern]) {
-    for (const match of text.matchAll(pattern)) {
+    for (const match of prose.matchAll(pattern)) {
       links.push({ index: match.index, target: match[1] });
     }
   }
