@@ -53,6 +53,8 @@ Three pieces must be registered together:
 - `containerLoaders.iframe` selects that proxy instead of evaluating the resolved source in the
   parent realm.
 
+<!-- typecheck: federation -->
+
 ```ts
 import { createDomContainer, createFrontsHost, createStaticResolver } from '@fronts/core';
 import { createIframeContainer, createIframeProxyLoader } from '@fronts/core/iframe';
@@ -147,6 +149,8 @@ same origin. Wildcard target origins are rejected.
 ## Child agent wiring
 
 The child document creates its own loader and starts one iframe agent:
+
+<!-- typecheck: federation -->
 
 ```ts
 import { createInstance } from '@module-federation/runtime';

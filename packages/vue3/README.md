@@ -8,6 +8,8 @@ pnpm add @fronts/core @fronts/vue3 vue
 
 ## Producer
 
+<!-- typecheck: services -->
+
 ```ts
 import { defineComponent, h } from 'vue';
 import { defineVueApp, useHostServices } from '@fronts/vue3';

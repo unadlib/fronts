@@ -4,7 +4,15 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/.__mf__temp/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', 'old/**'],
+    ignores: [
+      '**/.__mf__temp/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      // Compiled only by scripts/check-doc-examples.mjs, against its generated tsconfig.
+      'scripts/doc-examples/**',
+      'old/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strict,

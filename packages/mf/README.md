@@ -9,6 +9,8 @@ pnpm add @fronts/core @fronts/mf @module-federation/runtime
 `@module-federation/runtime` is a peer dependency. The low-level adapter accepts an explicit
 official runtime instance and never discovers a global default instance.
 
+<!-- typecheck: services -->
+
 ```ts
 import { createInstance } from '@module-federation/runtime';
 import { createFrontsHost, createStaticResolver } from '@fronts/core';
@@ -30,6 +32,8 @@ const host = createFrontsHost({
 
 For a typed composition root, `createMfHost()` builds the same resolver, adapter, and Host while
 retaining the logical application references needed by framework bindings:
+
+<!-- typecheck -->
 
 ```ts
 import { createMfHost } from '@fronts/mf';

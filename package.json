@@ -21,10 +21,11 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "changeset": "changeset",
-    "check": "pnpm lint && pnpm build && pnpm verify:packages && pnpm typecheck && pnpm test:coverage",
+    "check": "pnpm lint && pnpm build && pnpm docs:examples && pnpm verify:packages && pnpm typecheck && pnpm test:coverage",
     "clean": "pnpm -r --if-present clean",
     "dev:examples": "pnpm --parallel --filter './examples/*' dev",
     "docs:check": "node scripts/check-docs.mjs",
+    "docs:examples": "node scripts/check-doc-examples.mjs",
     "format": "prettier --write .",
     "lint": "eslint . && prettier --check . && pnpm docs:check",
     "test": "vitest run --passWithNoTests",

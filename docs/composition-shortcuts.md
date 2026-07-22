@@ -49,6 +49,8 @@ Federation Bridge. If code only needs `loadRemote()`, use the official runtime d
 The producer remains a normal Fronts application exposed through the producer's official Module
 Federation plugin:
 
+<!-- typecheck: services -->
+
 ```tsx
 import { defineReactApp } from '@fronts/react';
 
@@ -79,6 +81,8 @@ export interface ShopContracts {
 ```
 
 Compose delivery and React at module scope:
+
+<!-- typecheck: contracts, services -->
 
 ```tsx
 import { createRoot } from 'react-dom/client';

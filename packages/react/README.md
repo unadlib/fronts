@@ -8,6 +8,8 @@ pnpm add @fronts/core @fronts/react react react-dom
 
 ## Producer
 
+<!-- typecheck: services -->
+
 ```tsx
 import { defineReactApp, useHostServices } from '@fronts/react';
 
@@ -46,6 +48,8 @@ Fronts loader.
 Pair a transport composition with React once, then render or preload applications by their typed
 logical names. Reference defaults such as a custom Module Federation expose stay in the catalog;
 they are not repeated at each render site.
+
+<!-- typecheck -->
 
 ```tsx
 import { createMfHost } from '@fronts/mf';
@@ -91,6 +95,8 @@ Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle
 a component cleanup.
 
 ## Low-level React host
+
+<!-- typecheck: transport -->
 
 ```tsx
 import { RemoteApp } from '@fronts/react';

@@ -22,6 +22,8 @@ separate lifecycle API or global registration mechanism. See the [core-only exam
 
 ## Composition boundary
 
+<!-- typecheck: transport -->
+
 ```ts
 import {
   createDomContainer,

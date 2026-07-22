@@ -8,6 +8,8 @@ pnpm add @fronts/core
 
 ## Define an application
 
+<!-- typecheck: services -->
+
 ```ts
 import { defineApp } from '@fronts/core';
 
@@ -33,6 +35,8 @@ export default defineApp<{ message: string }, HostServices>({
 ```
 
 ## Create a host
+
+<!-- typecheck: transport -->
 
 ```ts
 import { createDomContainer, createFrontsHost, createStaticResolver } from '@fronts/core';

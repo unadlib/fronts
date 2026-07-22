@@ -40,6 +40,8 @@ frameworks, loaders, isolation levels, and release policies.
 An application exports a protocol-branded object. The host owns loading and orchestration; the
 application owns the UI tree it mounts.
 
+<!-- typecheck: services -->
+
 ```ts
 import { defineApp } from '@fronts/core';
 
@@ -69,6 +71,8 @@ React and Vue producers normally use `defineReactApp()` or `defineVueApp()` inst
 the same framework-neutral application contract.
 
 ## Typed Module Federation host
+
+<!-- typecheck -->
 
 ```tsx
 import { createMfHost } from '@fronts/mf';

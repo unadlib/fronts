@@ -21,6 +21,8 @@ Diagnose from the Fronts transaction boundary before changing bundler or applica
 Do not parse the human-readable message and do not discard `cause`. The current code vocabulary is
 defined in [`errors.ts`](../packages/core/src/errors.ts).
 
+<!-- typecheck: diagnostics -->
+
 ```ts
 import { isFrontsError } from '@fronts/core';
 
