@@ -75,4 +75,4 @@ export const composition = createMfHost<ExampleContracts, HostServices>({
 });
 
 export const host = composition.host;
-export const applications = createReactBindings(composition);
+export const shop = createReactBindings(composition);

@@ -4,7 +4,7 @@ import type { ContainerRequestResolver } from '@fronts/core';
 import type { IframeContainerRequest } from '@fronts/core/iframe';
 import type { RemoteFailure } from '@fronts/react';
 
-import { applications, type ExampleSource } from './runtime.js';
+import { shop, type ExampleSource } from './runtime.js';
 
 const iframeContainer: ContainerRequestResolver<ExampleSource, IframeContainerRequest> = ({
   resolved,
@@ -41,14 +41,14 @@ function Failure({ error, retry }: RemoteFailure) {
   );
 }
 
-const VueAccount = applications.component('vue-account', {
+const VueAccount = shop.component('vue-account', {
   container: 'shadow',
   fallback: Failure,
   loading: <Loading />,
   traceId: 'vue-account-example',
 });
 
-const IsolatedCheckout = applications.component<'isolated-checkout', IframeContainerRequest>(
+const IsolatedCheckout = shop.component<'isolated-checkout', IframeContainerRequest>(
   'isolated-checkout',
   {
     container: iframeContainer,
@@ -78,7 +78,7 @@ export function App() {
       <section className="grid" aria-label="Remote applications">
         <article className="slot">
           <h2>React remote · DOM</h2>
-          <applications.App
+          <shop.App
             app="react-checkout"
             fallback={Failure}
             loading={<Loading />}
