@@ -40,7 +40,59 @@ export default defineVueApp<{ accountId: string }, Services>({
 readiness, optional application configuration, and unmount. It supports Element and ShadowRoot
 targets.
 
-## Vue host
+## Typed Host composition
+
+Pair a transport composition with Vue once, then render or preload applications by their typed
+logical names. Reference defaults such as a custom Module Federation expose stay in the catalog;
+they are not repeated in templates.
+
+```vue
+<script setup lang="ts">
+import { createMfHost } from '@fronts/mf';
+import { createVueBindings } from '@fronts/vue3';
+
+interface ShopContracts {
+  readonly account: { readonly userId: string };
+  readonly checkout: { readonly cartId: string };
+}
+
+const composition = createMfHost<ShopContracts>({
+  name: 'shop-shell',
+  apps: {
+    account: {
+      remote: 'account',
+      entry: 'https://cdn.example.com/account/mf-manifest.json',
+    },
+    checkout: {
+      remote: 'checkout',
+      entry: 'https://cdn.example.com/checkout/mf-manifest.json',
+      expose: './checkout-app',
+    },
+  },
+});
+
+const shop = createVueBindings(composition);
+const Checkout = shop.component('checkout', { container: 'shadow' });
+const checkoutProps = { cartId: 'C-42' };
+</script>
+
+<template>
+  <Checkout v-bind="checkoutProps" />
+</template>
+```
+
+Use `shop.App` when the logical application or controls vary per render, and
+`shop.preload('checkout')` to warm the same resolver and loader path. For a manually assembled or
+non-MF composition, the curried form keeps an explicit contract boundary:
+
+```ts
+const shop = createVueBindings<ShopContracts>()({ applications, host });
+```
+
+Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle boundary, not in
+a component cleanup.
+
+## Low-level Vue host
 
 ```vue
 <script setup lang="ts">

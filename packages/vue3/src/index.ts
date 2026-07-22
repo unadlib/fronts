@@ -1,5 +1,16 @@
 export { RemoteApp } from './RemoteApp.js';
 export type { RemoteFailure } from './RemoteApp.js';
+export { createVueBindings } from './bindings.js';
+export type {
+  AppControls,
+  BoundAppProps,
+  ComponentDefaults,
+  ContainerOption,
+  PreloadOptions,
+  Selection,
+  VueAppComponent,
+  VueBindings,
+} from './bindings.js';
 export {
   FrontsVueContextKey,
   useApplicationAbortSignal,
