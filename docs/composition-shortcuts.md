@@ -305,14 +305,70 @@ type ContractShape<Contracts extends object> = {
 
 type AppName<Contracts extends ContractShape<Contracts>> = Extract<keyof Contracts, string>;
 
+interface Selection {
+  /** Becomes AppRef fields, so it participates in instance identity and audit output. */
+  readonly ref?: { readonly range?: string; readonly channel?: string };
+  /** Becomes ResolveContext policy input; it never enters instance identity. */
+  readonly resolve?: ResolutionPolicyContext;
+}
+
+type ContainerOption<Source, Request extends ContainerRequest = BuiltInContainerRequest> =
+  'dom' | 'shadow' | Request | ContainerRequestResolver<Source, Request>;
+
+interface AppControls<Props, Source, Request extends ContainerRequest> {
+  readonly selection?: Selection;
+  readonly container?: ContainerOption<Source, Request>;
+  readonly instanceId?: string;
+  readonly traceId?: string;
+  readonly readyTimeoutMs?: number;
+  readonly loading?: ReactNode;
+  readonly fallback?: ReactNode | ((failure: RemoteFailure) => ReactNode);
+  readonly arePropsEqual?: (previous: Props, next: Props) => boolean;
+  readonly onReady?: (application: MountedApplication<Props, Source>) => void;
+  readonly onError?: (error: Error) => void;
+  readonly targetProps?: Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'ref'>;
+  readonly wrapperProps?: Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
+}
+
+/** Distributed over application names so `app` and `props` stay correlated. */
+type BoundAppProps<
+  Contracts extends ContractShape<Contracts>,
+  Source,
+  Request extends ContainerRequest,
+> = {
+  [Name in AppName<Contracts>]: AppControls<Contracts[Name], Source, Request> & {
+    readonly app: Name;
+    readonly props: Contracts[Name];
+  };
+}[AppName<Contracts>];
+
+type ReactAppComponent<Contracts extends ContractShape<Contracts>, Source> = <
+  Request extends ContainerRequest = BuiltInContainerRequest,
+>(
+  props: BoundAppProps<Contracts, Source, Request>,
+) => ReactElement | null;
+
+type ComponentDefaults<Props, Source, Request extends ContainerRequest> = Omit<
+  AppControls<Props, Source, Request>,
+  'instanceId'
+>;
+
+interface PreloadOptions {
+  readonly selection?: Selection;
+  readonly traceId?: string;
+}
+
 interface ReactBindings<Contracts extends ContractShape<Contracts>, Source> {
   /** Inline form; use when the application or its control options vary per render. */
   readonly App: ReactAppComponent<Contracts, Source>;
 
   /** Stable component factory. */
-  component<Name extends AppName<Contracts>>(
+  component<
+    Name extends AppName<Contracts>,
+    Request extends ContainerRequest = BuiltInContainerRequest,
+  >(
     name: Name,
-    defaults?: ComponentDefaults<Contracts[Name], Source>,
+    defaults?: ComponentDefaults<Contracts[Name], Source, Request>,
   ): ComponentType<Contracts[Name]>;
 
   /** Uses the same resolver and loader path as a later mount. */
@@ -335,6 +391,56 @@ The bindings deliberately do not own the host. There is no `dispose()` here and 
 property, because the caller already holds both: `host.dispose()` and the `runtime` returned by
 `createMfHost()`. Replacement, inspection, and audit likewise stay on `host` rather than being
 mirrored onto a wrapper object.
+
+### Why `BoundAppProps` is a distributed union
+
+Declaring `App` as a function generic in the application name is the obvious encoding and it is
+unsound. TypeScript infers the name parameter from the value supplied, so a union widens the
+indexed access with it:
+
+```tsx
+declare const which: 'checkout' | 'account';
+
+// With a generic Name parameter this compiles: Contracts[Name] widens to
+// CheckoutProps | AccountProps, so checkout props satisfy an account mount.
+<App app={which} props={{ cartId: 'C-42' }} />;
+```
+
+A union of per-name object types has no such widening step, so the same call is rejected. This is
+the encoding that makes the "static application names infer their exact prop types" acceptance
+criterion true rather than true only for literal names.
+
+### Why `ContainerOption` is generic
+
+`ContainerRequest` is the base contract and its only member is `type`. Constraining the option to
+that base makes excess property checking reject every real request, including the built-in ones the
+container documentation shows:
+
+```tsx
+// Rejected against the bare base: `mode` is an excess property.
+<App app="checkout" props={{ cartId: 'C-42' }} container={{ type: 'shadow', mode: 'open' }} />
+```
+
+Defaulting the parameter to `BuiltInContainerRequest` keeps the DOM and Shadow DOM forms concise
+while still admitting a custom request or resolver:
+
+```tsx
+<App<IframeContainerRequest> app="checkout" props={{ cartId: 'C-42' }} container={iframeResolver} />
+```
+
+An iframe still requires an explicit request or resolver, because `src`, `targetOrigin`, sandbox
+flags, and loader placement are security decisions that a convenience API must never guess.
+
+### Two rendering forms
+
+`component()` is sugar over `App`, and both are kept for different reasons. `component()` produces a
+`ComponentType<Props>`, which is what a router `element`, a design-system slot, or a lazy boundary
+expects; `App` is the form to use when the application name or the control options vary per render.
+Defaults are captured when the component type is created, so `App` remains the way to vary controls
+per instance.
+
+`instanceId` is excluded from component defaults because one component type may be rendered more
+than once. Use the inline form when an external identity is required.
 
 ## Vue and other frameworks
 
