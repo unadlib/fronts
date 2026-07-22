@@ -10,7 +10,7 @@ import type {
   MountedApplication,
 } from '@fronts/core';
 
-import { shallowEqual } from './equality.js';
+import { nestedShallowEqual, shallowEqual } from './equality.js';
 
 export type RemoteAppStatus = 'idle' | 'mounting' | 'ready' | 'error';
 
@@ -67,6 +67,21 @@ function notify<Arguments extends readonly unknown[]>(
   }
 }
 
+/**
+ * Retains the previously seen value while an incoming one is still equal to it, so a mount input
+ * re-created by an ordinary render does not read as a new deployment request.
+ */
+function useStableValue<Value>(
+  value: Value,
+  equals: (previous: Value, next: Value) => boolean,
+): Value {
+  const stored = useRef(value);
+  if (!equals(stored.current, value)) {
+    stored.current = value;
+  }
+  return stored.current;
+}
+
 export function useRemoteApp<
   Props,
   Source,
@@ -87,6 +102,9 @@ export function useRemoteApp<
   const onReady = useRef(options.onReady);
   onError.current = options.onError;
   onReady.current = options.onReady;
+
+  const container = useStableValue(options.container, nestedShallowEqual);
+  const resolve = useStableValue(options.resolve, nestedShallowEqual);
 
   const targetRef = useCallback<RefCallback<HTMLDivElement>>((node) => setTarget(node), []);
 
@@ -117,12 +135,12 @@ export function useRemoteApp<
           target,
           props: options.appProps,
           signal: controller.signal,
-          ...(options.container === undefined ? {} : { container: options.container }),
+          ...(container === undefined ? {} : { container }),
           ...(options.instanceId === undefined ? {} : { instanceId: options.instanceId }),
           ...(options.readyTimeoutMs === undefined
             ? {}
             : { readyTimeoutMs: options.readyTimeoutMs }),
-          ...(options.resolve === undefined ? {} : { resolve: options.resolve }),
+          ...(resolve === undefined ? {} : { resolve }),
           ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
         });
       });
@@ -168,11 +186,11 @@ export function useRemoteApp<
     options.app.expose,
     options.app.range,
     options.app.channel,
-    options.container,
+    container,
     options.instanceId,
     options.mountKey,
     options.readyTimeoutMs,
-    options.resolve,
+    resolve,
     options.traceId,
   ]);
 

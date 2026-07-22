@@ -482,6 +482,55 @@ describe('React host adapter', () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it('does not remount when a render repeats the same container and resolution policy', async () => {
+    const instance = {
+      identity,
+      ready: Promise.resolve(),
+      ref: normalizeAppRef({ name: 'checkout' }),
+      resolved: { ref: normalizeAppRef({ name: 'checkout' }), source: { entry: 'https://cdn' } },
+      state: 'ready',
+      unmount: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
+    } as unknown as MountedApplication<Props, Source>;
+    const mount = vi.fn(async () => instance);
+    const host = { mount } as unknown as FrontsHost<Source, Services>;
+
+    const view = render(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        container={{ attributes: { 'data-slot': 'checkout' }, type: 'dom' }}
+        host={host}
+        resolve={{ metadata: { release: 'canary' }, tenant: 'acme' }}
+      />,
+    );
+    await waitFor(() => expect(mount).toHaveBeenCalledOnce());
+
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        container={{ attributes: { 'data-slot': 'checkout' }, type: 'dom' }}
+        host={host}
+        resolve={{ metadata: { release: 'canary' }, tenant: 'acme' }}
+      />,
+    );
+    await Promise.resolve();
+    expect(mount).toHaveBeenCalledOnce();
+    expect(instance.unmount).not.toHaveBeenCalled();
+
+    view.rerender(
+      <RemoteApp
+        app={{ name: 'checkout' }}
+        appProps={{ value: 'first' }}
+        container={{ attributes: { 'data-slot': 'checkout' }, type: 'dom' }}
+        host={host}
+        resolve={{ metadata: { release: 'stable' }, tenant: 'acme' }}
+      />,
+    );
+    await waitFor(() => expect(mount).toHaveBeenCalledTimes(2));
+  });
+
   it('renders host-level fallbacks when resolving or loading fails', async () => {
     const failure = new Error('registry unavailable');
     const host = {
