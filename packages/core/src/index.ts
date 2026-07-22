@@ -38,6 +38,12 @@ export type {
   PreparedContainer,
   ShadowContainerRequest,
 } from './container/index.js';
+export type {
+  ApplicationCatalog,
+  ApplicationContractShape,
+  ApplicationName,
+  HostComposition,
+} from './composition.js';
 export {
   FrontsError,
   createAbortedError,
