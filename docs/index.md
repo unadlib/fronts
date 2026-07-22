@@ -18,6 +18,8 @@ explicit maintainer acceptance before becoming stable compatibility or policy co
    lifecycle, readiness, and services.
 4. [Host Runtime API](host-runtime-api.md) — Host composition, operations, mounted controls,
    replacement, observability, and shutdown.
+5. [Composition shortcuts](composition-shortcuts.md) — proposed factories that shorten the common
+   React plus Module Federation composition root.
 
 ## Resolve, deliver, and isolate applications
 
