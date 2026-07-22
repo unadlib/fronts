@@ -45,6 +45,7 @@ describe('Module Federation host shortcut', () => {
             entry: 'https://cdn.example.test/checkout/canary/mf-manifest.json',
             expose: './checkout-application',
             match: { channel: 'canary' },
+            metadata: { release: 'canary' },
             remote: 'checkout_canary',
             version: '2.5.0',
           },
@@ -78,6 +79,8 @@ describe('Module Federation host shortcut', () => {
       });
 
       expect(loaded.resolved.version).toBe('2.5.0');
+      expect(loaded.resolved.metadata).toEqual({ release: 'canary' });
+      expect(Object.isFrozen(loaded.resolved.metadata)).toBe(true);
       expect(runtime.registerRemotes).toHaveBeenCalledWith(
         [
           expect.objectContaining({

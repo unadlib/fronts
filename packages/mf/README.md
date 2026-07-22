@@ -57,6 +57,10 @@ Pass `runtime` when the shell or build integration already owns one. When it is 
 `init()` or `getInstance()`. A caller-supplied resolver must also provide an `applications` map so
 logical names and non-default exposes remain available to framework bindings.
 
+Static deployments may include `metadata`. Fronts exposes a frozen copy on the resolved
+application so container resolvers, policy, and observability can consume deployment-specific data
+without putting it in the application props contract.
+
 For each resolved application, the adapter uses only public instance methods:
 
 - `registerRemotes()`

@@ -35,6 +35,8 @@ export interface RemoteDeployment {
   readonly expose?: `./${string}`;
   /** Immutable deployment version used by Fronts identity, audit, and conflict detection. */
   readonly version?: string;
+  /** Deployment data exposed to container resolvers, policy, and observability. */
+  readonly metadata?: Readonly<Record<string, unknown>>;
   /** Passed to the existing Module Federation adapter. */
   readonly force?: boolean;
   readonly preload?: ModuleFederationSource['preload'];
@@ -207,6 +209,7 @@ function createStaticConfiguration<Contracts extends ApplicationContractShape<Co
         resolve: {
           source: createSource(candidate),
           ...(candidate.version === undefined ? {} : { version: candidate.version }),
+          ...(candidate.metadata === undefined ? {} : { metadata: candidate.metadata }),
         },
       });
     }
