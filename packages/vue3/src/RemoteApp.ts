@@ -2,6 +2,7 @@ import { computed, defineComponent, h, type PropType, type VNodeChild } from 'vu
 
 import type {
   AppRef,
+  BuiltInContainerRequest,
   ContainerRequest,
   ContainerRequestResolver,
   FrontsHost,
@@ -20,7 +21,9 @@ export const RemoteApp = defineComponent({
     app: { type: Object as PropType<AppRef>, required: true },
     appProps: { type: null, required: true },
     container: [Object, Function] as PropType<
-      ContainerRequest | ContainerRequestResolver<unknown, ContainerRequest>
+      | BuiltInContainerRequest
+      | ContainerRequest
+      | ContainerRequestResolver<unknown, ContainerRequest>
     >,
     fallback: null as unknown as PropType<VNodeChild | ((error: Error) => VNodeChild)>,
     host: { type: Object as PropType<UnknownHost>, required: true },

@@ -587,7 +587,7 @@ describe('Vue host adapter', () => {
       props: {
         app: { name: 'checkout' },
         appProps: { value: 'first' },
-        container: { type: 'dom' },
+        container: { attributes: { 'data-slot': 'checkout' }, type: 'dom' },
         host,
         resolve: { metadata: { release: 'canary' }, tenant: 'acme' },
       },
@@ -596,7 +596,7 @@ describe('Vue host adapter', () => {
     expect(hostMount).toHaveBeenCalledOnce();
 
     await view.setProps({
-      container: { type: 'dom' },
+      container: { attributes: { 'data-slot': 'checkout' }, type: 'dom' },
       resolve: { metadata: { release: 'canary' }, tenant: 'acme' },
     });
     await flushPromises();
