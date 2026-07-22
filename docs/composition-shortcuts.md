@@ -217,6 +217,20 @@ interface RemoteDeployment {
   readonly preload?: ModuleFederationSource['preload'];
 }
 
+/** Mirrors the selector fields createStaticResolver() already matches on. */
+interface DeploymentMatch {
+  readonly range?: string;
+  readonly channel?: string;
+  readonly environment?: string;
+  readonly tenant?: string;
+  readonly cohort?: string;
+}
+
+type StaticDeployments<Contracts extends object> = {
+  readonly [Name in keyof Contracts]:
+    RemoteDeployment | readonly (RemoteDeployment & { readonly match?: DeploymentMatch })[];
+};
+
 type RuntimeConfiguration =
   | {
       /** Existing official runtime instance; its lifecycle remains caller-owned. */
@@ -256,6 +270,35 @@ declare function createMfHost<Contracts extends object, Services extends object 
 
 `Contracts` constrains only the keys of the static `apps` map, so a missing or misspelled
 application is a compile error. It carries no runtime meaning.
+
+### Static deployments answer selection
+
+An application maps either to one deployment or to an ordered list of candidates, each with the
+selector fields `createStaticResolver()` already matches on. Candidates are evaluated in order and
+the first match wins, so an entry without `match` acts as the default:
+
+```ts
+apps: {
+  account: [
+    { match: { channel: 'canary' }, remote: 'account_next', entry: '…', version: '6.0.0' },
+    { remote: 'account_remote', entry: '…', version: '5.1.0' },
+  ],
+}
+```
+
+```tsx
+<App app="account" props={{ accountId: 'A-1' }} selection={{ ref: { channel: 'canary' } }} />
+```
+
+Without the list form, `selection` would be a prop the static path accepts and discards. The
+generated resolver would match on name alone, so every policy field would be ignored — and
+`selection.ref` would be worse than ignored, because `range` and `channel` enter the normalized
+application reference and therefore change instance identity. A shell that varied only those fields
+would unmount and remount the application to arrive at the same deployment.
+
+Selection remains a routing input, not a deployment declaration. A shell that needs versions chosen
+by a registry, a snapshot, or an experiment service supplies a `resolver` instead; the static list
+covers the case where the candidate set is known at build time and only the choice is dynamic.
 
 The implementation is intentionally mechanical:
 
