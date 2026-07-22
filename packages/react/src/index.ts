@@ -5,6 +5,17 @@ export type {
   RemoteAppProps,
   RemoteFailure,
 } from './RemoteApp.js';
+export { createReactBindings } from './bindings.js';
+export type {
+  AppControls,
+  BoundAppProps,
+  ComponentDefaults,
+  ContainerOption,
+  PreloadOptions,
+  ReactAppComponent,
+  ReactBindings,
+  Selection,
+} from './bindings.js';
 export {
   FrontsReactContext,
   useApplicationAbortSignal,

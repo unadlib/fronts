@@ -41,7 +41,52 @@ and shows the configured fallback; a later update remounts the boundary so a val
 recover. Expose the returned application as a Module Federation module or load it through another
 Fronts loader.
 
-## React host
+## Typed Host composition
+
+Pair a transport composition with React once, then render or preload applications by their typed
+logical names. Reference defaults such as a custom Module Federation expose stay in the catalog;
+they are not repeated at each render site.
+
+```tsx
+import { createMfHost } from '@fronts/mf';
+import { createReactBindings } from '@fronts/react';
+
+interface ShopContracts {
+  readonly account: { readonly userId: string };
+  readonly checkout: { readonly cartId: string };
+}
+
+const composition = createMfHost<ShopContracts>({
+  name: 'shop-shell',
+  remotes: {
+    account: 'account@https://cdn.example.com/account/mf-manifest.json',
+    checkout: {
+      entry: 'checkout@https://cdn.example.com/checkout/mf-manifest.json',
+      expose: './checkout-app',
+    },
+  },
+});
+
+const shop = createReactBindings(composition);
+const Checkout = shop.component('checkout', { container: 'shadow' });
+
+export function Cart() {
+  return <Checkout cartId="C-42" />;
+}
+```
+
+Use `shop.App` when the logical application or controls vary per render, and
+`shop.preload('checkout')` to warm the same resolver and loader path. For a manually assembled or
+non-MF composition, the curried form keeps an explicit contract boundary:
+
+```ts
+const shop = createReactBindings<ShopContracts>()({ applications, host });
+```
+
+Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle boundary, not in
+a component cleanup.
+
+## Low-level React host
 
 ```tsx
 import { RemoteApp } from '@fronts/react';
