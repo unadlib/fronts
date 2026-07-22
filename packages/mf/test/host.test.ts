@@ -1,0 +1,171 @@
+import { defineApp, frontsErrorCodes, type HostComposition } from '@fronts/core';
+import type { ModuleFederation } from '@module-federation/runtime';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+
+import { createMfHost, createModuleFederationSource } from '../src/index.js';
+
+interface ShopContracts {
+  readonly account: { readonly accountId: string };
+  readonly checkout: { readonly cartId: string };
+}
+
+interface HostServices {
+  readonly telemetry: { emit(name: string): void };
+}
+
+function createRuntime() {
+  const loadRemote = vi.fn();
+  const preloadRemote = vi.fn(async () => undefined);
+  const registerRemotes = vi.fn();
+  return {
+    instance: { loadRemote, preloadRemote, registerRemotes } as unknown as ModuleFederation,
+    loadRemote,
+    preloadRemote,
+    registerRemotes,
+  };
+}
+
+describe('Module Federation host shortcut', () => {
+  it('composes static deployments and preserves application reference defaults', async () => {
+    const runtime = createRuntime();
+    runtime.loadRemote.mockResolvedValue({
+      default: defineApp<{ readonly cartId: string }>({
+        mount: () => ({ unmount: () => undefined }),
+      }),
+    });
+    const composition = createMfHost<ShopContracts, HostServices>({
+      apps: {
+        account: {
+          entry: 'https://cdn.example.test/account/mf-manifest.json',
+          remote: 'account_stable',
+          version: '5.1.0',
+        },
+        checkout: [
+          {
+            entry: 'https://cdn.example.test/checkout/canary/mf-manifest.json',
+            expose: './checkout-application',
+            match: { channel: 'canary' },
+            remote: 'checkout_canary',
+            version: '2.5.0',
+          },
+          {
+            entry: 'https://cdn.example.test/checkout/stable/mf-manifest.json',
+            expose: './checkout-application',
+            remote: 'checkout_stable',
+            version: '2.4.1',
+          },
+        ],
+      },
+      name: 'shop-shell',
+      runtime: runtime.instance,
+      services: { telemetry: { emit: vi.fn() } },
+    });
+
+    expect(composition.applications).toEqual({
+      account: { expose: './application', name: 'account' },
+      checkout: { expose: './checkout-application', name: 'checkout' },
+    });
+    expect(composition.host.id).toBe('shop-shell');
+    expect(composition.runtime).toBe(runtime.instance);
+    expectTypeOf(composition).toMatchTypeOf<
+      HostComposition<ShopContracts, { readonly remote: object }, HostServices>
+    >();
+
+    try {
+      const loaded = await composition.host.load<{ readonly cartId: string }>({
+        ...composition.applications.checkout,
+        channel: 'canary',
+      });
+
+      expect(loaded.resolved.version).toBe('2.5.0');
+      expect(runtime.registerRemotes).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            entry: 'https://cdn.example.test/checkout/canary/mf-manifest.json',
+            name: 'checkout_canary',
+          }),
+        ],
+        undefined,
+      );
+      expect(runtime.loadRemote).toHaveBeenCalledWith('checkout_canary/checkout-application', {
+        from: 'runtime',
+      });
+    } finally {
+      await composition.host.dispose();
+    }
+  });
+
+  it('pairs a custom resolver with an explicit application catalog', async () => {
+    const runtime = createRuntime();
+    runtime.preloadRemote.mockResolvedValue(undefined);
+    const source = createModuleFederationSource({
+      entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+      name: 'checkout_registry',
+    });
+    const resolver = {
+      resolve: vi.fn((ref) => ({ ref, source, version: '3.0.0' })),
+    };
+    const composition = createMfHost<ShopContracts>({
+      applications: {
+        account: {},
+        checkout: { expose: './checkout-registry-entry' },
+      },
+      name: 'registry-shell',
+      resolver,
+      runtime: runtime.instance,
+    });
+
+    try {
+      await composition.host.preload(composition.applications.checkout, {
+        environment: 'production',
+      });
+
+      expect(resolver.resolve).toHaveBeenCalledWith(
+        { expose: './checkout-registry-entry', name: 'checkout' },
+        expect.objectContaining({ environment: 'production' }),
+      );
+      expect(runtime.preloadRemote).toHaveBeenCalledWith([
+        expect.objectContaining({
+          exposes: ['./checkout-registry-entry'],
+          nameOrAlias: 'checkout_registry',
+        }),
+      ]);
+    } finally {
+      await composition.host.dispose();
+    }
+  });
+
+  it('rejects static candidates that disagree on their application expose', () => {
+    const runtime = createRuntime();
+
+    expect(() =>
+      createMfHost<ShopContracts>({
+        apps: {
+          account: {
+            entry: 'https://cdn.example.test/account/mf-manifest.json',
+            remote: 'account',
+          },
+          checkout: [
+            {
+              entry: 'https://cdn.example.test/checkout/stable/mf-manifest.json',
+              expose: './stable',
+              remote: 'checkout_stable',
+            },
+            {
+              entry: 'https://cdn.example.test/checkout/canary/mf-manifest.json',
+              expose: './canary',
+              remote: 'checkout_canary',
+            },
+          ],
+        },
+        name: 'invalid-shell',
+        runtime: runtime.instance,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: frontsErrorCodes.resolutionFailed,
+        phase: 'resolve',
+      }),
+    );
+  });
+});

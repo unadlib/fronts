@@ -1,4 +1,15 @@
 export { createModuleFederationAdapter } from './adapter.js';
+export { createMfHost } from './host.js';
+export type {
+  ApplicationReferences,
+  DeploymentMatch,
+  MfHostOptions,
+  MfHostResult,
+  RemoteDeployment,
+  RuntimeConfiguration,
+  StaticDeployment,
+  StaticDeployments,
+} from './host.js';
 export {
   assertModuleFederationSource,
   createModuleFederationSource,

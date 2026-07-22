@@ -6,8 +6,8 @@ Module Federation 2 runtime adapter for Fronts applications.
 pnpm add @fronts/core @fronts/mf @module-federation/runtime
 ```
 
-`@module-federation/runtime` is a peer dependency. Supply an explicit official runtime instance;
-the adapter does not create or discover a global default instance.
+`@module-federation/runtime` is a peer dependency. The low-level adapter accepts an explicit
+official runtime instance and never discovers a global default instance.
 
 ```ts
 import { createInstance } from '@module-federation/runtime';
@@ -27,6 +27,35 @@ const host = createFrontsHost({
   loader: createModuleFederationAdapter({ instance: federation }),
 });
 ```
+
+For a typed composition root, `createMfHost()` builds the same resolver, adapter, and Host while
+retaining the logical application references needed by framework bindings:
+
+```ts
+import { createMfHost } from '@fronts/mf';
+
+interface ShopContracts {
+  readonly checkout: { readonly cartId: string };
+}
+
+const composition = createMfHost<ShopContracts>({
+  name: 'shop-shell',
+  apps: {
+    checkout: {
+      remote: 'checkout_2_4_1',
+      entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
+      version: '2.4.1',
+    },
+  },
+});
+
+await composition.host.preload(composition.applications.checkout);
+```
+
+Pass `runtime` when the shell or build integration already owns one. When it is omitted,
+`createMfHost()` calls the official `createInstance()` API with `runtimeOptions`; it never uses
+`init()` or `getInstance()`. A caller-supplied resolver must also provide an `applications` map so
+logical names and non-default exposes remain available to framework bindings.
 
 For each resolved application, the adapter uses only public instance methods:
 

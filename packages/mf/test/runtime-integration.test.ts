@@ -15,7 +15,11 @@ import {
   type ContainerRequest,
 } from '@fronts/core';
 
-import { createModuleFederationAdapter, createModuleFederationSource } from '../src/index.js';
+import {
+  createMfHost,
+  createModuleFederationAdapter,
+  createModuleFederationSource,
+} from '../src/index.js';
 
 interface MemoryContainerRequest extends ContainerRequest {
   readonly type: 'memory';
@@ -108,6 +112,69 @@ describe('official Module Federation runtime integration', () => {
       expect(host.audit().idle).toBe(true);
     } finally {
       await host.dispose();
+    }
+  });
+
+  it('loads a real remote through the createMfHost shortcut', async () => {
+    const remoteEntry = await readFile(
+      new URL('./fixtures/remoteEntry.cjs', import.meta.url),
+      'utf8',
+    );
+    const server = createServer((request, response) => {
+      if (request.url === '/remoteEntry.cjs') {
+        response.writeHead(200, { 'content-type': 'text/javascript' });
+        response.end(remoteEntry);
+        return;
+      }
+      response.writeHead(404).end();
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address() as AddressInfo;
+    const remoteName = `fronts_shortcut_fixture_${address.port}`;
+    const memoryElement = { nodeType: 1, parentNode: null } as unknown as Element;
+    const memoryContainer: ContainerAdapter<MemoryContainerRequest> = {
+      type: 'memory',
+      prepare: () => ({
+        dispose: () => undefined,
+        element: memoryElement,
+        target: memoryElement,
+        type: 'memory',
+      }),
+    };
+    const composition = createMfHost<{
+      readonly fixture: Record<string, never>;
+    }>({
+      apps: {
+        fixture: {
+          entry: `http://127.0.0.1:${address.port}/remoteEntry.cjs`,
+          remote: remoteName,
+          type: 'global',
+          version: '2.0.0',
+        },
+      },
+      containers: [memoryContainer],
+      name: `fronts_shortcut_host_${address.port}`,
+    });
+
+    try {
+      const instance = await composition.host.mount<Record<string, never>, MemoryContainerRequest>({
+        container: { type: 'memory' },
+        instanceId: 'shortcut-runtime-fixture',
+        props: {},
+        ref: composition.applications.fixture,
+        target: memoryElement,
+      });
+
+      expect(instance.identity).toMatchObject({
+        instanceId: 'shortcut-runtime-fixture',
+        name: 'fixture',
+        version: '2.0.0',
+      });
+      await instance.unmount();
+      expect(composition.host.audit().idle).toBe(true);
+    } finally {
+      await composition.host.dispose();
     }
   });
 });
