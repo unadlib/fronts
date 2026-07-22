@@ -604,6 +604,36 @@ describe('Vue host adapter', () => {
     expect(update).toHaveBeenCalledOnce();
   });
 
+  it('forwards a custom prop equality contract from the RemoteApp component', async () => {
+    const { instance, update } = createMountedApplication();
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<unknown, object>;
+    const arePropsEqual = vi.fn(
+      (previous: unknown, next: unknown) =>
+        (previous as { readonly version: number }).version % 2 ===
+        (next as { readonly version: number }).version % 2,
+    );
+    const view = mountVue(RemoteApp, {
+      props: {
+        app: { name: 'checkout' },
+        appProps: { version: 1 },
+        arePropsEqual,
+        host,
+      },
+    });
+    await flushPromises();
+
+    await view.setProps({ appProps: { version: 3 } });
+    await flushPromises();
+    expect(arePropsEqual).toHaveBeenCalledWith({ version: 1 }, { version: 3 });
+    expect(update).not.toHaveBeenCalled();
+
+    await view.setProps({ appProps: { version: 4 } });
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith({ version: 4 });
+  });
+
   it('does not remount when a render repeats the same container and resolution policy', async () => {
     const { instance, unmount } = createMountedApplication();
     const hostMount = vi.fn(async () => instance);

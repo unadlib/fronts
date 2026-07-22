@@ -26,6 +26,7 @@ export const RemoteApp = defineComponent({
   props: {
     app: { type: Object as PropType<AppRef>, required: true },
     appProps: { type: null, required: true },
+    arePropsEqual: Function as PropType<(previous: unknown, next: unknown) => boolean>,
     container: [Object, Function] as PropType<
       | BuiltInContainerRequest
       | ContainerRequest
@@ -52,6 +53,7 @@ export const RemoteApp = defineComponent({
       host: props.host,
       onError: (error: Error) => emit('error', error),
       onReady: (instance: MountedApplication<unknown, unknown>) => emit('ready', instance),
+      ...(props.arePropsEqual === undefined ? {} : { arePropsEqual: props.arePropsEqual }),
       ...(props.container === undefined ? {} : { container: props.container }),
       ...(props.instanceId === undefined ? {} : { instanceId: props.instanceId }),
       ...(props.mountKey === undefined ? {} : { mountKey: props.mountKey }),
