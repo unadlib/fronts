@@ -42,6 +42,11 @@ export interface UseRemoteAppOptions<
 export interface UseRemoteAppResult<Props, Source> {
   readonly error: ShallowRef<Error | null>;
   readonly instance: ShallowRef<MountedApplication<Props, Source> | null>;
+  /**
+   * Abandons the current application instance and starts a new mount attempt with a new operation
+   * identity. It never resumes a partially failed mount.
+   */
+  readonly retry: () => void;
   readonly status: ShallowRef<RemoteAppStatus>;
   readonly target: ShallowRef<HTMLDivElement | null>;
 }
@@ -80,6 +85,10 @@ export function useRemoteApp<
   const status = shallowRef<RemoteAppStatus>('idle');
   const error = shallowRef<Error | null>(null);
   const instance = shallowRef<MountedApplication<Props, Source> | null>(null);
+  const attempt = shallowRef(0);
+  const retry = (): void => {
+    attempt.value += 1;
+  };
   let propsVersion = 0;
   let appliedPropsVersion = 0;
   let appliedProps: Props | undefined;
@@ -134,6 +143,7 @@ export function useRemoteApp<
 
   watch(
     [
+      () => attempt.value,
       () => target.value,
       () => toValue(input).host,
       () => toValue(input).app.name,
@@ -253,5 +263,5 @@ export function useRemoteApp<
     { deep: true, flush: 'post' },
   );
 
-  return { error, instance, status, target };
+  return { error, instance, retry, status, target };
 }

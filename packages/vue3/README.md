@@ -56,7 +56,9 @@ import { host } from './runtime';
     :container="{ type: 'shadow' }"
   >
     <template #loading>Loading…</template>
-    <template #error="{ error }">{{ error.message }}</template>
+    <template #error="{ error, retry }">
+      {{ error.message }} <button @click="retry">Retry</button>
+    </template>
   </RemoteApp>
 </template>
 ```
@@ -64,8 +66,16 @@ import { host } from './runtime';
 Use the `RemoteApp` component or `useRemoteApp()` composable with a Fronts host. The package also
 exports composables for application identity, abort signal, and scoped host services.
 
+`retry()` abandons the failed attempt and mounts again with a new operation identity; it never
+resumes a partially failed mount.
+
 The `container` prop accepts either a static container request or an async resolver that can derive
 the request from the resolved deployment before Fronts selects its loader.
+
+`app-props`, `container`, and `resolve` are compared by value, so writing them inline in a template
+neither updates nor remounts the application on every parent render. In-place mutation of a
+reactive prop object still updates. Pass `are-props-equal` when props need a different equality
+contract.
 
 This adapter is for applications participating in the Fronts host ABI. If an MF-only Vue
 architecture only needs framework/router integration, evaluate the official

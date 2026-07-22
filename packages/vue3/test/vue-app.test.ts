@@ -21,6 +21,7 @@ import { frontsErrorCodes, normalizeAppRef } from '@fronts/core';
 
 import {
   RemoteApp,
+  type RemoteFailure,
   defineVueApp,
   useApplicationAbortSignal,
   useApplicationIdentity,
@@ -559,6 +560,30 @@ describe('Vue host adapter', () => {
     expect(unmount).toHaveBeenCalledOnce();
   });
 
+  it('starts a new mount attempt when the failure fallback retries', async () => {
+    const { instance } = createMountedApplication();
+    const hostMount = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('registry unavailable'))
+      .mockResolvedValueOnce(instance);
+    const host = { mount: hostMount } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: { app: { name: 'checkout' }, appProps: { value: 'first' }, host },
+      slots: {
+        error: ({ error, retry }: RemoteFailure) =>
+          h('button', { onClick: retry }, `Retry after: ${error.message}`),
+      },
+    });
+    await flushPromises();
+    expect(view.text()).toContain('Retry after: registry unavailable');
+
+    await view.find('button').trigger('click');
+    await flushPromises();
+
+    expect(hostMount).toHaveBeenCalledTimes(2);
+    expect(view.attributes('data-fronts-vue-status')).toBe('ready');
+  });
+
   it('does not update the application when a render repeats the same prop values', async () => {
     const { instance, update } = createMountedApplication();
     const host = {
@@ -659,7 +684,7 @@ describe('Vue host adapter', () => {
       props: {
         app: { name: 'checkout' },
         appProps: { value: 'first' },
-        fallback: (failure: Error) => h('p', failure.message),
+        fallback: ({ error }: RemoteFailure) => h('p', error.message),
         host,
       },
     });
@@ -724,7 +749,7 @@ describe('Vue host adapter', () => {
       props: {
         app: { name: 'checkout' },
         appProps: { value: 'first' },
-        fallback: (failure: Error) => h('p', failure.message),
+        fallback: ({ error }: RemoteFailure) => h('p', error.message),
         host,
         mountKey: 1,
       },

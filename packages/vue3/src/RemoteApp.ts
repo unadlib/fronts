@@ -14,6 +14,12 @@ import { useRemoteApp } from './useRemoteApp.js';
 
 type UnknownHost = FrontsHost<unknown, object>;
 
+export interface RemoteFailure {
+  readonly error: Error;
+  /** Starts a new mount attempt with a new operation identity. */
+  readonly retry: () => void;
+}
+
 export const RemoteApp = defineComponent({
   name: 'FrontsRemoteApp',
   inheritAttrs: false,
@@ -25,7 +31,7 @@ export const RemoteApp = defineComponent({
       | ContainerRequest
       | ContainerRequestResolver<unknown, ContainerRequest>
     >,
-    fallback: null as unknown as PropType<VNodeChild | ((error: Error) => VNodeChild)>,
+    fallback: null as unknown as PropType<VNodeChild | ((failure: RemoteFailure) => VNodeChild)>,
     host: { type: Object as PropType<UnknownHost>, required: true },
     instanceId: String,
     loading: null as unknown as PropType<VNodeChild>,
@@ -60,10 +66,11 @@ export const RemoteApp = defineComponent({
       if (remote.status.value === 'mounting') {
         status = slots.loading?.() ?? props.loading ?? null;
       } else if (remote.status.value === 'error' && remote.error.value !== null) {
+        const failure: RemoteFailure = { error: remote.error.value, retry: remote.retry };
         status =
-          slots.error?.({ error: remote.error.value }) ??
+          slots.error?.(failure) ??
           (typeof props.fallback === 'function'
-            ? props.fallback(remote.error.value)
+            ? props.fallback(failure)
             : (props.fallback ?? null));
       }
 

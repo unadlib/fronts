@@ -1,4 +1,5 @@
 export { RemoteApp } from './RemoteApp.js';
+export type { RemoteFailure } from './RemoteApp.js';
 export {
   FrontsVueContextKey,
   useApplicationAbortSignal,
