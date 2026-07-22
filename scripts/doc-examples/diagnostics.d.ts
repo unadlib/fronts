@@ -7,5 +7,5 @@ declare const logger: { error(message: string, data?: unknown): void };
 declare const options: import('@fronts/core').MountAppOptions<
   { readonly message: string },
   import('@fronts/core').BuiltInContainerRequest,
-  { readonly entry: string }
+  import('@fronts/mf').ModuleFederationSource
 >;

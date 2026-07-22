@@ -93,7 +93,7 @@ function collectExamples(file) {
  */
 function fixturePlan(directive, file, line) {
   if (directive === '') {
-    return { references: [], siblings: [] };
+    return { expectError: false, references: [], siblings: [] };
   }
   const [keyword, ...rest] = directive.split(/\s+/);
   if (keyword === 'skip') {
@@ -105,7 +105,12 @@ function fixturePlan(directive, file, line) {
 
   const references = [];
   const siblings = [];
+  let expectError = false;
   for (const name of directive.split(/\s*,\s*/)) {
+    if (name === 'expect-error') {
+      expectError = true;
+      continue;
+    }
     const ambient = join(fixtureDirectory, `${name}.d.ts`);
     const module = join(fixtureDirectory, `${name}.ts`);
     if (existsSync(ambient)) {
@@ -116,7 +121,7 @@ function fixturePlan(directive, file, line) {
       errors.push(`${repositoryPath(file)}:${line}: unknown typecheck fixture "${name}"`);
     }
   }
-  return { references, siblings };
+  return { expectError, references, siblings };
 }
 
 const workspace = mkdtempSync(join(tmpdir(), 'fronts-doc-examples-'));
@@ -124,6 +129,7 @@ const workspace = mkdtempSync(join(tmpdir(), 'fronts-doc-examples-'));
 try {
   const markdownFiles = trackedMarkdownFiles();
   const compiled = [];
+  const rejected = new Set();
   mkdirSync(join(workspace, 'cases'), { recursive: true });
 
   for (const file of markdownFiles) {
@@ -140,7 +146,12 @@ try {
         join(workspace, 'cases', name),
         `${[...plan.references, ''].join('\n')}${example.body}\n`,
       );
-      compiled.push({ ...example, offset: plan.references.length, name });
+      compiled.push({
+        ...example,
+        expectError: plan.expectError,
+        name,
+        offset: plan.references.length,
+      });
     }
   }
 
@@ -218,19 +229,42 @@ try {
         { cwd: workspace, encoding: 'utf8', stdio: 'pipe' },
       );
     } catch (failure) {
-      for (const diagnostic of String(failure.stdout ?? '')
-        .split('\n')
-        .filter((entry) => entry.trim() !== '')) {
-        const match = /^cases[/\\](.+?)\((\d+),(\d+)\):\s*(.*)$/.exec(diagnostic);
+      // TypeScript wraps a diagnostic's detail across indented continuation lines.
+      const diagnostics = [];
+      for (const line of String(failure.stdout ?? '').split('\n')) {
+        if (line.trim() === '') {
+          continue;
+        }
+        if (/^\s/.test(line) && diagnostics.length > 0) {
+          diagnostics[diagnostics.length - 1] += `\n${line}`;
+          continue;
+        }
+        diagnostics.push(line);
+      }
+
+      for (const diagnostic of diagnostics) {
+        const match = /^cases[/\\](.+?)\((\d+),(\d+)\):\s*([\s\S]*)$/.exec(diagnostic);
         if (match === null) {
           errors.push(diagnostic.trim());
           continue;
         }
         const source = compiled.find((example) => example.name === match[1]);
+        if (source?.expectError === true) {
+          rejected.add(source.name);
+          continue;
+        }
         const line =
           source === undefined ? Number(match[2]) : source.line + Number(match[2]) - source.offset;
         errors.push(
           `${source === undefined ? match[1] : repositoryPath(source.file)}:${line}:${match[3]}: ${match[4]}`,
+        );
+      }
+    }
+
+    for (const example of compiled) {
+      if (example.expectError === true && !rejected.has(example.name)) {
+        errors.push(
+          `${repositoryPath(example.file)}:${example.line}: example is marked expect-error but compiles`,
         );
       }
     }

@@ -183,6 +183,8 @@ direct form is preferred for a value already typed as `HostComposition`, especia
 `createMfHost()` accepts a complete `apps` map keyed by `Contracts`. Each value is one deployment or
 a non-empty ordered candidate list:
 
+<!-- typecheck: shop -->
+
 ```ts
 const composition = createMfHost<ShopContracts>({
   name: 'shop-shell',
@@ -227,6 +229,8 @@ runtime is created.
 Candidate matching uses the existing static resolver fields: `range`, `channel`, `environment`,
 `tenant`, and `cohort`. Candidates are evaluated in order; an entry without `match` is a fallback.
 
+<!-- typecheck: shop -->
+
 ```tsx
 <shop.App app="account" props={{ accountId: 'A-1' }} selection={{ ref: { channel: 'canary' } }} />
 ```
@@ -240,6 +244,8 @@ loaded artifact.
 
 A platform resolver remains first-class. It must be paired with a catalog because a resolver alone
 cannot tell a framework binding which logical names and expose defaults are valid:
+
+<!-- typecheck: shop, federation -->
 
 ```ts
 const composition = createMfHost<ShopContracts, HostServices>({
@@ -287,6 +293,8 @@ belong to different namespaces.
 The direct overload infers contracts, Source, and Services from the composition. The curried
 overload establishes Contracts explicitly for manual composition:
 
+<!-- typecheck: shop -->
+
 ```ts
 const react = createReactBindings(composition);
 const manual = createReactBindings<ShopContracts>()({ applications, host });
@@ -315,6 +323,8 @@ interface ReactBindings<Contracts, Source> {
 
 Use `App` when the application name or controls vary per render:
 
+<!-- typecheck: shop -->
+
 ```tsx
 <react.App
   app="checkout"
@@ -330,6 +340,8 @@ cannot contain `instanceId`, because one component type may be rendered more tha
 when an external instance identity is required.
 
 `BoundAppProps` is a distributed union over application names. This matters for a union name:
+
+<!-- typecheck: shop, expect-error -->
 
 ```tsx
 declare const selected: 'account' | 'checkout';
@@ -349,6 +361,8 @@ decision.
 
 Vue uses the same composition and lifecycle model:
 
+<!-- typecheck: shop -->
+
 ```ts
 const vue = createVueBindings(composition);
 const Checkout = vue.component('checkout', {
@@ -362,14 +376,19 @@ const Checkout = vue.component('checkout', {
 
 Like React, the inline `App` can be specialized for a custom container request in a render function:
 
+<!-- typecheck: shop -->
+
 ```ts
 const IframeApp = vue.App<IframeContainerRequest>;
-return () =>
-  h(IframeApp, {
-    app: 'checkout',
-    container: iframeContainer,
-    props: { cartId: 'C-42' },
-  });
+
+const IsolatedCheckout = defineComponent({
+  setup: () => () =>
+    h(IframeApp, {
+      app: 'checkout',
+      container: iframeContainer,
+      props: { cartId: 'C-42' },
+    }),
+});
 ```
 
 Vue templates cannot supply TypeScript type arguments. For a custom container used from a template,
