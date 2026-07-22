@@ -112,7 +112,12 @@ function toContainer<Source>(
   return container;
 }
 
-function createReference(base: Readonly<AppRef> | undefined, name: string, selection?: Selection) {
+function createReference(
+  applications: Readonly<Record<string, Readonly<AppRef> | undefined>>,
+  name: string,
+  selection?: Selection,
+) {
+  const base = Object.hasOwn(applications, name) ? applications[name] : undefined;
   if (base === undefined) {
     throw new FrontsError(
       frontsErrorCodes.resolutionFailed,
@@ -142,7 +147,7 @@ function buildVueBindings<
   >;
   const renderApp = (input: RuntimeAppProps<Source>) => {
     const { app, container, props, selection, wrapperProps, ...controls } = input;
-    const reference = createReference(applications[app], app, selection);
+    const reference = createReference(applications, app, selection);
     const request = toContainer(container);
 
     return h(RemoteApp as Component, {
@@ -182,7 +187,7 @@ function buildVueBindings<
     app: Name,
     options: PreloadOptions = {},
   ): Promise<void> => {
-    const reference = createReference(applications[app], app, options.selection);
+    const reference = createReference(applications, app, options.selection);
     await composition.host.preload(reference, {
       ...options.selection?.resolve,
       ...(options.traceId === undefined ? {} : { traceId: options.traceId }),

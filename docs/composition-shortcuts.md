@@ -452,6 +452,12 @@ Bindings preserve the low-level Host contract:
 6. Fallback and `onError` receive the real error. A `FrontsError` retains `code` and `phase`.
 7. Replacement, activation, inspection, audit, and disposal remain on `host`.
 
+An unknown logical application name is a binding configuration error, not a Host lifecycle failure.
+Rendering throws before creating `RemoteApp`, and `preload()` rejects before calling the Host. In
+React or Vue rendering, the error therefore reaches the nearest framework error boundary or error
+handler instead of the local `fallback`/`onError`. Those controls apply after a valid catalog
+reference starts Host resolution, loading, mounting, or updating.
+
 Bindings borrow the Host. They expose no `dispose()` and must not dispose it from a component
 cleanup. The composition root calls `host.dispose()` after unmounting its framework root.
 

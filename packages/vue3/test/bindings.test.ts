@@ -2,6 +2,7 @@ import { flushPromises, mount as mountVue } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  frontsErrorCodes,
   normalizeAppRef,
   type AppRef,
   type FrontsHost,
@@ -69,6 +70,34 @@ function createComposition() {
 }
 
 describe('createVueBindings', () => {
+  it('rejects unknown and inherited catalog names before starting Host work', async () => {
+    const { composition, mount, preload } = createComposition();
+    const bindings = createVueBindings(composition);
+    const renderUnsafeApp = bindings.App as unknown as (props: {
+      readonly app: string;
+      readonly fallback?: () => unknown;
+      readonly onError?: (error: Error) => void;
+      readonly props: object;
+    }) => unknown;
+    const fallback = vi.fn();
+    const onError = vi.fn();
+
+    expect(() => renderUnsafeApp({ app: 'missing', fallback, onError, props: {} })).toThrowError(
+      expect.objectContaining({ code: frontsErrorCodes.resolutionFailed, phase: 'resolve' }),
+    );
+    expect(() => renderUnsafeApp({ app: 'constructor', props: {} })).toThrowError(
+      'No application reference named "constructor" exists in this Host composition.',
+    );
+    await expect(bindings.preload('constructor' as 'account')).rejects.toMatchObject({
+      code: frontsErrorCodes.resolutionFailed,
+      phase: 'resolve',
+    });
+    expect(fallback).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(mount).not.toHaveBeenCalled();
+    expect(preload).not.toHaveBeenCalled();
+  });
+
   it('maps inline controls to the typed application catalog and host mount', async () => {
     const { composition, instances, mount } = createComposition();
     const bindings = createVueBindings(composition);
