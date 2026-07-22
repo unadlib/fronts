@@ -39,8 +39,11 @@ const vue = await import('@fronts/vue3');
 assert.equal(typeof core.createFrontsHost, 'function');
 assert.equal(typeof iframe.createIframeAgent, 'function');
 assert.equal(typeof mf.createModuleFederationAdapter, 'function');
+assert.equal(typeof mf.createMfHost, 'function');
 assert.equal(typeof react.defineReactApp, 'function');
+assert.equal(typeof react.createReactBindings, 'function');
 assert.equal(typeof vue.defineVueApp, 'function');
+assert.equal(typeof vue.createVueBindings, 'function');
 assert.equal(core.normalizeAppRef({ name: 'smoke' }).expose, './application');
 
 const app = core.defineApp({ mount: () => ({ unmount() {} }) });
@@ -61,9 +64,78 @@ const vue = require('@fronts/vue3');
 assert.equal(typeof core.createFrontsHost, 'function');
 assert.equal(typeof iframe.createIframeAgent, 'function');
 assert.equal(typeof mf.createModuleFederationAdapter, 'function');
+assert.equal(typeof mf.createMfHost, 'function');
 assert.equal(typeof react.defineReactApp, 'function');
+assert.equal(typeof react.createReactBindings, 'function');
 assert.equal(typeof vue.defineVueApp, 'function');
+assert.equal(typeof vue.createVueBindings, 'function');
 `,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'esm-types.ts'),
+    `import type { HostComposition } from '@fronts/core';
+import { createMfHost, type ModuleFederationSource } from '@fronts/mf';
+import { createReactBindings } from '@fronts/react';
+import { createVueBindings } from '@fronts/vue3';
+
+interface Contracts {
+  readonly checkout: { readonly cartId: string };
+}
+
+declare const composition: HostComposition<Contracts, ModuleFederationSource, object>;
+
+const react = createReactBindings(composition);
+const vue = createVueBindings(composition);
+
+void createMfHost;
+void react.App;
+void vue.App;
+`,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'cjs-types.cts'),
+    `import core = require('@fronts/core');
+import mf = require('@fronts/mf');
+import reactPackage = require('@fronts/react');
+import vuePackage = require('@fronts/vue3');
+
+interface Contracts {
+  readonly checkout: { readonly cartId: string };
+}
+
+declare const composition: core.HostComposition<Contracts, mf.ModuleFederationSource, object>;
+
+const react = reactPackage.createReactBindings(composition);
+const vue = vuePackage.createVueBindings(composition);
+
+void mf.createMfHost;
+void react.App;
+void vue.App;
+`,
+  );
+
+  writeFileSync(
+    join(consumerDirectory, 'tsconfig.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          exactOptionalPropertyTypes: true,
+          lib: ['ES2023', 'DOM', 'DOM.Iterable'],
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          noEmit: true,
+          skipLibCheck: true,
+          strict: true,
+          target: 'ES2022',
+          verbatimModuleSyntax: true,
+        },
+        files: ['esm-types.ts', 'cjs-types.cts'],
+      },
+      null,
+      2,
+    )}\n`,
   );
 }
 
@@ -95,6 +167,7 @@ try {
     archives.set(candidate.name, archive);
   }
 
+  const rootManifest = readJson(join(root, 'package.json'));
   const mfManifest = readJson(join(root, 'packages/mf/package.json'));
   const reactManifest = readJson(join(root, 'packages/react/package.json'));
   const vueManifest = readJson(join(root, 'packages/vue3/package.json'));
@@ -106,8 +179,10 @@ try {
   );
   Object.assign(dependencies, {
     '@module-federation/runtime': mfManifest.devDependencies['@module-federation/runtime'],
+    '@types/react': reactManifest.devDependencies['@types/react'],
     react: reactManifest.devDependencies.react,
     'react-dom': reactManifest.devDependencies['react-dom'],
+    typescript: rootManifest.devDependencies.typescript,
     vue: vueManifest.devDependencies.vue,
   });
 
@@ -136,7 +211,10 @@ try {
   run('pnpm', ['install', '--frozen-lockfile=false', '--ignore-scripts'], consumerDirectory);
   run('node', ['esm-smoke.mjs'], consumerDirectory);
   run('node', ['cjs-smoke.cjs'], consumerDirectory);
-  stdout.write('Verified Fronts tarballs through ESM, CommonJS and public subpath imports.\n');
+  run('pnpm', ['exec', 'tsc', '--project', 'tsconfig.json'], consumerDirectory);
+  stdout.write(
+    'Verified Fronts tarballs through ESM, CommonJS, public types and subpath imports.\n',
+  );
 } finally {
   rmSync(temporaryDirectory, { force: true, recursive: true });
 }
