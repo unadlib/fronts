@@ -595,6 +595,38 @@ shape:
 - There is no implicit runtime shared by unrelated React roots.
 - Deployment policy stays outside presentation code.
 
+## The Module Federation runtime lifecycle gap
+
+`createMfHost()` creates something it cannot release. The official runtime has no destroy operation,
+and `createInstance()` appends every instance to a global registry keyed by a timestamped id:
+
+```js
+function createInstance(options) {
+  const instance = new ModuleFederation({
+    id: `${options.name}@${options.version || Date.now()}`,
+    ...options,
+  });
+  setGlobalFederationInstance(instance); // pushes onto __FEDERATION__.__INSTANCES__, never removed
+  return instance;
+}
+```
+
+So `host.dispose()` disposes the Fronts Host and deliberately leaves the runtime alone. It does not
+pretend to destroy state that has no matching public destroy API, and it does not reach into the
+runtime's global registry.
+
+The practical consequences are:
+
+- Create at most one host per composition root. Repeated calls leak one runtime instance each, and
+  the timestamped id means they cannot even be deduplicated.
+- Under hot module replacement, or anywhere a root is recreated, pass an existing `runtime` instead
+  of letting the factory create one.
+- Creating the runtime is a convenience for the single-root case, not the recommended shape for a
+  platform shell. A shell that already owns a runtime should inject it.
+
+[Host Runtime API](host-runtime-api.md) records this as the exception to its rule that a shell
+disposes the transport objects it creates.
+
 ## Package boundaries
 
 ```text

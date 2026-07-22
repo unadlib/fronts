@@ -54,7 +54,15 @@ Required boundaries:
 - The loader returns a module containing a valid `FrontsApp`; it MUST NOT own application lifecycle.
 - A container owns its execution surface and MUST remove resources it reports as owned.
 - The Host owns transaction ordering, cancellation, readiness, rollback, and audit.
-- A shell MUST dispose transport objects it created in addition to disposing the Fronts Host.
+- A shell MUST dispose transport objects it created in addition to disposing the Fronts Host, for
+  every transport object that exposes a disposal operation.
+
+A transport whose public API has no disposal operation is the documented exception. The official
+Module Federation runtime is one: `createInstance()` appends the instance to a global registry and
+the runtime exposes no matching destroy call, so an instance created for a Host cannot be released.
+A shell MUST therefore create at most one runtime instance per composition root and inject a
+longer-lived instance wherever roots are recreated, such as under hot module replacement. Fronts
+MUST NOT reach into the runtime's global registry to compensate.
 
 ### Host configuration map
 
