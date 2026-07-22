@@ -485,6 +485,41 @@ per instance.
 `instanceId` is excluded from component defaults because one component type may be rendered more
 than once. Use the inline form when an external identity is required.
 
+## Change detection
+
+Every value the shortcuts accept is written inline at a call site, so the rule that decides whether
+a render carries new input is part of the contract rather than an implementation detail. Without a
+stated rule the concise form is a trap: a fresh object literal on each render either updates the
+application continuously or unmounts and remounts it.
+
+| Input                        | Compared          | Effect when it changes |
+| ---------------------------- | ----------------- | ---------------------- |
+| `props`                      | shallow, by value | `update()`             |
+| `selection.ref`              | field by field    | remount                |
+| `selection.resolve`          | shallow, by value | remount                |
+| `container` object request   | shallow, by value | remount                |
+| `container` resolver or type | by reference      | remount                |
+| `instanceId`, `traceId`      | by value          | remount                |
+| `readyTimeoutMs`             | by value          | remount                |
+| `loading`, `fallback`        | not compared      | next render only       |
+
+Rules:
+
+1. A render that repeats the same values must not call `update()` and must not remount.
+2. `props` uses shallow equality, matching the contract callers already expect from `React.memo`.
+   `arePropsEqual` overrides it for props that need a different rule.
+3. Nested records inside a container request or a resolution policy — `attributes`, `metadata` — are
+   compared one level deeper, because they are also normally written inline.
+4. Functions compare by reference at every depth. A container request resolver's behaviour is not
+   observable from its shape, so a new function is treated as a new request.
+5. `'dom'` and `'shadow'` shorthands resolve to frozen module-level constants, never to a fresh
+   object per render.
+
+`@fronts/react` and `@fronts/vue3` already implement rules 1 to 4 for `appProps`, `container`, and
+`resolve`, so the shortcuts inherit them rather than adding a second comparison layer. The Vue
+binding additionally keeps updating when a reactive prop object is mutated in place, because that
+mutation preserves object identity and is therefore the change itself.
+
 ## Vue and other frameworks
 
 `createVueBindings(host)` is the same shape with Vue rendering, and it composes with the same
