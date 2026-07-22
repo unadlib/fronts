@@ -1,4 +1,4 @@
-import type { FunctionalComponent } from 'vue';
+import { h, type FunctionalComponent } from 'vue';
 
 import type { ContainerRequest, FrontsHost, HostComposition } from '@fronts/core';
 
@@ -40,6 +40,7 @@ const Checkout = inferred.component('checkout', { container: 'shadow' });
 const IframeCheckout = inferred.component<'checkout', IframeRequest>('checkout', {
   container: { sandbox: ['allow-scripts'], type: 'iframe' },
 });
+const IframeApp = inferred.App<IframeRequest>;
 
 const checkout: PropsOf<typeof Checkout> = { cartId: 'C-42' };
 const iframeCheckout: PropsOf<typeof IframeCheckout> = { cartId: 'C-iframe' };
@@ -52,6 +53,12 @@ const inlineAccount: PropsOf<typeof explicit.App> = {
   app: 'account',
   props: { userId: 'U-1' },
 };
+const inlineIframe: Parameters<typeof IframeApp>[0] = {
+  app: 'checkout',
+  container: { sandbox: ['allow-scripts'], type: 'iframe' },
+  props: { cartId: 'C-iframe-inline' },
+};
+const inlineIframeView = h(IframeApp, inlineIframe);
 
 // @ts-expect-error checkout accepts its own props contract only
 const wrongComponent: PropsOf<typeof Checkout> = { userId: 'U-1' };
@@ -66,6 +73,8 @@ void checkout;
 void iframeCheckout;
 void inlineCheckout;
 void inlineAccount;
+void inlineIframe;
+void inlineIframeView;
 void wrongComponent;
 void wrongInline;
 void unsafeUnion;

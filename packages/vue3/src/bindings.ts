@@ -58,10 +58,13 @@ export type BoundAppProps<
   };
 }[ApplicationName<Contracts>];
 
-export type VueAppComponent<
-  Contracts extends ApplicationContractShape<Contracts>,
-  Source,
-> = FunctionalComponent<BoundAppProps<Contracts, Source>>;
+export interface VueAppComponent<Contracts extends ApplicationContractShape<Contracts>, Source> {
+  <Request extends ContainerRequest = BuiltInContainerRequest>(
+    props: BoundAppProps<Contracts, Source, Request>,
+    context: Parameters<FunctionalComponent<BoundAppProps<Contracts, Source, Request>>>[1],
+  ): VNodeChild;
+  displayName?: string;
+}
 
 export type ComponentDefaults<
   Props,

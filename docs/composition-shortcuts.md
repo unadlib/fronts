@@ -354,7 +354,22 @@ const Checkout = vue.component('checkout', {
 ```
 
 `createVueBindings()` has the same direct and curried overloads, plus `App`, `component()`, and
-`preload()`. Stable factories return `FunctionalComponent<Props>`. In a template, pass an object
+`preload()`. Stable factories return `FunctionalComponent<Props>`.
+
+Like React, the inline `App` can be specialized for a custom container request in a render function:
+
+```ts
+const IframeApp = vue.App<IframeContainerRequest>;
+return () =>
+  h(IframeApp, {
+    app: 'checkout',
+    container: iframeContainer,
+    props: { cartId: 'C-42' },
+  });
+```
+
+Vue templates cannot supply TypeScript type arguments. For a custom container used from a template,
+bind the request type through `component<Name, Request>()` instead. In a template, pass an object
 with camel-cased contract keys when the generated functional component has no runtime prop schema:
 
 ```vue
