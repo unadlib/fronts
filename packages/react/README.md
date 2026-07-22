@@ -58,10 +58,14 @@ interface ShopContracts {
 
 const composition = createMfHost<ShopContracts>({
   name: 'shop-shell',
-  remotes: {
-    account: 'account@https://cdn.example.com/account/mf-manifest.json',
+  apps: {
+    account: {
+      remote: 'account',
+      entry: 'https://cdn.example.com/account/mf-manifest.json',
+    },
     checkout: {
-      entry: 'checkout@https://cdn.example.com/checkout/mf-manifest.json',
+      remote: 'checkout',
+      entry: 'https://cdn.example.com/checkout/mf-manifest.json',
       expose: './checkout-app',
     },
   },

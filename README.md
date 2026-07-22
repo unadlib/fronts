@@ -68,41 +68,40 @@ export default defineApp<{ accountId: string }, HostServices>({
 React and Vue producers normally use `defineReactApp()` or `defineVueApp()` instead. Both produce
 the same framework-neutral application contract.
 
-## Minimal Module Federation host
+## Typed Module Federation host
 
-```ts
-import { createInstance } from '@module-federation/runtime';
-import { createFrontsHost, createStaticResolver, createShadowContainer } from '@fronts/core';
-import { createModuleFederationAdapter, createModuleFederationSource } from '@fronts/mf';
+```tsx
+import { createMfHost } from '@fronts/mf';
+import { createReactBindings } from '@fronts/react';
 
-const federation = createInstance({ name: 'store-shell', remotes: [] });
-const source = createModuleFederationSource({
-  name: 'checkout_2_4_1',
-  entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
+interface ShopContracts {
+  readonly checkout: { readonly cartId: string };
+}
+
+const composition = createMfHost<ShopContracts>({
+  name: 'store-shell',
+  apps: {
+    checkout: {
+      remote: 'checkout_2_4_1',
+      entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
+      version: '2.4.1',
+    },
+  },
 });
 
-const host = createFrontsHost({
-  resolver: createStaticResolver([
-    { match: { name: 'checkout', channel: 'stable' }, resolve: { source, version: '2.4.1' } },
-  ]),
-  loader: createModuleFederationAdapter({ instance: federation }),
-  containers: [createShadowContainer()],
-  services: { telemetry },
-});
+const shop = createReactBindings(composition);
+const Checkout = shop.component('checkout', { container: 'shadow' });
 
-const checkout = await host.mount({
-  ref: { name: 'checkout', expose: './application', channel: 'stable' },
-  target: document.querySelector('#slot')!,
-  container: { type: 'shadow' },
-  props: { cartId: 'C-42' },
-});
-
-await checkout.ready;
+export function Cart() {
+  return <Checkout cartId="C-42" />;
+}
 ```
 
 The official Module Federation runtime remains the only owner of remote registration, manifests,
 preloading, exposed-module loading, and shared dependency resolution. `@fronts/mf` only maps a
 resolved application source to `registerRemotes()`, `preloadRemote()`, and `loadRemote()`.
+`createFrontsHost()`, `createModuleFederationSource()`, and `createModuleFederationAdapter()` remain
+available when a platform needs to assemble those boundaries directly.
 
 ## Examples
 
@@ -146,6 +145,7 @@ Then open any host URL above.
 - [Architecture](docs/architecture.md) — layers, ownership, and dependency rules
 - [Application contract](docs/application-contract.md) — lifecycle ABI and invariants
 - [Host Runtime API](docs/host-runtime-api.md) — resolution, lifecycle, replacement, and shutdown workflows
+- [Typed composition shortcuts](docs/composition-shortcuts.md) — concise MF plus React or Vue composition
 - [Module Federation integrations](docs/module-federation-integrations.md) — producer compatibility and support boundaries
 - [Resolution and delivery](docs/resolution-and-delivery.md) — versions, channels, caching, and rollback
 - [Iframe deployment](docs/iframe-deployment.md) — cross-origin wiring, capabilities, and production security

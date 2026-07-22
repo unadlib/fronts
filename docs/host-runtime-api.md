@@ -58,11 +58,13 @@ Required boundaries:
   every transport object that exposes a disposal operation.
 
 A transport whose public API has no disposal operation is the documented exception. The official
-Module Federation runtime is one: `createInstance()` appends the instance to a global registry and
-the runtime exposes no matching destroy call, so an instance created for a Host cannot be released.
-A shell MUST therefore create at most one runtime instance per composition root and inject a
-longer-lived instance wherever roots are recreated, such as under hot module replacement. Fronts
-MUST NOT reach into the runtime's global registry to compensate.
+Module Federation runtime is one: `createInstance()` appends the instance to a global
+`__INSTANCES__` array and exposes no general matching destroy call. Multiple runtime instances may
+be intentional, but every creation MUST correspond to an intentional, bounded composition
+lifetime. A shell SHOULD inject a longer-lived instance wherever HMR, tests, or shell recreation
+would otherwise create one repeatedly. Fronts MUST NOT reach into the runtime's global registry to
+compensate. The default runtime ID uses a timestamp only when no version or explicit ID overrides
+it; the registry itself is not keyed by that ID.
 
 ### Host configuration map
 
