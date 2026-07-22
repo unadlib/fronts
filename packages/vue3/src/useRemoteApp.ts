@@ -10,6 +10,8 @@ import type {
   MountedApplication,
 } from '@fronts/core';
 
+import { shallowEqual } from './equality.js';
+
 export type RemoteAppStatus = 'idle' | 'mounting' | 'ready' | 'error';
 
 export interface UseRemoteAppOptions<
@@ -21,6 +23,12 @@ export interface UseRemoteAppOptions<
   readonly host: FrontsHost<Source, Services>;
   readonly app: AppRef;
   readonly appProps: Props;
+  /**
+   * Decides whether a newly supplied prop object carries new values. Defaults to a shallow
+   * comparison. It is consulted only when the object identity changed; an in-place mutation of a
+   * reactive prop object always updates the application.
+   */
+  readonly arePropsEqual?: (previous: Props, next: Props) => boolean;
   readonly container?: Request | ContainerRequestResolver<Source, Request>;
   readonly instanceId?: string;
   readonly mountKey?: string | number;
@@ -74,6 +82,8 @@ export function useRemoteApp<
   const instance = shallowRef<MountedApplication<Props, Source> | null>(null);
   let propsVersion = 0;
   let appliedPropsVersion = 0;
+  let appliedProps: Props | undefined;
+  let hasAppliedProps = false;
   let teardown: Promise<void> = Promise.resolve();
 
   const updateMounted = (
@@ -130,6 +140,8 @@ export function useRemoteApp<
       }
       const options = toValue(input);
       const mountedPropsVersion = propsVersion;
+      appliedProps = options.appProps;
+      hasAppliedProps = true;
       const controller = new AbortController();
       let current: MountedApplication<Props, Source> | null = null;
       let disposed = false;
@@ -203,6 +215,17 @@ export function useRemoteApp<
   watch(
     () => toValue(input).appProps,
     (nextProps) => {
+      // A deep watcher also fires for an in-place mutation of a reactive prop object. That case
+      // keeps the same identity, so equality must only suppress a genuinely re-created object.
+      if (
+        hasAppliedProps &&
+        !Object.is(appliedProps, nextProps) &&
+        (toValue(input).arePropsEqual ?? shallowEqual)(appliedProps as Props, nextProps)
+      ) {
+        return;
+      }
+      appliedProps = nextProps;
+      hasAppliedProps = true;
       propsVersion += 1;
       const mounted = instance.value;
       if (mounted === null) {

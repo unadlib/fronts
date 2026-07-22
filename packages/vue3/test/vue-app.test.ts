@@ -4,6 +4,7 @@ import {
   h,
   inject,
   nextTick,
+  reactive,
   type App,
   type ComponentPublicInstance,
   type createApp,
@@ -556,6 +557,45 @@ describe('Vue host adapter', () => {
     view.unmount();
     await flushPromises();
     expect(unmount).toHaveBeenCalledOnce();
+  });
+
+  it('does not update the application when a render repeats the same prop values', async () => {
+    const { instance, update } = createMountedApplication();
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<unknown, object>;
+    const view = mountVue(RemoteApp, {
+      props: { app: { name: 'checkout' }, appProps: { value: 'first' }, host },
+    });
+    await flushPromises();
+
+    await view.setProps({ appProps: { value: 'first' } });
+    await flushPromises();
+    expect(update).not.toHaveBeenCalled();
+
+    await view.setProps({ appProps: { value: 'second' } });
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith({ value: 'second' });
+    expect(update).toHaveBeenCalledOnce();
+  });
+
+  it('updates the application when a reactive prop object is mutated in place', async () => {
+    const { instance, update } = createMountedApplication();
+    const host = {
+      mount: vi.fn(async () => instance),
+    } as unknown as FrontsHost<unknown, object>;
+    const appProps = reactive({ value: 'first' });
+    const view = mountVue(RemoteApp, {
+      props: { app: { name: 'checkout' }, appProps, host },
+    });
+    await flushPromises();
+
+    appProps.value = 'second';
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith({ value: 'second' });
+
+    view.unmount();
+    await flushPromises();
   });
 
   it('renders a scoped fallback when host resolution or loading fails', async () => {
