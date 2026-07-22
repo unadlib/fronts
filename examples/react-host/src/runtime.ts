@@ -1,17 +1,7 @@
-import { createInstance } from '@module-federation/runtime';
-
-import {
-  createDomContainer,
-  createFrontsHost,
-  createShadowContainer,
-  createStaticResolver,
-} from '@fronts/core';
+import { createDomContainer, createShadowContainer } from '@fronts/core';
 import { createIframeContainer, createIframeProxyLoader } from '@fronts/core/iframe';
-import {
-  createModuleFederationAdapter,
-  createModuleFederationSource,
-  type ModuleFederationSource,
-} from '@fronts/mf';
+import { createMfHost, type ModuleFederationSource } from '@fronts/mf';
+import { createReactBindings } from '@fronts/react';
 
 export interface HostServices {
   readonly navigation: { go(path: string): void };
@@ -20,45 +10,11 @@ export interface HostServices {
 
 export type ExampleSource = ModuleFederationSource;
 
-const reactRemote = createModuleFederationSource({
-  entry: 'http://127.0.0.1:4101/mf-manifest.json',
-  name: 'fronts_react_remote',
-});
-const vueRemote = createModuleFederationSource({
-  entry: 'http://127.0.0.1:4102/mf-manifest.json',
-  name: 'fronts_vue_remote',
-});
-
-const resolver = createStaticResolver<ExampleSource>([
-  {
-    match: { channel: 'stable', name: 'react-checkout' },
-    resolve: { source: reactRemote, version: '2.0.0' },
-  },
-  {
-    match: { name: 'react-checkout' },
-    resolve: { source: reactRemote, version: '2.0.0' },
-  },
-  {
-    match: { name: 'vue-account' },
-    resolve: { source: vueRemote, version: '2.0.0' },
-  },
-  {
-    match: { name: 'isolated-checkout' },
-    resolve: {
-      metadata: {
-        frame: {
-          src: 'http://127.0.0.1:4103',
-          targetOrigin: 'http://127.0.0.1:4103',
-        },
-      },
-      source: reactRemote,
-      version: '2.0.0',
-    },
-  },
-]);
-
-const federation = createInstance({ name: 'fronts_react_host', remotes: [] });
-const federationLoader = createModuleFederationAdapter({ instance: federation });
+export interface ExampleContracts {
+  readonly 'isolated-checkout': { readonly cartId: string };
+  readonly 'react-checkout': { readonly cartId: string };
+  readonly 'vue-account': { readonly accountId: string };
+}
 
 const services: HostServices = {
   navigation: {
@@ -74,7 +30,30 @@ const services: HostServices = {
   },
 };
 
-export const host = createFrontsHost<ExampleSource, HostServices>({
+export const composition = createMfHost<ExampleContracts, HostServices>({
+  apps: {
+    'isolated-checkout': {
+      entry: 'http://127.0.0.1:4101/mf-manifest.json',
+      metadata: {
+        frame: {
+          src: 'http://127.0.0.1:4103',
+          targetOrigin: 'http://127.0.0.1:4103',
+        },
+      },
+      remote: 'fronts_react_remote',
+      version: '2.0.0',
+    },
+    'react-checkout': {
+      entry: 'http://127.0.0.1:4101/mf-manifest.json',
+      remote: 'fronts_react_remote',
+      version: '2.0.0',
+    },
+    'vue-account': {
+      entry: 'http://127.0.0.1:4102/mf-manifest.json',
+      remote: 'fronts_vue_remote',
+      version: '2.0.0',
+    },
+  },
   capabilityPolicy: ({ capability, identity }) =>
     capability !== 'navigation' || ['react-checkout', 'isolated-checkout'].includes(identity.name),
   containerLoaders: {
@@ -83,8 +62,7 @@ export const host = createFrontsHost<ExampleSource, HostServices>({
     }),
   },
   containers: [createDomContainer(), createShadowContainer(), createIframeContainer()],
-  hostId: 'fronts-example-shell',
-  loader: federationLoader,
+  name: 'fronts-example-shell',
   observer(event) {
     if (event.kind === 'error') {
       console.error('[fronts lifecycle]', event);
@@ -92,6 +70,9 @@ export const host = createFrontsHost<ExampleSource, HostServices>({
       console.debug('[fronts lifecycle]', event);
     }
   },
-  resolver,
+  runtimeName: 'fronts_react_host',
   services,
 });
+
+export const host = composition.host;
+export const applications = createReactBindings(composition);

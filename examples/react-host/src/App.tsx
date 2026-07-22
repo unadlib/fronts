@@ -2,11 +2,10 @@ import { useState } from 'react';
 
 import type { ContainerRequestResolver } from '@fronts/core';
 import type { IframeContainerRequest } from '@fronts/core/iframe';
-import { RemoteApp, type RemoteFailure } from '@fronts/react';
+import type { RemoteFailure } from '@fronts/react';
 
-import { host, type ExampleSource } from './runtime.js';
+import { applications, type ExampleSource } from './runtime.js';
 
-const shadowContainer = { mode: 'open', type: 'shadow' } as const;
 const iframeContainer: ContainerRequestResolver<ExampleSource, IframeContainerRequest> = ({
   resolved,
 }) => {
@@ -42,6 +41,23 @@ function Failure({ error, retry }: RemoteFailure) {
   );
 }
 
+const VueAccount = applications.component('vue-account', {
+  container: 'shadow',
+  fallback: Failure,
+  loading: <Loading />,
+  traceId: 'vue-account-example',
+});
+
+const IsolatedCheckout = applications.component<'isolated-checkout', IframeContainerRequest>(
+  'isolated-checkout',
+  {
+    container: iframeContainer,
+    fallback: Failure,
+    loading: <Loading />,
+    traceId: 'iframe-checkout-example',
+  },
+);
+
 export function App() {
   const [revision, setRevision] = useState(1);
 
@@ -62,40 +78,23 @@ export function App() {
       <section className="grid" aria-label="Remote applications">
         <article className="slot">
           <h2>React remote · DOM</h2>
-          <RemoteApp
-            app={{ channel: 'stable', name: 'react-checkout' }}
-            appProps={{ cartId: `cart-${revision}` }}
+          <applications.App
+            app="react-checkout"
             fallback={Failure}
-            host={host}
             loading={<Loading />}
+            props={{ cartId: `cart-${revision}` }}
             traceId="react-checkout-example"
           />
         </article>
 
         <article className="slot">
           <h2>Vue 3 remote · Shadow DOM</h2>
-          <RemoteApp
-            app={{ name: 'vue-account' }}
-            appProps={{ accountId: `account-${revision}` }}
-            container={shadowContainer}
-            fallback={Failure}
-            host={host}
-            loading={<Loading />}
-            traceId="vue-account-example"
-          />
+          <VueAccount accountId={`account-${revision}`} />
         </article>
 
         <article className="slot">
           <h2>React remote · isolated iframe</h2>
-          <RemoteApp
-            app={{ name: 'isolated-checkout' }}
-            appProps={{ cartId: `isolated-${revision}` }}
-            container={iframeContainer}
-            fallback={Failure}
-            host={host}
-            loading={<Loading />}
-            traceId="iframe-checkout-example"
-          />
+          <IsolatedCheckout cartId={`isolated-${revision}`} />
         </article>
       </section>
     </main>
