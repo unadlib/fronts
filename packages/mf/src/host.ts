@@ -225,31 +225,41 @@ export function createMfHost<
   Contracts extends ApplicationContractShape<Contracts>,
   Services extends object = object,
 >(options: MfHostOptions<Contracts, Services>): MfHostResult<Contracts, Services> {
+  const {
+    applications,
+    apps,
+    name,
+    resolver,
+    runtime: suppliedRuntime,
+    runtimeName,
+    runtimeOptions,
+    ...hostOptions
+  } = options;
   let configured: {
     readonly applications: ApplicationCatalog<Contracts>;
     readonly resolver: AppResolver<ModuleFederationSource>;
   };
-  if (options.apps !== undefined) {
-    configured = createStaticConfiguration(options.apps);
+  if (apps !== undefined) {
+    configured = createStaticConfiguration(apps);
   } else {
-    if (options.applications === undefined || options.resolver === undefined) {
+    if (applications === undefined || resolver === undefined) {
       configurationError('A custom resolver requires an application reference catalog.');
     }
     configured = {
-      applications: createCatalog(options.applications),
-      resolver: options.resolver,
+      applications: createCatalog(applications),
+      resolver,
     };
   }
   const runtime =
-    options.runtime ??
+    suppliedRuntime ??
     createInstance({
-      ...options.runtimeOptions,
-      name: options.runtimeName ?? options.name,
+      ...runtimeOptions,
+      name: runtimeName ?? name,
       remotes: [],
     });
   const host = createFrontsHost<ModuleFederationSource, Services>({
-    ...options,
-    hostId: options.hostId ?? options.name,
+    ...hostOptions,
+    hostId: hostOptions.hostId ?? name,
     loader: createModuleFederationAdapter({ instance: runtime }),
     resolver: configured.resolver,
   });

@@ -1,8 +1,14 @@
-import { defineApp, frontsErrorCodes, type HostComposition } from '@fronts/core';
+import { createFrontsHost, defineApp, frontsErrorCodes, type HostComposition } from '@fronts/core';
+import type * as FrontsCoreModule from '@fronts/core';
 import type { ModuleFederation } from '@module-federation/runtime';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createMfHost, createModuleFederationSource } from '../src/index.js';
+
+vi.mock('@fronts/core', async (importOriginal) => {
+  const original = await importOriginal<typeof FrontsCoreModule>();
+  return { ...original, createFrontsHost: vi.fn(original.createFrontsHost) };
+});
 
 interface ShopContracts {
   readonly account: { readonly accountId: string };
@@ -26,6 +32,41 @@ function createRuntime() {
 }
 
 describe('Module Federation host shortcut', () => {
+  it('passes only core Host options across the composition boundary', async () => {
+    const runtime = createRuntime();
+    const composition = createMfHost<ShopContracts>({
+      apps: {
+        account: {
+          entry: 'https://cdn.example.test/account/mf-manifest.json',
+          remote: 'account',
+        },
+        checkout: {
+          entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+          remote: 'checkout',
+        },
+      },
+      name: 'projected-shell',
+      readyTimeoutMs: 500,
+      runtime: runtime.instance,
+    });
+
+    try {
+      const forwarded = vi.mocked(createFrontsHost).mock.lastCall?.[0];
+
+      expect(forwarded).toBeDefined();
+      expect(Object.keys(forwarded ?? {}).sort()).toEqual([
+        'hostId',
+        'loader',
+        'readyTimeoutMs',
+        'resolver',
+      ]);
+      expect(forwarded?.hostId).toBe('projected-shell');
+      expect(forwarded?.readyTimeoutMs).toBe(500);
+    } finally {
+      await composition.host.dispose();
+    }
+  });
+
   it('composes static deployments and preserves application reference defaults', async () => {
     const runtime = createRuntime();
     runtime.loadRemote.mockResolvedValue({
