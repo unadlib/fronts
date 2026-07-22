@@ -1,5 +1,13 @@
 type Comparator = (previous: unknown, next: unknown) => boolean;
 
+function isStructuralObject(value: object): boolean {
+  if (Array.isArray(value)) {
+    return true;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 function compareOwnKeys(previous: unknown, next: unknown, compare: Comparator): boolean {
   if (Object.is(previous, next)) {
     return true;
@@ -9,7 +17,9 @@ function compareOwnKeys(previous: unknown, next: unknown, compare: Comparator): 
     typeof next !== 'object' ||
     previous === null ||
     next === null ||
-    Object.getPrototypeOf(previous) !== Object.getPrototypeOf(next)
+    Object.getPrototypeOf(previous) !== Object.getPrototypeOf(next) ||
+    !isStructuralObject(previous) ||
+    !isStructuralObject(next)
   ) {
     return false;
   }
