@@ -11,6 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import process, { stderr, stdout } from 'node:process';
+import ts from 'typescript';
 
 const root = resolve(import.meta.dirname, '..');
 const fixtureDirectory = join(root, 'scripts/doc-examples');
@@ -142,15 +143,14 @@ try {
         copyFileSync(sibling.path, join(workspace, 'cases', `${sibling.name}.ts`));
       }
       const name = `${repositoryPath(example.file).replace(/[^a-zA-Z0-9]+/g, '-')}-${example.line}.${example.extension}`;
-      writeFileSync(
-        join(workspace, 'cases', name),
-        `${[...plan.references, ''].join('\n')}${example.body}\n`,
-      );
+      const path = join(workspace, 'cases', name);
+      writeFileSync(path, `${[...plan.references, ''].join('\n')}${example.body}\n`);
       compiled.push({
         ...example,
         expectError: plan.expectError,
         name,
         offset: plan.references.length,
+        path,
       });
     }
   }
@@ -180,84 +180,73 @@ try {
       ['@module-federation/runtime', '@module-federation/runtime', 'packages/mf'],
     ];
 
-    writeFileSync(
-      join(workspace, 'tsconfig.json'),
-      `${JSON.stringify(
-        {
-          compilerOptions: {
-            exactOptionalPropertyTypes: true,
-            jsx: 'react-jsx',
-            lib: ['ES2023', 'DOM', 'DOM.Iterable'],
-            module: 'ESNext',
-            moduleDetection: 'force',
-            moduleResolution: 'Bundler',
-            noEmit: true,
-            noUncheckedIndexedAccess: true,
-            paths: Object.fromEntries([
-              ...[
-                ['@fronts/core', 'packages/core/dist/index.d.ts'],
-                ['@fronts/core/iframe', 'packages/core/dist/iframe.d.ts'],
-                ['@fronts/mf', 'packages/mf/dist/index.d.ts'],
-                ['@fronts/react', 'packages/react/dist/index.d.ts'],
-                ['@fronts/vue3', 'packages/vue3/dist/index.d.ts'],
-              ].map(([specifier, path]) => [specifier, [join(root, path)]]),
-              ...dependencies.flatMap(([resolved, specifier, owner]) => {
-                const directory = packageDirectory(resolved, owner);
-                return [
-                  [specifier, [directory]],
-                  [`${specifier}/*`, [join(directory, '*')]],
-                ];
-              }),
-            ]),
-            skipLibCheck: true,
-            strict: true,
-            target: 'ES2022',
-            types: [],
-            verbatimModuleSyntax: true,
-          },
-          include: ['cases'],
-        },
-        null,
-        2,
-      )}\n`,
-    );
+    const paths = Object.fromEntries([
+      ...[
+        ['@fronts/core', 'packages/core/dist/index.d.ts'],
+        ['@fronts/core/iframe', 'packages/core/dist/iframe.d.ts'],
+        ['@fronts/mf', 'packages/mf/dist/index.d.ts'],
+        ['@fronts/react', 'packages/react/dist/index.d.ts'],
+        ['@fronts/vue3', 'packages/vue3/dist/index.d.ts'],
+      ].map(([specifier, path]) => [specifier, [join(root, path)]]),
+      ...dependencies.flatMap(([resolved, specifier, owner]) => {
+        const directory = packageDirectory(resolved, owner);
+        return [
+          [specifier, [directory]],
+          [`${specifier}/*`, [join(directory, '*')]],
+        ];
+      }),
+    ]);
+    const compilerOptions = {
+      exactOptionalPropertyTypes: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      lib: ['lib.es2023.d.ts', 'lib.dom.d.ts', 'lib.dom.iterable.d.ts'],
+      module: ts.ModuleKind.ESNext,
+      moduleDetection: ts.ModuleDetectionKind.Force,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      noEmit: true,
+      noUncheckedIndexedAccess: true,
+      paths,
+      skipLibCheck: true,
+      strict: true,
+      target: ts.ScriptTarget.ES2022,
+      types: [],
+      verbatimModuleSyntax: true,
+    };
 
-    try {
-      execFileSync(
-        process.execPath,
-        [join(root, 'node_modules/typescript/bin/tsc'), '--project', 'tsconfig.json'],
-        { cwd: workspace, encoding: 'utf8', stdio: 'pipe' },
-      );
-    } catch (failure) {
-      // TypeScript wraps a diagnostic's detail across indented continuation lines.
-      const diagnostics = [];
-      for (const line of String(failure.stdout ?? '').split('\n')) {
-        if (line.trim() === '') {
+    // Each example gets a fresh Program. Reusing one Program would merge ambient fixture globals
+    // across unrelated fences and could make an example compile only because another one ran too.
+    for (const example of compiled) {
+      const program = ts.createProgram({
+        options: compilerOptions,
+        rootNames: [example.path],
+      });
+      for (const diagnostic of ts
+        .getPreEmitDiagnostics(program)
+        .filter(({ category }) => category === ts.DiagnosticCategory.Error)) {
+        const diagnosticPath =
+          diagnostic.file === undefined ? undefined : resolve(diagnostic.file.fileName);
+        const belongsToExample = diagnosticPath === resolve(example.path);
+        if (belongsToExample && example.expectError) {
+          rejected.add(example.name);
           continue;
         }
-        if (/^\s/.test(line) && diagnostics.length > 0) {
-          diagnostics[diagnostics.length - 1] += `\n${line}`;
-          continue;
-        }
-        diagnostics.push(line);
-      }
 
-      for (const diagnostic of diagnostics) {
-        const match = /^cases[/\\](.+?)\((\d+),(\d+)\):\s*([\s\S]*)$/.exec(diagnostic);
-        if (match === null) {
-          errors.push(diagnostic.trim());
+        const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+        if (diagnostic.file === undefined || diagnostic.start === undefined) {
+          errors.push(`TS${diagnostic.code}: ${message}`);
           continue;
         }
-        const source = compiled.find((example) => example.name === match[1]);
-        if (source?.expectError === true) {
-          rejected.add(source.name);
-          continue;
-        }
-        const line =
-          source === undefined ? Number(match[2]) : source.line + Number(match[2]) - source.offset;
-        errors.push(
-          `${source === undefined ? match[1] : repositoryPath(source.file)}:${line}:${match[3]}: ${match[4]}`,
-        );
+
+        const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+        const line = belongsToExample
+          ? example.line + position.line + 1 - example.offset
+          : position.line + 1;
+        const path = belongsToExample
+          ? repositoryPath(example.file)
+          : diagnosticPath.startsWith(`${root}${sep}`)
+            ? repositoryPath(diagnosticPath)
+            : relative(workspace, diagnosticPath).split(sep).join('/');
+        errors.push(`${path}:${line}:${position.character + 1}: TS${diagnostic.code}: ${message}`);
       }
     }
 
