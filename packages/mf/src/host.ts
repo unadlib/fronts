@@ -137,9 +137,28 @@ const deploymentFields = [
   'shareScope',
   'type',
   'version',
-] as const;
+] as const satisfies readonly (keyof StaticDeployment)[];
 
-const deploymentMatchFields = ['range', 'channel', 'environment', 'tenant', 'cohort'] as const;
+const deploymentMatchFields = [
+  'range',
+  'channel',
+  'environment',
+  'tenant',
+  'cohort',
+] as const satisfies readonly (keyof DeploymentMatch)[];
+
+// Compile-time completeness guards. `satisfies` above rejects a typo or an extra name; these reject
+// a new StaticDeployment or DeploymentMatch field that was added without also guarding it here. Each
+// annotation names the missing field, so a drift failure reads as the field it forgot.
+type UnguardedDeploymentField = Exclude<keyof StaticDeployment, (typeof deploymentFields)[number]>;
+type UnguardedMatchField = Exclude<keyof DeploymentMatch, (typeof deploymentMatchFields)[number]>;
+const deploymentFieldsAreExhaustive: [UnguardedDeploymentField] extends [never]
+  ? true
+  : UnguardedDeploymentField = true;
+const matchFieldsAreExhaustive: [UnguardedMatchField] extends [never] ? true : UnguardedMatchField =
+  true;
+void deploymentFieldsAreExhaustive;
+void matchFieldsAreExhaustive;
 
 function assertOwnDeploymentFields(
   value: unknown,
