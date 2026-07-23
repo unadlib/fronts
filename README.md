@@ -35,42 +35,23 @@ frameworks, loaders, isolation levels, and release policies.
 - `@fronts/react` — React producer and host adapters
 - `@fronts/vue3` — Vue 3 producer and host adapters
 
-## Application contract
+## Quick start
 
-An application exports a protocol-branded object. The host owns loading and orchestration; the
-application owns the UI tree it mounts.
+Define a React application in the remote:
 
-<!-- typecheck: services -->
+<!-- typecheck -->
 
-```ts
-import { defineApp } from '@fronts/core';
+```tsx
+import { defineReactApp } from '@fronts/react';
 
-export default defineApp<{ accountId: string }, HostServices>({
-  name: 'account',
-  capabilities: ['telemetry'],
-  mount({ identity, props, services, signal, target }) {
-    const view = document.createElement('p');
-    view.textContent = `Account ${props.accountId}`;
-    target.append(view);
-    services.telemetry.emit('account.mounted', identity);
-
-    return {
-      ready: Promise.resolve(),
-      update(nextProps) {
-        view.textContent = `Account ${nextProps.accountId}`;
-      },
-      unmount() {
-        view.remove();
-      },
-    };
-  },
+export default defineReactApp<{ name: string }>({
+  name: 'hello',
+  root: ({ name }) => <h1>Hello, {name}!</h1>,
 });
 ```
 
-React and Vue producers normally use `defineReactApp()` or `defineVueApp()` instead. Both produce
-the same framework-neutral application contract.
-
-## Typed Module Federation host
+Expose that module as `./application` with the producer's official Module Federation plugin, then
+turn it into an ordinary typed React component in the shell:
 
 <!-- typecheck -->
 
@@ -78,28 +59,31 @@ the same framework-neutral application contract.
 import { createMfHost } from '@fronts/mf';
 import { createReactBindings } from '@fronts/react';
 
-interface ShopContracts {
-  readonly checkout: { readonly cartId: string };
+interface Apps {
+  readonly hello: { readonly name: string };
 }
 
-const composition = createMfHost<ShopContracts>({
-  name: 'store-shell',
+const composition = createMfHost<Apps>({
+  name: 'shell',
   apps: {
-    checkout: {
-      remote: 'checkout_2_4_1',
-      entry: 'https://cdn.example.com/checkout/2.4.1/mf-manifest.json',
-      version: '2.4.1',
+    hello: {
+      remote: 'hello_remote',
+      entry: 'http://localhost:3001/mf-manifest.json',
     },
   },
 });
 
-const shop = createReactBindings(composition);
-const Checkout = shop.component('checkout', { container: 'shadow' });
+const Hello = createReactBindings(composition).component('hello');
 
-export function Cart() {
-  return <Checkout cartId="C-42" />;
+export function App() {
+  return <Hello name="Fronts" />;
 }
 ```
+
+The default expose is `./application` and the default container is the DOM. Keep `composition` at
+the shell lifecycle boundary and call `composition.host.dispose()` when the shell shuts down.
+`defineVueApp()` and `createVueBindings()` provide the same application contract and composition
+flow for Vue 3.
 
 The official Module Federation runtime remains the only owner of remote registration, manifests,
 preloading, exposed-module loading, and shared dependency resolution. `@fronts/mf` only maps a
