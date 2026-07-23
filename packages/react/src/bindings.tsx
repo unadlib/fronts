@@ -122,11 +122,34 @@ function createReference(
       { details: { name }, phase: 'resolve' },
     );
   }
+  const selected = selection?.ref;
+  const range =
+    selected !== undefined && Object.hasOwn(selected, 'range') ? selected.range : undefined;
+  const channel =
+    selected !== undefined && Object.hasOwn(selected, 'channel') ? selected.channel : undefined;
   return {
     ...base,
-    ...selection?.ref,
+    ...(range === undefined ? {} : { range }),
+    ...(channel === undefined ? {} : { channel }),
     name,
   } satisfies AppRef;
+}
+
+function createResolutionPolicy(selection?: Selection): ResolutionPolicyContext | undefined {
+  const selected = selection?.resolve;
+  if (selected === undefined) {
+    return undefined;
+  }
+  const environment = Object.hasOwn(selected, 'environment') ? selected.environment : undefined;
+  const tenant = Object.hasOwn(selected, 'tenant') ? selected.tenant : undefined;
+  const cohort = Object.hasOwn(selected, 'cohort') ? selected.cohort : undefined;
+  const metadata = Object.hasOwn(selected, 'metadata') ? selected.metadata : undefined;
+  return {
+    ...(environment === undefined ? {} : { environment }),
+    ...(tenant === undefined ? {} : { tenant }),
+    ...(cohort === undefined ? {} : { cohort }),
+    ...(metadata === undefined ? {} : { metadata }),
+  };
 }
 
 type RuntimeAppProps<Source> = AppControls<object, Source, ContainerRequest> & {
@@ -145,6 +168,7 @@ function buildReactBindings<
   const renderApp = (input: RuntimeAppProps<Source>): ReactElement => {
     const { app, container, props, selection, ...controls } = input;
     const reference = createReference(applications, app, selection);
+    const resolution = createResolutionPolicy(selection);
     const request = toContainer(container);
 
     return (
@@ -154,7 +178,7 @@ function buildReactBindings<
         appProps={props}
         host={composition.host}
         {...(request === undefined ? {} : { container: request })}
-        {...(selection?.resolve === undefined ? {} : { resolve: selection.resolve })}
+        {...(resolution === undefined ? {} : { resolve: resolution })}
       />
     );
   };
@@ -182,8 +206,9 @@ function buildReactBindings<
     options: PreloadOptions = {},
   ): Promise<void> => {
     const reference = createReference(applications, app, options.selection);
+    const resolution = createResolutionPolicy(options.selection);
     await composition.host.preload(reference, {
-      ...options.selection?.resolve,
+      ...resolution,
       ...(options.traceId === undefined ? {} : { traceId: options.traceId }),
     });
   };

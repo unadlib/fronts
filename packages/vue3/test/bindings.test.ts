@@ -10,7 +10,7 @@ import {
   type MountedApplication,
 } from '@fronts/core';
 
-import { createVueBindings } from '../src/index.js';
+import { createVueBindings, type Selection } from '../src/index.js';
 
 interface ShopContracts {
   readonly account: { readonly userId: string };
@@ -136,6 +136,42 @@ describe('createVueBindings', () => {
     view.unmount();
     await flushPromises();
     expect(instances[0]?.unmount).toHaveBeenCalledOnce();
+  });
+
+  it('projects only supported selection fields into render and preload requests', async () => {
+    const { composition, mount, preload } = createComposition();
+    const bindings = createVueBindings(composition);
+    const selection = {
+      ref: { channel: 'canary', expose: './override', name: 'override' },
+      resolve: {
+        operationId: 'injected-operation',
+        signal: AbortSignal.abort(),
+        tenant: 'acme',
+        traceId: 'injected-trace',
+      },
+    } as unknown as Selection;
+    const view = mountVue(bindings.App, {
+      props: { app: 'checkout', props: { cartId: 'C-guarded' }, selection },
+    });
+
+    await flushPromises();
+    expect(mount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: {
+          channel: 'canary',
+          expose: './checkout-app',
+          name: 'checkout',
+        },
+        resolve: { tenant: 'acme' },
+      }),
+    );
+
+    await bindings.preload('checkout', { selection });
+    expect(preload).toHaveBeenCalledWith(
+      { channel: 'canary', expose: './checkout-app', name: 'checkout' },
+      { tenant: 'acme' },
+    );
+    view.unmount();
   });
 
   it('creates stable application components with bound defaults', async () => {
