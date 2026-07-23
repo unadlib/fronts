@@ -99,6 +99,11 @@ non-MF composition, the curried form keeps an explicit contract boundary:
 const shop = createVueBindings<ShopContracts>()({ applications, host });
 ```
 
+Vue reserves `VNodeProps` such as `key`, `ref`, ref helpers, and vnode lifecycle hooks instead of
+forwarding them as functional-component props. Contracts containing those fields must use
+`shop.App`, whose nested `props` object preserves them; `shop.component()` rejects those application
+names at type-check time.
+
 Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle boundary, not in
 a component cleanup.
 

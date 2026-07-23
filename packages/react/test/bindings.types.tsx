@@ -17,7 +17,9 @@ interface OptionalContracts {
 }
 
 interface ReservedContracts {
+  readonly indexed: Readonly<Record<string, unknown>>;
   readonly keyed: { readonly key: string; readonly value: string };
+  readonly referenced: { readonly ref: string; readonly value: string };
 }
 
 interface Source {
@@ -63,9 +65,16 @@ const inlineAccount = <explicit.App app="account" props={{ userId: 'U-1' }} />;
 
 declare const reservedComposition: HostComposition<ReservedContracts, Source, Services>;
 const reserved = createReactBindings(reservedComposition);
+// @ts-expect-error an open string index may contain React-reserved props
+const Indexed = reserved.component('indexed');
 // @ts-expect-error React consumes key before component props reach the remote application
 const Keyed = reserved.component('keyed');
+// @ts-expect-error supported React versions do not consistently forward ref as an ordinary prop
+const Referenced = reserved.component('referenced');
 const inlineKeyed = <reserved.App app="keyed" props={{ key: 'instance-1', value: 'safe' }} />;
+const inlineReferenced = (
+  <reserved.App app="referenced" props={{ ref: 'remote-ref', value: 'safe' }} />
+);
 
 // @ts-expect-error checkout accepts its own props contract only
 const wrongComponent = <Checkout userId="U-1" />;
@@ -81,7 +90,10 @@ void iframeCheckout;
 void inlineCheckout;
 void inlineAccount;
 void inlineKeyed;
+void inlineReferenced;
+void Indexed;
 void Keyed;
+void Referenced;
 void wrongComponent;
 void wrongInline;
 void unsafeUnion;

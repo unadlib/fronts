@@ -74,15 +74,22 @@ export interface PreloadOptions {
   readonly traceId?: string;
 }
 
+type ReactReservedProp = 'key' | 'ref';
+
 type ReactComponentName<Contracts extends ApplicationContractShape<Contracts>> = {
-  [Name in ApplicationName<Contracts>]: 'key' extends keyof Contracts[Name] ? never : Name;
+  [Name in ApplicationName<Contracts>]: Extract<
+    ReactReservedProp,
+    keyof Contracts[Name]
+  > extends never
+    ? Name
+    : never;
 }[ApplicationName<Contracts>];
 
 export interface ReactBindings<Contracts extends ApplicationContractShape<Contracts>, Source> {
   /** Inline form for an application or control options that vary per render. */
   readonly App: ReactAppComponent<Contracts, Source>;
 
-  /** Stable component factory whose public props are exactly the application props. */
+  /** Stable component factory for contracts without React-reserved props. */
   component<
     Name extends ReactComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,

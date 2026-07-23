@@ -13,6 +13,13 @@ interface OptionalContracts {
   readonly checkout?: { readonly cartId: string };
 }
 
+interface ReservedContracts {
+  readonly hooked: { readonly onVnodeMounted: () => void; readonly value: string };
+  readonly indexed: Readonly<Record<string, unknown>>;
+  readonly keyed: { readonly key: string; readonly value: string };
+  readonly referenced: { readonly ref: string; readonly value: string };
+}
+
 interface Source {
   readonly remote: string;
 }
@@ -66,6 +73,21 @@ const inlineIframe: Parameters<typeof IframeApp>[0] = {
 };
 const inlineIframeView = h(IframeApp, inlineIframe);
 
+declare const reservedComposition: HostComposition<ReservedContracts, Source, Services>;
+const reserved = createVueBindings(reservedComposition);
+// @ts-expect-error an open string index may contain Vue-reserved VNode props
+const Indexed = reserved.component('indexed');
+// @ts-expect-error Vue consumes key as VNode metadata instead of a component prop
+const Keyed = reserved.component('keyed');
+// @ts-expect-error Vue consumes ref as VNode metadata instead of a component prop
+const Referenced = reserved.component('referenced');
+// @ts-expect-error Vue consumes VNode lifecycle hooks instead of component props
+const Hooked = reserved.component('hooked');
+const inlineKeyed: Parameters<typeof reserved.App>[0] = {
+  app: 'keyed',
+  props: { key: 'instance-1', value: 'safe' },
+};
+
 // @ts-expect-error checkout accepts its own props contract only
 const wrongComponent: PropsOf<typeof Checkout> = { userId: 'U-1' };
 // @ts-expect-error the selected inline app and its props stay correlated
@@ -81,6 +103,11 @@ void inlineCheckout;
 void inlineAccount;
 void inlineIframe;
 void inlineIframeView;
+void inlineKeyed;
+void Indexed;
+void Keyed;
+void Referenced;
+void Hooked;
 void wrongComponent;
 void wrongInline;
 void unsafeUnion;

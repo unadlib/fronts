@@ -1,4 +1,4 @@
-import { h, type Component, type FunctionalComponent, type VNodeChild } from 'vue';
+import { h, type Component, type FunctionalComponent, type VNodeChild, type VNodeProps } from 'vue';
 
 import {
   FrontsError,
@@ -77,13 +77,22 @@ export interface PreloadOptions {
   readonly traceId?: string;
 }
 
+type VueComponentName<Contracts extends ApplicationContractShape<Contracts>> = {
+  [Name in ApplicationName<Contracts>]: Extract<
+    keyof VNodeProps,
+    keyof Contracts[Name]
+  > extends never
+    ? Name
+    : never;
+}[ApplicationName<Contracts>];
+
 export interface VueBindings<Contracts extends ApplicationContractShape<Contracts>, Source> {
   /** Inline form for an application or control options that vary per render. */
   readonly App: VueAppComponent<Contracts, Source>;
 
-  /** Stable component factory whose public props are exactly the application props. */
+  /** Stable component factory for contracts without Vue-reserved VNode props. */
   component<
-    Name extends ApplicationName<Contracts>,
+    Name extends VueComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,
   >(
     name: Name,
@@ -191,7 +200,7 @@ function buildVueBindings<
   App.displayName = 'FrontsApplication';
 
   const component = <
-    Name extends ApplicationName<Contracts>,
+    Name extends VueComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,
   >(
     name: Name,

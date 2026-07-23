@@ -137,10 +137,11 @@ window.addEventListener(
 and catalog. The component factory is called outside render, so `Checkout` has stable component
 identity and its public props are exactly `ShopContracts['checkout']`.
 
-React consumes `key` before component props reach the component. An application props contract
-containing `key` is therefore intentionally excluded from `shop.component()`; use
-`<shop.App app="..." props={{ key: ... }} />` so the contract stays nested and reaches the remote
-application intact.
+React consumes `key` before component props reach the component, and React versions in the supported
+peer range do not consistently forward `ref` as an ordinary function-component prop. An application
+props contract containing either field is therefore intentionally excluded from `shop.component()`;
+use `<shop.App app="..." props={{ key: ... }} />` so the contract stays nested and reaches the
+remote application intact.
 
 ## Core composition contract
 
@@ -308,11 +309,17 @@ const manual = createReactBindings<ShopContracts>()({ applications, host });
 The returned object has three operations:
 
 ```ts
+type ReactComponentName<Contracts> = {
+  [Name in ApplicationName<Contracts>]: Extract<'key' | 'ref', keyof Contracts[Name]> extends never
+    ? Name
+    : never;
+}[ApplicationName<Contracts>];
+
 interface ReactBindings<Contracts, Source> {
   readonly App: ReactAppComponent<Contracts, Source>;
 
   component<
-    Name extends ApplicationName<Contracts>,
+    Name extends ReactComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,
   >(
     name: Name,
@@ -378,6 +385,10 @@ const Checkout = vue.component('checkout', {
 
 `createVueBindings()` has the same direct and curried overloads, plus `App`, `component()`, and
 `preload()`. Stable factories return `FunctionalComponent<Props>`.
+
+Vue removes `VNodeProps` such as `key`, `ref`, ref helpers, and vnode lifecycle hooks before calling
+a functional component. Contracts containing any of those fields are therefore excluded from
+`vue.component()` and remain available through the inline `vue.App` form with nested `props`.
 
 Like React, the inline `App` can be specialized for a custom container request in a render function:
 
