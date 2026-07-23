@@ -9,6 +9,10 @@ interface ShopContracts {
   readonly checkout: { readonly cartId: string };
 }
 
+interface OptionalContracts {
+  readonly checkout?: { readonly cartId: string };
+}
+
 interface Source {
   readonly remote: string;
 }
@@ -36,6 +40,8 @@ const composition: HostComposition<ShopContracts, Source, Services> = {
 
 const inferred = createVueBindings(composition);
 const explicit = createVueBindings<ShopContracts>()(composition);
+// @ts-expect-error logical application contracts cannot be optional
+const optional = createVueBindings<OptionalContracts>();
 const Checkout = inferred.component('checkout', { container: 'shadow' });
 const IframeCheckout = inferred.component<'checkout', IframeRequest>('checkout', {
   container: { sandbox: ['allow-scripts'], type: 'iframe' },
@@ -79,5 +85,6 @@ void wrongComponent;
 void wrongInline;
 void unsafeUnion;
 void explicit;
+void optional;
 void Checkout;
 void IframeCheckout;

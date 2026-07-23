@@ -5,7 +5,7 @@ declare const hostCompositionContracts: unique symbol;
 
 /** Ensures every logical application name maps to an object-shaped props contract. */
 export type ApplicationContractShape<Contracts extends object> = {
-  readonly [Name in keyof Contracts]: object;
+  readonly [Name in keyof Contracts]-?: object;
 };
 
 export type ApplicationName<Contracts extends ApplicationContractShape<Contracts>> = Extract<

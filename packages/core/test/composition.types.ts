@@ -10,6 +10,10 @@ interface IncompatibleContracts {
   readonly checkout: { readonly orderId: number };
 }
 
+interface OptionalContracts {
+  readonly checkout?: { readonly cartId: string };
+}
+
 interface Source {
   readonly entry: string;
 }
@@ -25,6 +29,9 @@ const compatible: HostComposition<ShopContracts, Source, Services> = composition
 // @ts-expect-error equal application names do not make different props contracts compatible
 const incompatible: HostComposition<IncompatibleContracts, Source, Services> = composition;
 
+// @ts-expect-error every logical application contract must be required
+declare const optional: HostComposition<OptionalContracts, Source, Services>;
+
 declare const host: FrontsHost<Source, Services>;
 const manual: HostComposition<ShopContracts, Source, Services> = {
   applications: {
@@ -36,4 +43,5 @@ const manual: HostComposition<ShopContracts, Source, Services> = {
 
 void compatible;
 void incompatible;
+void optional;
 void manual;

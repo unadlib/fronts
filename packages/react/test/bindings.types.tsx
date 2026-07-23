@@ -12,6 +12,10 @@ interface IncompatibleContracts {
   readonly checkout: { readonly orderId: number };
 }
 
+interface OptionalContracts {
+  readonly checkout?: { readonly cartId: string };
+}
+
 interface Source {
   readonly remote: string;
 }
@@ -39,6 +43,8 @@ const inferred = createReactBindings(composition);
 const explicit = createReactBindings<ShopContracts>()(composition);
 // @ts-expect-error a typed composition cannot be rebound to unrelated props contracts
 const incompatible = createReactBindings<IncompatibleContracts>()(composition);
+// @ts-expect-error logical application contracts cannot be optional
+const optional = createReactBindings<OptionalContracts>();
 const Checkout = inferred.component('checkout', { container: 'shadow' });
 const IframeCheckout = inferred.component<'checkout', IframeRequest>('checkout', {
   container: { sandbox: ['allow-scripts'], type: 'iframe' },
@@ -68,3 +74,4 @@ void wrongComponent;
 void wrongInline;
 void unsafeUnion;
 void incompatible;
+void optional;
