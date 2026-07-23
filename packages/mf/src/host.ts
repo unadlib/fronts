@@ -15,6 +15,7 @@ import {
   type FrontsHostOptions,
   type HostComposition,
   type StaticResolution,
+  type StaticResolutionMatch,
 } from '@fronts/core';
 
 import { createModuleFederationAdapter } from './adapter.js';
@@ -119,6 +120,10 @@ function configurationError(message: string, details?: Readonly<Record<string, u
   });
 }
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 const deploymentFields = [
   'alias',
   'entry',
@@ -133,6 +138,8 @@ const deploymentFields = [
   'type',
   'version',
 ] as const;
+
+const deploymentMatchFields = ['range', 'channel', 'environment', 'tenant', 'cohort'] as const;
 
 function assertOwnDeploymentFields(
   value: unknown,
@@ -149,6 +156,97 @@ function assertOwnDeploymentFields(
       );
     }
   }
+}
+
+function normalizeApplicationName(name: string): string {
+  const normalizedName = normalizeAppRef({ name }).name;
+  if (normalizedName !== name) {
+    configurationError(`Application name "${name}" must already be normalized.`, {
+      name,
+      normalizedName,
+    });
+  }
+  return normalizedName;
+}
+
+function createDeploymentMatch(
+  deployment: StaticDeployment,
+  name: string,
+  expose: string,
+): StaticResolutionMatch {
+  const match = deployment.match;
+  if (match === undefined) {
+    return Object.freeze({ expose, name });
+  }
+  if (!isRecord(match)) {
+    configurationError(`Application "${name}" deployment match must be an object.`, { name });
+  }
+  for (const field of deploymentMatchFields) {
+    if (field in match && !Object.hasOwn(match, field)) {
+      configurationError(
+        `Application "${name}" deployment match field "${field}" must be an own property.`,
+        { field, name },
+      );
+    }
+  }
+
+  const readMatchString = (field: (typeof deploymentMatchFields)[number]) => {
+    const value = Object.hasOwn(match, field) ? match[field] : undefined;
+    if (value !== undefined && typeof value !== 'string') {
+      configurationError(
+        `Application "${name}" deployment match field "${field}" must be a string.`,
+        { field, name },
+      );
+    }
+    return value;
+  };
+  const range = readMatchString('range');
+  const channel = readMatchString('channel');
+  const environment = readMatchString('environment');
+  const tenant = readMatchString('tenant');
+  const cohort = readMatchString('cohort');
+
+  const normalizedReference = normalizeAppRef({
+    expose,
+    name,
+    ...(range === undefined ? {} : { range }),
+    ...(channel === undefined ? {} : { channel }),
+  });
+  return Object.freeze({
+    expose,
+    name,
+    ...(normalizedReference.range === undefined ? {} : { range: normalizedReference.range }),
+    ...(normalizedReference.channel === undefined ? {} : { channel: normalizedReference.channel }),
+    ...(environment === undefined ? {} : { environment }),
+    ...(tenant === undefined ? {} : { tenant }),
+    ...(cohort === undefined ? {} : { cohort }),
+  });
+}
+
+function validateVersion(version: unknown, name: string): string | undefined {
+  if (version === undefined) {
+    return undefined;
+  }
+  if (typeof version !== 'string' || version.trim() === '' || version !== version.trim()) {
+    configurationError(`Application "${name}" deployment version must be a trimmed string.`, {
+      name,
+      version,
+    });
+  }
+  return version;
+}
+
+function snapshotMetadata(
+  metadata: unknown,
+  name: string,
+): Readonly<Record<string, unknown>> | undefined {
+  if (metadata === undefined) {
+    return undefined;
+  }
+  if (!isRecord(metadata)) {
+    configurationError(`Application "${name}" deployment metadata must be an object.`, { name });
+  }
+  return Object.freeze({ ...metadata });
 }
 
 function createRemote(deployment: RemoteDeployment): Remote {
@@ -189,7 +287,10 @@ function createCatalog<Contracts extends ApplicationContractShape<Contracts>>(
     string,
     Readonly<Omit<AppRef, 'name'>>,
   ][]) {
-    applications[name] = Object.freeze(normalizeAppRef({ ...reference, name }));
+    const normalizedName = normalizeApplicationName(name);
+    applications[normalizedName] = Object.freeze(
+      normalizeAppRef({ ...reference, name: normalizedName }),
+    );
   }
   return Object.freeze(applications) as ApplicationCatalog<Contracts>;
 }
@@ -206,7 +307,8 @@ function createStaticConfiguration<Contracts extends ApplicationContractShape<Co
   >;
   const resolutions: StaticResolution<ModuleFederationSource>[] = [];
 
-  for (const [name, configured] of Object.entries(apps)) {
+  for (const [configuredName, configured] of Object.entries(apps)) {
+    const name = normalizeApplicationName(configuredName);
     const candidates: readonly StaticDeployment[] = Array.isArray(configured)
       ? configured
       : [configured as StaticDeployment];
@@ -239,12 +341,14 @@ function createStaticConfiguration<Contracts extends ApplicationContractShape<Co
     references[name] = Object.freeze({ expose });
 
     for (const candidate of candidates) {
+      const version = validateVersion(candidate.version, name);
+      const metadata = snapshotMetadata(candidate.metadata, name);
       resolutions.push({
-        match: { ...candidate.match, expose, name },
+        match: createDeploymentMatch(candidate, name, expose),
         resolve: {
           source: createSource(candidate),
-          ...(candidate.version === undefined ? {} : { version: candidate.version }),
-          ...(candidate.metadata === undefined ? {} : { metadata: candidate.metadata }),
+          ...(version === undefined ? {} : { version }),
+          ...(metadata === undefined ? {} : { metadata }),
         },
       });
     }

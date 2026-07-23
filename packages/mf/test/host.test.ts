@@ -3,7 +3,13 @@ import type * as FrontsCoreModule from '@fronts/core';
 import { getInstance, type ModuleFederation } from '@module-federation/runtime';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
-import { createMfHost, createModuleFederationSource, type RemoteDeployment } from '../src/index.js';
+import {
+  createMfHost,
+  createModuleFederationSource,
+  type DeploymentMatch,
+  type RemoteDeployment,
+  type StaticDeployments,
+} from '../src/index.js';
 
 vi.mock('@fronts/core', async (importOriginal) => {
   const original = await importOriginal<typeof FrontsCoreModule>();
@@ -92,6 +98,86 @@ describe('Module Federation host shortcut', () => {
     expect(getInstance((instance) => instance.name === runtimeName)).toBeNull();
   });
 
+  it.each([
+    ['empty', ''],
+    ['padded', ' 2.5.0 '],
+  ])('rejects an %s deployment version before creating an owned runtime', (label, version) => {
+    const runtimeName = `invalid-version-${label}-${String(Date.now())}`;
+
+    expect(() =>
+      createMfHost<ShopContracts>({
+        apps: {
+          account: {
+            entry: 'https://cdn.example.test/account/mf-manifest.json',
+            remote: 'account',
+          },
+          checkout: {
+            entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+            remote: 'checkout',
+            version,
+          },
+        },
+        name: 'invalid-version-shell',
+        runtimeName,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: frontsErrorCodes.resolutionFailed, phase: 'resolve' }),
+    );
+    expect(getInstance((instance) => instance.name === runtimeName)).toBeNull();
+  });
+
+  it('rejects application names that are not already normalized', () => {
+    const runtime = createRuntime();
+    const apps = {
+      ' checkout ': {
+        entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+        remote: 'checkout',
+      },
+      account: {
+        entry: 'https://cdn.example.test/account/mf-manifest.json',
+        remote: 'account',
+      },
+    } as unknown as StaticDeployments<ShopContracts>;
+
+    expect(() =>
+      createMfHost<ShopContracts>({ apps, name: 'invalid-name-shell', runtime: runtime.instance }),
+    ).toThrowError(
+      expect.objectContaining({ code: frontsErrorCodes.resolutionFailed, phase: 'resolve' }),
+    );
+  });
+
+  it.each([
+    ['a non-object match', { match: [] as unknown as DeploymentMatch }],
+    ['a non-string match field', { match: { environment: 42 } as unknown as DeploymentMatch }],
+    [
+      'an inherited match field',
+      { match: Object.create({ channel: 'canary' }) as DeploymentMatch },
+    ],
+    ['non-object metadata', { metadata: [] as unknown as Readonly<Record<string, unknown>> }],
+  ])('rejects static deployments with %s', (_label, invalid) => {
+    const runtime = createRuntime();
+
+    expect(() =>
+      createMfHost<ShopContracts>({
+        apps: {
+          account: {
+            entry: 'https://cdn.example.test/account/mf-manifest.json',
+            remote: 'account',
+          },
+          checkout: {
+            entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+            remote: 'checkout',
+            ...invalid,
+          },
+        },
+        name: 'invalid-static-shell',
+        runtime: runtime.instance,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: frontsErrorCodes.resolutionFailed, phase: 'resolve' }),
+    );
+  });
+
   it('passes only core Host options across the composition boundary', async () => {
     const runtime = createRuntime();
     const composition = createMfHost<ShopContracts>({
@@ -145,7 +231,7 @@ describe('Module Federation host shortcut', () => {
           {
             entry: 'https://cdn.example.test/checkout/canary/mf-manifest.json',
             expose: './checkout-application',
-            match: { channel: 'canary' },
+            match: { channel: ' canary ', range: ' ^2 ' },
             metadata: { release: 'canary' },
             remote: 'checkout_canary',
             version: '2.5.0',
@@ -177,6 +263,7 @@ describe('Module Federation host shortcut', () => {
       const loaded = await composition.host.load<{ readonly cartId: string }>({
         ...composition.applications.checkout,
         channel: 'canary',
+        range: '^2',
       });
 
       expect(loaded.resolved.version).toBe('2.5.0');
