@@ -74,13 +74,17 @@ export interface PreloadOptions {
   readonly traceId?: string;
 }
 
+type ReactComponentName<Contracts extends ApplicationContractShape<Contracts>> = {
+  [Name in ApplicationName<Contracts>]: 'key' extends keyof Contracts[Name] ? never : Name;
+}[ApplicationName<Contracts>];
+
 export interface ReactBindings<Contracts extends ApplicationContractShape<Contracts>, Source> {
   /** Inline form for an application or control options that vary per render. */
   readonly App: ReactAppComponent<Contracts, Source>;
 
   /** Stable component factory whose public props are exactly the application props. */
   component<
-    Name extends ApplicationName<Contracts>,
+    Name extends ReactComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,
   >(
     name: Name,
@@ -185,7 +189,7 @@ function buildReactBindings<
   const App = renderApp as unknown as ReactAppComponent<Contracts, Source>;
 
   const component = <
-    Name extends ApplicationName<Contracts>,
+    Name extends ReactComponentName<Contracts>,
     Request extends ContainerRequest = BuiltInContainerRequest,
   >(
     name: Name,

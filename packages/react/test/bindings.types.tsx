@@ -16,6 +16,10 @@ interface OptionalContracts {
   readonly checkout?: { readonly cartId: string };
 }
 
+interface ReservedContracts {
+  readonly keyed: { readonly key: string; readonly value: string };
+}
+
 interface Source {
   readonly remote: string;
 }
@@ -57,6 +61,12 @@ const inlineCheckout = (
 );
 const inlineAccount = <explicit.App app="account" props={{ userId: 'U-1' }} />;
 
+declare const reservedComposition: HostComposition<ReservedContracts, Source, Services>;
+const reserved = createReactBindings(reservedComposition);
+// @ts-expect-error React consumes key before component props reach the remote application
+const Keyed = reserved.component('keyed');
+const inlineKeyed = <reserved.App app="keyed" props={{ key: 'instance-1', value: 'safe' }} />;
+
 // @ts-expect-error checkout accepts its own props contract only
 const wrongComponent = <Checkout userId="U-1" />;
 // @ts-expect-error the selected inline app and its props stay correlated
@@ -70,6 +80,8 @@ void checkout;
 void iframeCheckout;
 void inlineCheckout;
 void inlineAccount;
+void inlineKeyed;
+void Keyed;
 void wrongComponent;
 void wrongInline;
 void unsafeUnion;

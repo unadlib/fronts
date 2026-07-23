@@ -137,6 +137,11 @@ window.addEventListener(
 and catalog. The component factory is called outside render, so `Checkout` has stable component
 identity and its public props are exactly `ShopContracts['checkout']`.
 
+React consumes `key` before component props reach the component. An application props contract
+containing `key` is therefore intentionally excluded from `shop.component()`; use
+`<shop.App app="..." props={{ key: ... }} />` so the contract stays nested and reaches the remote
+application intact.
+
 ## Core composition contract
 
 `ApplicationCatalog<Contracts>` maps every logical application name to a normalized reference. The

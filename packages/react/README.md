@@ -91,6 +91,10 @@ non-MF composition, the curried form keeps an explicit contract boundary:
 const shop = createReactBindings<ShopContracts>()({ applications, host });
 ```
 
+React reserves `key` instead of forwarding it as a component prop. Contracts containing `key`
+must use `shop.App`, whose nested `props` object preserves it; `shop.component()` rejects those
+application names at type-check time.
+
 Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle boundary, not in
 a component cleanup.
 
