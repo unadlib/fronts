@@ -400,8 +400,11 @@ Vue templates cannot supply TypeScript type arguments. For a custom container us
 bind the request type through `component<Name, Request>()` instead. In a template, pass an object
 with camel-cased contract keys when the generated functional component has no runtime prop schema:
 
+<!-- typecheck: shop -->
+
 ```vue
 <script setup lang="ts">
+const Checkout = vue.component('checkout', { container: iframeContainer });
 const checkoutProps = { cartId: 'C-42' };
 </script>
 

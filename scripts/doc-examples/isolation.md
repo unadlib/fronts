@@ -13,3 +13,15 @@ telemetry.emit('fixture.available');
 ```ts
 telemetry.emit('fixture.must-not-leak');
 ```
+
+This case proves Vue template expressions, not only `<script setup>`, are checked.
+
+<!-- typecheck: expect-error -->
+
+```vue
+<script setup lang="ts">
+const present = 'checked';
+</script>
+
+<template>{{ present }} {{ missingFromScript }}</template>
+```

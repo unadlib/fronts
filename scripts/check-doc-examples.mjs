@@ -34,7 +34,7 @@ function trackedMarkdownFiles() {
 }
 
 /**
- * Collects fenced TypeScript examples and the `<!-- typecheck -->` directive above each one.
+ * Collects fenced TypeScript or Vue examples and the `<!-- typecheck -->` directive above each one.
  *
  * A fence importing a public `@fronts/*` entry point is an example a reader can paste, so it must
  * declare its intent. Everything else is prose-scoped and stays unchecked.
@@ -46,7 +46,7 @@ function collectExamples(file) {
   let index = 0;
 
   while (index < lines.length) {
-    const opening = /^```(tsx?)$/.exec(lines[index] ?? '');
+    const opening = /^```(ts|tsx|vue)$/.exec(lines[index] ?? '');
     if (opening === null) {
       index += 1;
       continue;
@@ -144,12 +144,32 @@ try {
       }
       const name = `${repositoryPath(example.file).replace(/[^a-zA-Z0-9]+/g, '-')}-${example.line}.${example.extension}`;
       const path = join(workspace, 'cases', name);
-      writeFileSync(path, `${[...plan.references, ''].join('\n')}${example.body}\n`);
+      let contents;
+      let offsetAfterLine = -1;
+      if (example.extension === 'vue') {
+        contents = example.body;
+        if (plan.references.length > 0) {
+          const script = /<script\b[^>]*\blang=(['"])ts\1[^>]*>/i.exec(contents);
+          if (script === null) {
+            errors.push(
+              `${repositoryPath(example.file)}:${example.line}: a Vue example using ambient fixtures requires a TypeScript script block`,
+            );
+            continue;
+          }
+          const insertion = script.index + script[0].length;
+          offsetAfterLine = contents.slice(0, insertion).split('\n').length - 1;
+          contents = `${contents.slice(0, insertion)}\n${plan.references.join('\n')}${contents.slice(insertion)}`;
+        }
+      } else {
+        contents = `${[...plan.references, ''].join('\n')}${example.body}`;
+      }
+      writeFileSync(path, `${contents}\n`);
       compiled.push({
         ...example,
         expectError: plan.expectError,
         name,
         offset: plan.references.length,
+        offsetAfterLine,
         path,
       });
     }
@@ -213,9 +233,14 @@ try {
       verbatimModuleSyntax: true,
     };
 
+    const markdownLine = (example, generatedLine) =>
+      example.line +
+      generatedLine -
+      (generatedLine > example.offsetAfterLine + 1 ? example.offset : 0);
+
     // Each example gets a fresh Program. Reusing one Program would merge ambient fixture globals
     // across unrelated fences and could make an example compile only because another one ran too.
-    for (const example of compiled) {
+    for (const example of compiled.filter(({ extension }) => extension !== 'vue')) {
       const program = ts.createProgram({
         options: compilerOptions,
         rootNames: [example.path],
@@ -239,7 +264,7 @@ try {
 
         const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
         const line = belongsToExample
-          ? example.line + position.line + 1 - example.offset
+          ? markdownLine(example, position.line + 1)
           : position.line + 1;
         const path = belongsToExample
           ? repositoryPath(example.file)
@@ -247,6 +272,91 @@ try {
             ? repositoryPath(diagnosticPath)
             : relative(workspace, diagnosticPath).split(sep).join('/');
         errors.push(`${path}:${line}:${position.character + 1}: TS${diagnostic.code}: ${message}`);
+      }
+    }
+
+    const vueCompilerOptions = {
+      exactOptionalPropertyTypes: true,
+      jsx: 'preserve',
+      lib: ['ES2023', 'DOM', 'DOM.Iterable'],
+      module: 'ESNext',
+      moduleDetection: 'force',
+      moduleResolution: 'Bundler',
+      noEmit: true,
+      noUncheckedIndexedAccess: true,
+      paths,
+      skipLibCheck: true,
+      strict: true,
+      target: 'ES2022',
+      types: [],
+      verbatimModuleSyntax: true,
+    };
+    mkdirSync(join(workspace, 'configs'), { recursive: true });
+    for (const example of compiled.filter(({ extension }) => extension === 'vue')) {
+      const configPath = join(workspace, 'configs', `${example.name}.json`);
+      writeFileSync(
+        configPath,
+        `${JSON.stringify(
+          {
+            compilerOptions: vueCompilerOptions,
+            files: [example.path],
+            vueCompilerOptions: { strictTemplates: true },
+          },
+          null,
+          2,
+        )}\n`,
+      );
+
+      try {
+        execFileSync(
+          process.execPath,
+          [
+            join(root, 'node_modules/vue-tsc/bin/vue-tsc.js'),
+            '--noEmit',
+            '--project',
+            configPath,
+            '--pretty',
+            'false',
+          ],
+          { cwd: workspace, encoding: 'utf8', stdio: 'pipe' },
+        );
+      } catch (failure) {
+        const diagnostics = [];
+        for (const line of `${String(failure.stdout ?? '')}\n${String(failure.stderr ?? '')}`.split(
+          '\n',
+        )) {
+          if (line.trim() === '') {
+            continue;
+          }
+          if (/^\s/.test(line) && diagnostics.length > 0) {
+            diagnostics[diagnostics.length - 1] += `\n${line}`;
+            continue;
+          }
+          diagnostics.push(line);
+        }
+
+        for (const diagnostic of diagnostics) {
+          const match = /^(.+?)\((\d+),(\d+)\):\s*error TS(\d+):\s*([\s\S]*)$/.exec(diagnostic);
+          if (match === null) {
+            errors.push(diagnostic.trim());
+            continue;
+          }
+          const diagnosticPath = resolve(workspace, match[1]);
+          const belongsToExample = diagnosticPath === resolve(example.path);
+          if (belongsToExample && example.expectError) {
+            rejected.add(example.name);
+            continue;
+          }
+          const path = belongsToExample
+            ? repositoryPath(example.file)
+            : diagnosticPath.startsWith(`${root}${sep}`)
+              ? repositoryPath(diagnosticPath)
+              : relative(workspace, diagnosticPath).split(sep).join('/');
+          const line = belongsToExample
+            ? markdownLine(example, Number(match[2]))
+            : Number(match[2]);
+          errors.push(`${path}:${line}:${match[3]}: TS${match[4]}: ${match[5]}`);
+        }
       }
     }
 

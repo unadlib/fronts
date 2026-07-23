@@ -48,6 +48,8 @@ Pair a transport composition with Vue once, then render or preload applications 
 logical names. Reference defaults such as a custom Module Federation expose stay in the catalog;
 they are not repeated in templates.
 
+<!-- typecheck -->
+
 ```vue
 <script setup lang="ts">
 import { createMfHost } from '@fronts/mf';
@@ -95,6 +97,8 @@ Bindings borrow the composition's Host. Dispose that Host at the shell lifecycle
 a component cleanup.
 
 ## Low-level Vue host
+
+<!-- typecheck: runtime -->
 
 ```vue
 <script setup lang="ts">
