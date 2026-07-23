@@ -6,6 +6,12 @@ React producer and host adapters for the Fronts 2.0 application protocol.
 pnpm add @fronts/core @fronts/react react react-dom
 ```
 
+The typed Module Federation Host example also requires:
+
+```sh
+pnpm add @fronts/mf @module-federation/runtime
+```
+
 ## Producer
 
 <!-- typecheck: services -->

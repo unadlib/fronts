@@ -158,7 +158,8 @@ If this fails, MF, containers, service providers, and producer code are not yet 
 
 - Compare `ModuleFederationSource.remote.name`/`alias` with the runtime registration.
 - Compare `AppRef.expose` with the producer's exposed key, including case and `./` normalization.
-- Confirm the Host passed the intended official MF runtime instance to `@fronts/mf`.
+- Confirm the low-level adapter received the intended official MF runtime instance, or inspect
+  `composition.runtime` when the Host was built with `createMfHost()`.
 - Inspect official runtime hooks or DevTools to separate registration, manifest, entry, expose, and
   shared-dependency failures.
 

@@ -6,6 +6,12 @@ Vue 3 producer and host adapters for the Fronts 2.0 application protocol.
 pnpm add @fronts/core @fronts/vue3 vue
 ```
 
+The typed Module Federation Host example also requires:
+
+```sh
+pnpm add @fronts/mf @module-federation/runtime
+```
+
 ## Producer
 
 <!-- typecheck: services -->

@@ -15,9 +15,10 @@ This document defines what Fronts supports when Module Federation is selected as
 delivery transport. It distinguishes a supported Fronts runtime contract from a producer artifact
 that happens to be interoperable in one tested configuration.
 
-Fronts core does not require Module Federation. `@fronts/mf` is an adapter over an explicitly
-supplied official Module Federation runtime instance; it does not implement another manifest
-parser, share resolver, remote registry, or bundler plugin.
+Fronts core does not require Module Federation. `@fronts/mf` always delegates to an official Module
+Federation runtime instance: the low-level adapter requires an explicitly supplied instance, while
+`createMfHost()` may accept one or create one through the official `createInstance()` API. It does
+not implement another manifest parser, share resolver, remote registry, or bundler plugin.
 
 ## Ownership boundary
 
@@ -37,7 +38,9 @@ module loading, and shared dependencies.
 
 Rules:
 
-- A Fronts Host using MF MUST pass an explicit official runtime instance to `@fronts/mf`.
+- Every Fronts Host using MF MUST operate on a concrete official runtime instance. The low-level
+  adapter receives it explicitly; `createMfHost()` either receives or creates it and exposes it as
+  `composition.runtime`.
 - A producer MUST expose a valid `FrontsApp`, normally as `./application`; exposing a React or Vue
   component alone does not satisfy the Fronts application contract.
 - Fronts MUST NOT depend on a producer plugin's private or virtual Host API.
@@ -132,7 +135,8 @@ Package manifests remain the source of truth for exact peer ranges. See
 A compatibility claim is complete only when all of the following are true:
 
 1. The producer exposes `./application` as a valid Fronts application.
-2. The plain Host loads it through an explicit official runtime instance.
+2. The plain Host loads it through an official runtime instance injected or created at its
+   composition root.
 3. The test proves mount/readiness, host service access, update, unmount, and idle audit.
 4. Shared behavior is tested when the producer emits a share graph or fallback.
 5. Development and production modes are documented separately; unsupported modes fail no claim.

@@ -37,15 +37,15 @@ APIs. New support claims require a repeatable repository check.
 
 ## Package and toolchain support
 
-| Surface                    | Declared boundary                         | Current verification                                         | Notes                                                                 |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| Public package Node engine | Node `>=22.18.0`                          | `pnpm check` on Node 22 and 24                               | Applies to package installation/import and repository tooling.        |
-| Repository package manager | pnpm `>=10 <12`                           | Workspace pinned to pnpm 10                                  | Consumer projects do not need pnpm unless their own setup chooses it. |
-| JavaScript output          | ES2022, ESM and CommonJS                  | Build plus isolated tarball imports of every public entry    | Fronts ships no legacy-browser polyfill bundle.                       |
-| TypeScript declarations    | Declarations emitted for ESM and CommonJS | Workspace typecheck with the pinned compiler                 | No minimum consumer TypeScript matrix is currently claimed.           |
-| Module Federation runtime  | `@module-federation/runtime` `^2.7.0`     | Adapter unit tests and real-runtime HTTP integration         | `@fronts/mf` requires an explicit official runtime instance.          |
-| React adapter              | React and React DOM `>=18.2.0 <20`        | Contract tests and examples with the workspace React version | Minimum React 18.2 is declared but not separately matrix-tested.      |
-| Vue adapter                | Vue `>=3.4.0 <4`                          | Contract tests and examples with the workspace Vue version   | Minimum Vue 3.4 is declared but not separately matrix-tested.         |
+| Surface                    | Declared boundary                         | Current verification                                         | Notes                                                                                 |
+| -------------------------- | ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Public package Node engine | Node `>=22.18.0`                          | `pnpm check` on Node 22 and 24                               | Applies to package installation/import and repository tooling.                        |
+| Repository package manager | pnpm `>=10 <12`                           | Workspace pinned to pnpm 10                                  | Consumer projects do not need pnpm unless their own setup chooses it.                 |
+| JavaScript output          | ES2022, ESM and CommonJS                  | Build plus isolated tarball imports of every public entry    | Fronts ships no legacy-browser polyfill bundle.                                       |
+| TypeScript declarations    | Declarations emitted for ESM and CommonJS | Workspace typecheck with the pinned compiler                 | No minimum consumer TypeScript matrix is currently claimed.                           |
+| Module Federation runtime  | `@module-federation/runtime` `^2.7.0`     | Adapter unit tests and real-runtime HTTP integration         | The low-level adapter requires an injected instance; `createMfHost()` may create one. |
+| React adapter              | React and React DOM `>=18.2.0 <20`        | Contract tests and examples with the workspace React version | Minimum React 18.2 is declared but not separately matrix-tested.                      |
+| Vue adapter                | Vue `>=3.4.0 <4`                          | Contract tests and examples with the workspace Vue version   | Minimum Vue 3.4 is declared but not separately matrix-tested.                         |
 
 Verification sources:
 
@@ -118,7 +118,8 @@ Producer compatibility is defined separately in
 - official Rsbuild and official Vite producers are the preferred integration paths;
 - the unscoped `vite-plugin-federation` path is verified producer compatibility;
 - OriginJS is a narrow production ESM fixture on its checked-in Vite 5.4 pipeline;
-- the Fronts Host uses an explicit official MF runtime instance for all MF paths;
+- every MF path uses a concrete official runtime instance, either injected by the caller or created
+  by `createMfHost()` through the official `createInstance()` API;
 - a producer plugin's peer range or README does not automatically become a Fronts support claim.
 
 Any new producer or version claim MUST add a fixture that proves full application lifecycle,

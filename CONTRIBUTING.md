@@ -225,21 +225,24 @@ pre-2.0 migration or compatibility material to current Fronts 2.0 documentation.
 
 ### Type-checked examples
 
-`pnpm docs:examples` compiles fenced TypeScript examples against the built package types, so a
-signature change that invalidates an example fails the build instead of misleading a reader. A
-fenced `ts` or `tsx` example that imports a public `@fronts/*` entry point is something a reader can
-paste, so it MUST carry a directive on the line above its fence:
+`pnpm docs:examples` compiles fenced TypeScript examples and type-checks Vue SFCs against the built
+package types, so a signature change that invalidates an example fails the build instead of
+misleading a reader. A fenced `ts`, `tsx`, or `vue` example that imports a public `@fronts/*` entry
+point is something a reader can paste, so it MUST carry a directive on the line above its fence:
 
 - `<!-- typecheck -->` compiles the example on its own;
 - `<!-- typecheck: <fixture> -->` first supplies the identifiers the surrounding prose established,
   from [`scripts/doc-examples`](scripts/doc-examples). A `<fixture>.d.ts` contributes ambient
   declarations; a `<fixture>.ts` is copied beside the example so it can keep a realistic local
   import. List several with commas.
+- `<!-- typecheck: expect-error -->` requires the example to fail type-checking. Append
+  `expect-error` after fixture names when the negative example also needs surrounding declarations.
 - `<!-- typecheck: skip — <reason> -->` opts out and records why.
 
-Prefer a fixture over trimming an example down to whatever happens to compile. Examples that do not
-import a public entry point are prose-scoped fragments and need no directive, but they may opt in
-with the same syntax.
+Each example is checked in isolation so ambient fixtures cannot leak between fences. Vue examples
+use strict template checking as well as `<script setup>` checking. Prefer a fixture over trimming an
+example down to whatever happens to compile. Examples that do not import a public entry point are
+prose-scoped fragments and need no directive, but they may opt in with the same syntax.
 
 ## Pull request checklist
 
