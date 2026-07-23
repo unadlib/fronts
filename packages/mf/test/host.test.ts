@@ -1,6 +1,6 @@
 import { createFrontsHost, defineApp, frontsErrorCodes, type HostComposition } from '@fronts/core';
 import type * as FrontsCoreModule from '@fronts/core';
-import type { ModuleFederation } from '@module-federation/runtime';
+import { getInstance, type ModuleFederation } from '@module-federation/runtime';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createMfHost, createModuleFederationSource } from '../src/index.js';
@@ -32,6 +32,29 @@ function createRuntime() {
 }
 
 describe('Module Federation host shortcut', () => {
+  it('validates Host options before creating an owned runtime', () => {
+    const runtimeName = `invalid-host-${String(Date.now())}`;
+
+    expect(() =>
+      createMfHost<ShopContracts>({
+        apps: {
+          account: {
+            entry: 'https://cdn.example.test/account/mf-manifest.json',
+            remote: 'account',
+          },
+          checkout: {
+            entry: 'https://cdn.example.test/checkout/mf-manifest.json',
+            remote: 'checkout',
+          },
+        },
+        hostId: '',
+        name: 'invalid-host',
+        runtimeName,
+      }),
+    ).toThrowError(expect.objectContaining({ code: frontsErrorCodes.mountFailed, phase: 'mount' }));
+    expect(getInstance((instance) => instance.name === runtimeName)).toBeNull();
+  });
+
   it('passes only core Host options across the composition boundary', async () => {
     const runtime = createRuntime();
     const composition = createMfHost<ShopContracts>({

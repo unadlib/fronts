@@ -19,7 +19,7 @@ import {
 
 import { createModuleFederationAdapter } from './adapter.js';
 import { createModuleFederationSource } from './source.js';
-import type { ModuleFederationSource } from './types.js';
+import type { ModuleFederationAdapter, ModuleFederationSource } from './types.js';
 
 export interface RemoteDeployment {
   /** Official Module Federation remote name. */
@@ -250,6 +250,22 @@ export function createMfHost<
       resolver,
     };
   }
+  const adapterState: { current?: ModuleFederationAdapter } = {};
+  const requireAdapter = (): ModuleFederationAdapter => {
+    if (adapterState.current === undefined) {
+      configurationError('The Module Federation adapter is not initialized.');
+    }
+    return adapterState.current;
+  };
+  const host = createFrontsHost<ModuleFederationSource, Services>({
+    ...hostOptions,
+    hostId: hostOptions.hostId ?? name,
+    loader: {
+      load: (resolved, context) => requireAdapter().load(resolved, context),
+      preload: (resolved, context) => requireAdapter().preload?.(resolved, context),
+    },
+    resolver: configured.resolver,
+  });
   const runtime =
     suppliedRuntime ??
     createInstance({
@@ -257,12 +273,7 @@ export function createMfHost<
       name: runtimeName ?? name,
       remotes: [],
     });
-  const host = createFrontsHost<ModuleFederationSource, Services>({
-    ...hostOptions,
-    hostId: hostOptions.hostId ?? name,
-    loader: createModuleFederationAdapter({ instance: runtime }),
-    resolver: configured.resolver,
-  });
+  adapterState.current = createModuleFederationAdapter({ instance: runtime });
 
   return Object.freeze({
     applications: configured.applications,
