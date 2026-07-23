@@ -3,7 +3,7 @@ import type * as FrontsCoreModule from '@fronts/core';
 import { getInstance, type ModuleFederation } from '@module-federation/runtime';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
-import { createMfHost, createModuleFederationSource } from '../src/index.js';
+import { createMfHost, createModuleFederationSource, type RemoteDeployment } from '../src/index.js';
 
 vi.mock('@fronts/core', async (importOriginal) => {
   const original = await importOriginal<typeof FrontsCoreModule>();
@@ -32,6 +32,43 @@ function createRuntime() {
 }
 
 describe('Module Federation host shortcut', () => {
+  it.each([
+    ['alias', 'checkout_alias'],
+    ['entry', 'https://cdn.example.test/inherited/mf-manifest.json'],
+    ['entryGlobalName', 'checkout_global'],
+    ['expose', './inherited-application'],
+    ['force', true],
+    ['match', { channel: 'canary' }],
+    ['metadata', { release: 'inherited' }],
+    ['preload', {}],
+    ['remote', 'checkout_inherited'],
+    ['shareScope', 'default'],
+    ['type', 'module'],
+    ['version', '9.9.9'],
+  ])('rejects an inherited static deployment %s field', (field, value) => {
+    const runtime = createRuntime();
+    const deployment = Object.assign(Object.create({ [field]: value }) as object, {
+      ...(field === 'entry' ? {} : { entry: 'https://cdn.example.test/checkout/mf-manifest.json' }),
+      ...(field === 'remote' ? {} : { remote: 'checkout' }),
+    }) as RemoteDeployment;
+
+    expect(() =>
+      createMfHost<ShopContracts>({
+        apps: {
+          account: {
+            entry: 'https://cdn.example.test/account/mf-manifest.json',
+            remote: 'account',
+          },
+          checkout: deployment,
+        },
+        name: 'inherited-deployment-shell',
+        runtime: runtime.instance,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: frontsErrorCodes.resolutionFailed, phase: 'resolve' }),
+    );
+  });
+
   it('validates Host options before creating an owned runtime', () => {
     const runtimeName = `invalid-host-${String(Date.now())}`;
 

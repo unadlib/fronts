@@ -119,6 +119,38 @@ function configurationError(message: string, details?: Readonly<Record<string, u
   });
 }
 
+const deploymentFields = [
+  'alias',
+  'entry',
+  'entryGlobalName',
+  'expose',
+  'force',
+  'match',
+  'metadata',
+  'preload',
+  'remote',
+  'shareScope',
+  'type',
+  'version',
+] as const;
+
+function assertOwnDeploymentFields(
+  value: unknown,
+  name: string,
+): asserts value is StaticDeployment {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    configurationError(`Application "${name}" must declare deployment objects.`, { name });
+  }
+  for (const field of deploymentFields) {
+    if (field in value && !Object.hasOwn(value, field)) {
+      configurationError(
+        `Application "${name}" deployment field "${field}" must be an own property.`,
+        { field, name },
+      );
+    }
+  }
+}
+
 function createRemote(deployment: RemoteDeployment): Remote {
   return {
     entry: deployment.entry,
@@ -180,6 +212,9 @@ function createStaticConfiguration<Contracts extends ApplicationContractShape<Co
       : [configured as StaticDeployment];
     if (candidates.length === 0) {
       configurationError(`Application "${name}" must declare at least one deployment.`, { name });
+    }
+    for (const candidate of candidates) {
+      assertOwnDeploymentFields(candidate, name);
     }
 
     const exposes = new Set(
