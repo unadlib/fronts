@@ -11,9 +11,11 @@ tags: [api, react, vue, module-federation, composition]
 
 ## Decision
 
-Fronts exposes one transport-neutral composition value and three independent factories:
+Fronts exposes one transport-neutral composition value and four independent factories:
 
 - `HostComposition` in `@fronts/core` pairs a typed application-reference catalog with a Host.
+- `createModuleHost()` in `@fronts/core` builds that composition over module loaders the caller
+  already has.
 - `createMfHost()` in `@fronts/mf` builds that composition over an official Module Federation
   runtime.
 - `createReactBindings()` in `@fronts/react` binds any composition to React.
@@ -181,6 +183,108 @@ const explicitReact = createReactBindings<ShopContracts>()({ applications, host 
 The curried form is an intentional contract assertion for a manually assembled composition. The
 direct form is preferred for a value already typed as `HostComposition`, especially a
 `createMfHost()` result.
+
+## Module composition
+
+### When the bundler already resolved delivery
+
+A shell does not always need runtime deployment policy. When the build already knows how to reach an
+application — a workspace package, a lazily imported feature, or a Module Federation remote a
+producer plugin wired at build time — the only missing piece is an `import()`. `createModuleHost()`
+takes those loaders directly:
+
+<!-- typecheck: application -->
+
+```ts
+import { createModuleHost } from '@fronts/core';
+
+const composition = createModuleHost({
+  name: 'shell',
+  apps: {
+    notice: () => import('./application.js'),
+  },
+});
+```
+
+That is a complete composition: `composition.host` is an ordinary Fronts Host and
+`composition.applications` is the catalog the framework bindings consume. The shortcut synthesizes
+the static resolver and the application loader, so a shell with no policy requirement never writes
+either by hand.
+
+Props contracts are inferred from each application's own `defineApp` declaration:
+
+<!-- typecheck: application -->
+
+```ts
+import { createModuleHost, type HostComposition } from '@fronts/core';
+
+import type { NoticeProps } from './application.js';
+
+const composition = createModuleHost({
+  name: 'shell',
+  apps: { notice: () => import('./application.js') },
+});
+
+// Inferred, not declared. The application is the only source of truth for its props.
+const typed: HostComposition<
+  { readonly notice: NoticeProps },
+  { readonly module: string },
+  object
+> = composition;
+```
+
+This is the one contract Module Federation composition cannot check: `createMfHost()` addresses a
+deployment through a URL, so its `Contracts` are a declaration the shell makes about a remote. A
+module loader is a real import, so a producer whose props stop matching the shell is a compile
+error. Prefer this form whenever delivery is genuinely build-time.
+
+An application that declares no props widens to `object`, because every contract value must stay
+object-shaped.
+
+### Module deployments
+
+A bare loader is shorthand. The object form adds the same Fronts integration fields that
+`RemoteDeployment` carries:
+
+<!-- typecheck: application -->
+
+```ts
+import { createModuleHost } from '@fronts/core';
+
+const composition = createModuleHost({
+  name: 'shell',
+  apps: {
+    notice: {
+      load: () => import('./application.js'),
+      expose: './notice-application',
+      version: '2.0.0',
+      metadata: { isolation: 'dom' },
+    },
+  },
+});
+```
+
+- `expose` defaults to `./application` and is recorded in the catalog;
+- `version` becomes resolved identity and audit evidence;
+- `metadata` becomes frozen resolved deployment metadata for container resolvers and policy.
+
+Because a non-default `expose` is part of the normalized reference, reach the application through
+`composition.applications.notice` rather than a bare `{ name: 'notice' }`. Framework bindings already
+do this. Invalid configuration is rejected when the composition is created, not at first mount.
+
+All `FrontsHostOptions` except `loader` and `resolver` pass through, and `name` becomes the default
+Fronts `hostId`. `containerLoaders` still overrides the synthesized loader per container type, which
+is how an iframe deployment keeps its own transport.
+
+`host.preload()` evaluates the module and returns without mounting, creating a service scope, or
+claiming a container. That warms the bundler chunk and its shared graph.
+
+### What it deliberately does not do
+
+`createModuleHost()` owns no transport policy. There are no deployment candidates, `match`
+selectors, ranges, or channels, because a module map already made that decision at build time. When
+a deployment must be chosen at runtime, use `createMfHost()` or supply an explicit `resolver` and
+`loader` to `createFrontsHost()`; the contracts, bindings, and component call sites do not change.
 
 ## Module Federation composition
 
@@ -519,7 +623,8 @@ See [Host Runtime API](host-runtime-api.md) for the complete ownership and shutd
 ## Package boundaries
 
 ```text
-@fronts/core    framework- and transport-neutral contracts, Host, HostComposition
+@fronts/core    framework- and transport-neutral contracts, Host, HostComposition,
+                createModuleHost()
 @fronts/mf      official MF runtime adapter and createMfHost()
 @fronts/react   React producer/host adapter and createReactBindings()
 @fronts/vue3    Vue producer/host adapter and createVueBindings()
@@ -554,6 +659,10 @@ The implementation is covered at each boundary:
 - [`composition.test.ts`](../packages/core/test/composition.test.ts) and
   [`composition.types.ts`](../packages/core/test/composition.types.ts) cover the catalog, Source and
   Services propagation, manual composition, and contract invariance.
+- [`moduleHost.test.ts`](../packages/core/test/moduleHost.test.ts) and
+  [`moduleHost.types.ts`](../packages/core/test/moduleHost.types.ts) cover module-loader
+  composition, inferred contracts, declared expose, version and metadata, preloading, cancellation,
+  and invalid configuration.
 - [`host.test.ts`](../packages/mf/test/host.test.ts) covers static candidates, custom resolution,
   expose preservation, resolved metadata, and invalid configuration.
 - [`bindings.test.tsx`](../packages/react/test/bindings.test.tsx) and
@@ -569,7 +678,7 @@ The implementation is covered at each boundary:
 Run the focused evidence with:
 
 ```sh
-pnpm exec vitest run packages/core/test/composition.test.ts packages/mf/test/host.test.ts packages/react/test/bindings.test.tsx packages/vue3/test/bindings.test.ts
+pnpm exec vitest run packages/core/test/composition.test.ts packages/core/test/moduleHost.test.ts packages/mf/test/host.test.ts packages/react/test/bindings.test.tsx packages/vue3/test/bindings.test.ts
 pnpm --filter @fronts/core typecheck
 pnpm --filter @fronts/mf typecheck
 pnpm --filter @fronts/react typecheck

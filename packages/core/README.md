@@ -34,7 +34,35 @@ export default defineApp<{ message: string }, HostServices>({
 });
 ```
 
+## Compose a host from module loaders
+
+When the build already knows how to reach an application, the loader is the whole configuration.
+`createModuleHost()` synthesizes the resolver and application loader, infers props contracts from
+each application's own `defineApp` declaration, and returns the composition the framework bindings
+accept:
+
+<!-- typecheck: application -->
+
+```ts
+import { createModuleHost } from '@fronts/core';
+
+const composition = createModuleHost({
+  name: 'shell',
+  apps: {
+    notice: () => import('./application.js'),
+  },
+});
+
+const app = await composition.host.mount({
+  ref: composition.applications.notice,
+  target: document.querySelector('#slot')!,
+  props: { revision: 1 },
+});
+```
+
 ## Create a host
+
+Supply an explicit `resolver` and `loader` when deployment selection is caller-owned:
 
 <!-- typecheck: transport -->
 
@@ -67,6 +95,7 @@ The main entry exports:
 
 - `defineApp()` and protocol validation
 - `createFrontsHost()` and mounted-instance controls
+- `createModuleHost()` for composing a Host from application module loaders
 - static, registry, cached, and fallback resolvers
 - DOM and Shadow DOM containers
 - resolution-aware container planning before loader selection

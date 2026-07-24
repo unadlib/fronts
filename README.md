@@ -91,6 +91,27 @@ resolved application source to `registerRemotes()`, `preloadRemote()`, and `load
 `createFrontsHost()`, `createModuleFederationSource()`, and `createModuleFederationAdapter()` remain
 available when a platform needs to assemble those boundaries directly.
 
+When the build already knows how to reach an application, no transport package is involved at all.
+`createModuleHost()` in `@fronts/core` takes the `import()` directly and infers each props contract
+from the application's own definition:
+
+<!-- typecheck: application -->
+
+```ts
+import { createModuleHost } from '@fronts/core';
+
+const composition = createModuleHost({
+  name: 'shell',
+  apps: {
+    notice: () => import('./application.js'),
+  },
+});
+```
+
+The same Host, containers, capability-scoped services, replacement, and leak audit apply. See
+[Typed composition shortcuts](docs/composition-shortcuts.md) for when to choose which composition
+root.
+
 ## Examples
 
 The core-only example on `http://127.0.0.1:4110` demonstrates a custom loader, vanilla DOM
