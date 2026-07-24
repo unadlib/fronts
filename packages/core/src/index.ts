@@ -75,6 +75,17 @@ export type {
   ReplacementResult,
   RetainedContainerSnapshot,
 } from './host/index.js';
+export { createModuleHost } from './moduleHost.js';
+export type {
+  AppModuleDeployment,
+  AppModuleEntry,
+  AppModuleImport,
+  AppModuleMap,
+  AppModuleSource,
+  ModuleContracts,
+  ModuleHostOptions,
+  ModuleHostResult,
+} from './moduleHost.js';
 export type {
   ApplicationHostOperationContext,
   DetachedHostOperationContext,
