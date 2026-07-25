@@ -3,7 +3,7 @@
 const application = {
   name: 'runtime-integration-fixture',
   protocol: 'fronts.application',
-  protocolVersion: 2,
+  protocolVersion: 1,
   mount() {
     return {
       ready: Promise.resolve(),

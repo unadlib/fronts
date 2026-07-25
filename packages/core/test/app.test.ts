@@ -93,7 +93,7 @@ describe('Fronts application protocol', () => {
       [FRONTS_APP_SYMBOL]: true,
       mount: vi.fn(() => ({ unmount: vi.fn() })),
       protocol: 'fronts.application',
-      protocolVersion: 1,
+      protocolVersion: 2,
     };
     expect(isFrontsApp(forgedBrand)).toBe(false);
     expect(() => assertFrontsApp(forgedBrand)).toThrowError(

@@ -3,7 +3,7 @@ import { stringifyUnknown } from '../errors.js';
 import type { NormalizedAppRef, ResolvedApp } from '../resolver/index.js';
 
 export const FRONTS_IFRAME_PROTOCOL = 'fronts.iframe' as const;
-export const FRONTS_IFRAME_PROTOCOL_VERSION = 2 as const;
+export const FRONTS_IFRAME_PROTOCOL_VERSION = 1 as const;
 
 const forbiddenCapabilityNames = new Set(['__proto__', 'constructor', 'prototype']);
 

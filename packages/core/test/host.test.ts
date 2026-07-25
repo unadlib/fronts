@@ -477,7 +477,7 @@ describe('Fronts host runtime', () => {
       capabilities: ['navigation'],
       mount: vi.fn(() => ({ unmount: vi.fn() })),
     });
-    Object.defineProperty(app, Symbol.for('@fronts/core/application/negotiable-capabilities/v2'), {
+    Object.defineProperty(app, Symbol.for('@fronts/core/application/negotiable-capabilities/v1'), {
       value: true,
     });
     const { loader, resolver } = createHarness(app);
@@ -514,7 +514,7 @@ describe('Fronts host runtime', () => {
   it('does not inherit the internal negotiable capability marker', async () => {
     const definition = Object.assign(
       Object.create({
-        [Symbol.for('@fronts/core/application/negotiable-capabilities/v2')]: true,
+        [Symbol.for('@fronts/core/application/negotiable-capabilities/v1')]: true,
       }) as object,
       {
         capabilities: ['navigation'] as const,
