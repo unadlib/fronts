@@ -4,22 +4,20 @@ This index is the canonical entry point for the current Fronts 2.0 documentation
 TypeScript declarations remain authoritative for exact signatures; these documents explain intent,
 ownership boundaries, invariants, operating procedures, and verification.
 
-The decision record and typed composition shortcuts are accepted for the 2.0 alpha. Other concept
+Typed composition shortcuts are accepted for the 2.0 alpha. Other concept
 documents currently use `status: proposed`: they reflect the implemented and tested repository
 state but still require explicit maintainer acceptance before becoming stable compatibility or
 policy commitments.
 
 ## Understand the runtime
 
-1. [Decision record](decision-record.md) — why an application runtime remains useful after Module
-   Federation 2 and which responsibilities it must not duplicate.
-2. [Architecture](architecture.md) — layers, dependency direction, ownership, transactions, and
+1. [Architecture](architecture.md) — layers, dependency direction, ownership, transactions, and
    extension points.
-3. [Application contract](application-contract.md) — the framework-neutral application ABI,
+2. [Application contract](application-contract.md) — the framework-neutral application ABI,
    lifecycle, readiness, and services.
-4. [Host Runtime API](host-runtime-api.md) — Host composition, operations, mounted controls,
+3. [Host Runtime API](host-runtime-api.md) — Host composition, operations, mounted controls,
    replacement, observability, and shutdown.
-5. [Composition shortcuts](composition-shortcuts.md) — typed factories that separate transport
+4. [Composition shortcuts](composition-shortcuts.md) — typed factories that separate transport
    composition from React and Vue rendering bindings.
 
 ## Resolve, deliver, and isolate applications

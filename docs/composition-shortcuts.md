@@ -43,8 +43,8 @@ resolution policy, DOM/Shadow DOM/iframe containers, readiness-gated replacement
 leak audit. They remove composition ceremony but preserve those boundaries.
 
 If a fixed React or Vue remote only needs framework or router integration, use the official Module
-Federation Bridge. If code only needs `loadRemote()`, use the official runtime directly. The
-[decision record](decision-record.md) defines that boundary.
+Federation Bridge. If code only needs `loadRemote()`, use the official runtime directly.
+[Architecture](architecture.md) defines that boundary.
 
 ## Quick start
 

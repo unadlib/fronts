@@ -155,7 +155,6 @@ Then open any host URL above.
 ## Documentation
 
 - [Documentation index](docs/index.md) — guided reading paths and maintenance rules
-- [Decision record](docs/decision-record.md) — whether Fronts 2.0 is justified after MF 2
 - [Architecture](docs/architecture.md) — layers, ownership, and dependency rules
 - [Application contract](docs/application-contract.md) — lifecycle ABI and invariants
 - [Host Runtime API](docs/host-runtime-api.md) — resolution, lifecycle, replacement, and shutdown workflows
