@@ -1,6 +1,6 @@
 {
   "name": "@fronts/vue3",
-  "version": "2.0.0-alpha.0",
+  "version": "1.0.0-alpha.0",
   "description": "Vue 3 application and host adapters for Fronts",
   "license": "MIT",
   "type": "module",
