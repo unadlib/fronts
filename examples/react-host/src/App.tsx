@@ -64,7 +64,7 @@ export function App() {
   return (
     <main className="shell">
       <header className="hero">
-        <p className="eyebrow">Fronts 2.0 vertical slice</p>
+        <p className="eyebrow">Fronts 1.0 vertical slice</p>
         <h1>One application runtime, three execution models</h1>
         <p>
           The shell resolves deployment policy; Module Federation loads code; Fronts owns lifecycle,

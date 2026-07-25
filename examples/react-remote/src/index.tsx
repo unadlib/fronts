@@ -5,7 +5,7 @@ import './styles.css';
 function ProducerPage() {
   return (
     <main className="producer-page">
-      <p className="eyebrow">Fronts 2.0 producer</p>
+      <p className="eyebrow">Fronts 1.0 producer</p>
       <h1>React checkout remote</h1>
       <p>
         The application contract is exposed as <code>./application</code> through the official
