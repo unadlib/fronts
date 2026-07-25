@@ -1,4 +1,8 @@
-# Fronts 1.0
+# Fronts
+
+[![CI](https://github.com/unadlib/fronts/actions/workflows/ci.yml/badge.svg)](https://github.com/unadlib/fronts/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/fronts.svg)](https://www.npmjs.com/package/fronts)
+![license](https://img.shields.io/npm/l/fronts)
 
 Fronts is a framework-neutral **application runtime** for independently delivered web
 applications. Its core accepts any application loader. When a platform chooses Module Federation
