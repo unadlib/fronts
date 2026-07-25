@@ -1,6 +1,6 @@
 # @fronts/react
 
-React producer and host adapters for the Fronts 2.0 application protocol.
+React producer and host adapters for the Fronts 1.0 application protocol.
 
 ```sh
 pnpm add @fronts/core @fronts/react react react-dom
@@ -142,6 +142,6 @@ This adapter is for applications participating in the Fronts host ABI. If an MF-
 architecture only needs framework/router integration, evaluate the official
 `@module-federation/bridge-react` package first.
 
-Fronts is currently alpha. Protocol and API changes may occur before 2.0 stable.
+Fronts is currently alpha. Protocol and API changes may occur before 1.0 stable.
 
 MIT

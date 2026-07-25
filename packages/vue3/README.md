@@ -1,6 +1,6 @@
 # @fronts/vue3
 
-Vue 3 producer and host adapters for the Fronts 2.0 application protocol.
+Vue 3 producer and host adapters for the Fronts 1.0 application protocol.
 
 ```sh
 pnpm add @fronts/core @fronts/vue3 vue
@@ -150,6 +150,6 @@ This adapter is for applications participating in the Fronts host ABI. If an MF-
 architecture only needs framework/router integration, evaluate the official
 `@module-federation/bridge-vue3` package first.
 
-Fronts is currently alpha. Protocol and API changes may occur before 2.0 stable.
+Fronts is currently alpha. Protocol and API changes may occur before 1.0 stable.
 
 MIT

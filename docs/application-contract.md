@@ -1,7 +1,7 @@
 ---
 type: contract
 title: Application Contract
-description: Framework-neutral application protocol, lifecycle ownership, readiness, services, and compatibility rules for Fronts 2.0.
+description: Framework-neutral application protocol, lifecycle ownership, readiness, services, and compatibility rules for Fronts 1.0.
 owner: unadlib/fronts maintainers
 status: proposed
 tags: [application, protocol, lifecycle, services]

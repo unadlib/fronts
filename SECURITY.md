@@ -27,7 +27,7 @@ proof of concept, affected URL, secret, or exploit information. Wait for a maint
 private channel before sharing technical content.
 
 Enabling GitHub Private Vulnerability Reporting and validating this workflow are release blockers
-for the first public Fronts 2.0 package.
+for the first public Fronts 1.0 package.
 
 ## What to include privately
 
@@ -93,13 +93,13 @@ default, detection, or documentation. The report should explain the Fronts-speci
 
 ## Supported versions
 
-Fronts 2.0 has not yet been published. Security reports against the current `master` implementation
-are welcome, but there is no shipped 2.0 release to patch today.
+Fronts 1.0 has not yet been published. Security reports against the current `master` implementation
+are welcome, but there is no shipped 1.0 release to patch today.
 
 | Version line             | Security status                                                                              |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| Current unreleased 2.0   | Reports accepted; fixes land on `master`.                                                    |
-| Published 2.0 prerelease | None yet. After publication, only the newest `next` prerelease is intended to receive fixes. |
+| Current unreleased 1.0   | Reports accepted; fixes land on `master`.                                                    |
+| Published 1.0 prerelease | None yet. After publication, only the newest `next` prerelease is intended to receive fixes. |
 | Stable 2.x               | None yet. A stable maintenance window must be accepted before `latest`.                      |
 | Earlier package lines    | Unsupported by this repository policy.                                                       |
 

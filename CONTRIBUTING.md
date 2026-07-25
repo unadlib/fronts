@@ -77,7 +77,7 @@ pnpm changeset
 ```
 
 Select all affected packages and describe user impact rather than implementation detail. The four
-public packages are a fixed Changesets group, so versioning remains synchronized while the 2.0
+public packages are a fixed Changesets group, so versioning remains synchronized while the 1.0
 contract stabilizes.
 
 Typical Changeset decisions:
@@ -221,7 +221,7 @@ For a new concept document under `docs`:
   valid.
 
 Update documentation in the same concern commit as the behavior that makes it stale. Do not add
-pre-2.0 migration or compatibility material to current Fronts 2.0 documentation.
+pre-1.0 migration or compatibility material to current Fronts 1.0 documentation.
 
 ### Type-checked examples
 

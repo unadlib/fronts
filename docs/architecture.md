@@ -1,6 +1,6 @@
 ---
 type: architecture
-title: Fronts 2.0 Architecture
+title: Fronts 1.0 Architecture
 description: Runtime layers, ownership boundaries, dependency direction, mount transactions, replacement, and extension points.
 owner: unadlib/fronts maintainers
 status: proposed

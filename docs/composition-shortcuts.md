@@ -649,7 +649,7 @@ The shortcuts do not:
 - mirror every Host operation onto the binding object;
 - turn Fronts into a router or SSR framework.
 
-Fronts is still in the 2.0 prerelease line. The new factories are recorded as minor changes. Existing
+Fronts is still in the 1.0 prerelease line. The new factories are recorded as minor changes. Existing
 adapter behaviour remains available for incremental migration.
 
 ## Verification

@@ -82,6 +82,6 @@ use `force` only when intentionally replacing the runtime's cached deployment.
 The remote module must default-export a valid Fronts application, normally from an expose named
 `./application`.
 
-Fronts is currently alpha. Protocol and API changes may occur before 2.0 stable.
+Fronts is currently alpha. Protocol and API changes may occur before 1.0 stable.
 
 MIT

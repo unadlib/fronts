@@ -1,7 +1,7 @@
 ---
 type: contract
 title: Support Policy
-description: Declared package, runtime, framework, browser, module-format, and prerelease support boundaries for Fronts 2.0.
+description: Declared package, runtime, framework, browser, module-format, and prerelease support boundaries for Fronts 1.0.
 owner: unadlib/fronts maintainers
 status: proposed
 tags: [support, compatibility, versions, browsers]
@@ -15,7 +15,7 @@ This document separates declared compatibility from environments that the reposi
 verifies. A peer range is a consumer contract; a single green fixture is evidence for one point in
 that range, not proof of every combination.
 
-Fronts 2.0 is currently unpublished prerelease software. Until a stable release is published, public
+Fronts 1.0 is currently unpublished prerelease software. Until a stable release is published, public
 APIs, package boundaries, and protocols may change. Every user-visible package change still requires
 a Changeset so release notes expose that movement.
 
@@ -145,14 +145,14 @@ objects is unsupported.
 
 ## Prerelease and stable compatibility
 
-### Before 2.0 stable
+### Before 1.0 stable
 
 - Breaking API and protocol changes may occur between prereleases.
 - All four public package versions move together.
 - Consumers SHOULD pin an exact prerelease or use a controlled lockfile rather than an open range.
 - A production adopter MUST test its exact Host, producer, browser, and deployment-policy
   combination before rollout.
-- The npm `next` tag will identify prereleases after first publication; no Fronts 2.0 package is
+- The npm `next` tag will identify prereleases after first publication; no Fronts 1.0 package is
   currently published.
 
 ### Stable acceptance gates

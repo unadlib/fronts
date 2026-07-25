@@ -1,10 +1,10 @@
-# Fronts 2.0 documentation
+# Fronts 1.0 documentation
 
-This index is the canonical entry point for the current Fronts 2.0 documentation. The public
+This index is the canonical entry point for the current Fronts 1.0 documentation. The public
 TypeScript declarations remain authoritative for exact signatures; these documents explain intent,
 ownership boundaries, invariants, operating procedures, and verification.
 
-Typed composition shortcuts are accepted for the 2.0 alpha. Other concept
+Typed composition shortcuts are accepted for the 1.0 alpha. Other concept
 documents currently use `status: proposed`: they reflect the implemented and tested repository
 state but still require explicit maintainer acceptance before becoming stable compatibility or
 policy commitments.

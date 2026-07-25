@@ -1,11 +1,11 @@
-# Fronts 2.0
+# Fronts 1.0
 
 Fronts is a framework-neutral **application runtime** for independently delivered web
 applications. Its core accepts any application loader. When a platform chooses Module Federation
 2 for discovery and loading, `@fronts/mf` connects the official runtime to the application-level
 contract and production controls that a module loader intentionally does not own.
 
-> Status: Fronts 2.0 is in prerelease development and has not yet been published to npm. The
+> Status: Fronts 1.0 is in prerelease development and has not yet been published to npm. The
 > repository is prepared to publish prereleases under the `next` tag. The architecture and protocol
 > are implemented and tested, but the public API may still change before the first stable release.
 

@@ -1,6 +1,6 @@
 # @fronts/core
 
-Framework-neutral application protocol and host runtime for Fronts 2.0.
+Framework-neutral application protocol and host runtime for Fronts 1.0.
 
 ```sh
 pnpm add @fronts/core
@@ -116,6 +116,6 @@ wiring, capability negotiation, browser policy, and production teardown.
 The core package has no React, Vue, bundler, or Module Federation dependency. Pair it with
 `@fronts/mf`, a custom loader, or both.
 
-Fronts is currently alpha. Protocol and API changes may occur before 2.0 stable.
+Fronts is currently alpha. Protocol and API changes may occur before 1.0 stable.
 
 MIT

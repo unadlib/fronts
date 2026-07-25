@@ -342,7 +342,7 @@ function validateRemovedApiAbsence(markdownFiles) {
       if (match !== null) {
         addError(
           file,
-          `removed pre-2.0 API appears in current documentation: ${forbidden.label}`,
+          `removed pre-1.0 API appears in current documentation: ${forbidden.label}`,
           lineAt(text, match.index),
         );
       }
