@@ -22,11 +22,9 @@ import { createModuleFederationAdapter } from './adapter.js';
 import { createModuleFederationSource } from './source.js';
 import type { ModuleFederationAdapter, ModuleFederationSource } from './types.js';
 
-export interface RemoteDeployment {
+interface RemoteDeploymentBase {
   /** Official Module Federation remote name. */
   readonly remote: string;
-  /** Concrete manifest or remote entry accepted by the official runtime. */
-  readonly entry: string;
   /** Required for raw entries whose format cannot be inferred from a manifest. */
   readonly type?: Remote['type'];
   readonly alias?: string;
@@ -34,7 +32,12 @@ export interface RemoteDeployment {
   readonly shareScope?: string | readonly string[];
   /** Defaults to "./application". All candidates for one application must use the same expose. */
   readonly expose?: `./${string}`;
-  /** Immutable deployment version used by Fronts identity, audit, and conflict detection. */
+  /**
+   * Immutable deployment version used by Fronts identity, audit, and conflict detection.
+   *
+   * This is Fronts bookkeeping, not the official remote selector. Use `remoteVersion` to ask the
+   * official runtime to resolve a remote by version.
+   */
   readonly version?: string;
   /** Deployment data exposed to container resolvers, policy, and observability. */
   readonly metadata?: Readonly<Record<string, unknown>>;
@@ -42,6 +45,25 @@ export interface RemoteDeployment {
   readonly force?: boolean;
   readonly preload?: ModuleFederationSource['preload'];
 }
+
+/**
+ * One official remote, addressed the way the official `Remote` type allows.
+ *
+ * The official runtime accepts exactly one of an entry or a version, so this mirrors that contract
+ * rather than narrowing it. An entry names a concrete manifest or remote entry; a `remoteVersion`
+ * asks the runtime's own registry to resolve one.
+ */
+export type RemoteDeployment =
+  | (RemoteDeploymentBase & {
+      /** Concrete manifest or remote entry accepted by the official runtime. */
+      readonly entry: string;
+      readonly remoteVersion?: never;
+    })
+  | (RemoteDeploymentBase & {
+      readonly entry?: never;
+      /** Version selector resolved by the official runtime, not by Fronts. */
+      readonly remoteVersion: string;
+    });
 
 /** Selector fields supported by the existing static resolver. */
 export interface DeploymentMatch {
@@ -134,6 +156,7 @@ const deploymentFields = [
   'metadata',
   'preload',
   'remote',
+  'remoteVersion',
   'shareScope',
   'type',
   'version',
@@ -174,6 +197,31 @@ function assertOwnDeploymentFields(
         { field, name },
       );
     }
+  }
+}
+
+/**
+ * Rejects a deployment that names neither or both remote addresses.
+ *
+ * The low-level source enforces the same rule, but only once a mount reaches the loader. Failing at
+ * composition keeps an unreachable deployment from being discovered by the first user who needs it.
+ */
+function assertRemoteAddress(deployment: StaticDeployment, name: string): void {
+  const hasEntry = Object.hasOwn(deployment, 'entry') && deployment.entry !== undefined;
+  const hasRemoteVersion =
+    Object.hasOwn(deployment, 'remoteVersion') && deployment.remoteVersion !== undefined;
+  if (hasEntry === hasRemoteVersion) {
+    configurationError(
+      `Application "${name}" must declare exactly one of "entry" or "remoteVersion".`,
+      { name },
+    );
+  }
+  const address = hasEntry ? deployment.entry : deployment.remoteVersion;
+  if (typeof address !== 'string' || address.trim() === '' || address !== address.trim()) {
+    configurationError(
+      `Application "${name}" ${hasEntry ? 'entry' : 'remoteVersion'} must be a trimmed string.`,
+      { name },
+    );
   }
 }
 
@@ -270,7 +318,10 @@ function snapshotMetadata(
 
 function createRemote(deployment: RemoteDeployment): Remote {
   return {
-    entry: deployment.entry,
+    // Exactly one of these reaches the official runtime; assertModuleFederationSource enforces it.
+    ...(deployment.entry === undefined
+      ? { version: deployment.remoteVersion }
+      : { entry: deployment.entry }),
     name: deployment.remote,
     ...(deployment.alias === undefined ? {} : { alias: deployment.alias }),
     ...(deployment.entryGlobalName === undefined
@@ -336,6 +387,7 @@ function createStaticConfiguration<Contracts extends ApplicationContractShape<Co
     }
     for (const candidate of candidates) {
       assertOwnDeploymentFields(candidate, name);
+      assertRemoteAddress(candidate, name);
     }
 
     const exposes = new Set(

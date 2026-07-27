@@ -48,6 +48,7 @@ describe('Module Federation host shortcut', () => {
     ['metadata', { release: 'inherited' }],
     ['preload', {}],
     ['remote', 'checkout_inherited'],
+    ['remoteVersion', '^9.0.0'],
     ['shareScope', 'default'],
     ['type', 'module'],
     ['version', '9.9.9'],
@@ -284,6 +285,62 @@ describe('Module Federation host shortcut', () => {
     } finally {
       await composition.host.dispose();
     }
+  });
+
+  it('composes a version-addressed remote without resolving the version itself', async () => {
+    const runtime = createRuntime();
+    runtime.loadRemote.mockResolvedValue({
+      default: defineApp<{ readonly cartId: string }>({
+        mount: () => ({ unmount: () => undefined }),
+      }),
+    });
+    const composition = createMfHost<Pick<ShopContracts, 'checkout'>>({
+      apps: {
+        checkout: {
+          remote: 'checkout_remote',
+          remoteVersion: '^2.0.0',
+          version: '2.4.1',
+        },
+      },
+      name: 'shop-shell',
+      runtime: runtime.instance,
+    });
+
+    try {
+      const loaded = await composition.host.load(composition.applications.checkout);
+
+      // `version` stays Fronts audit identity; `remoteVersion` is what the official runtime sees.
+      expect(loaded.resolved.version).toBe('2.4.1');
+      expect(runtime.registerRemotes).toHaveBeenCalledWith(
+        [{ name: 'checkout_remote', version: '^2.0.0' }],
+        undefined,
+      );
+      expect(runtime.loadRemote).toHaveBeenCalledWith('checkout_remote/application', {
+        from: 'runtime',
+      });
+    } finally {
+      await composition.host.dispose();
+    }
+  });
+
+  it.each([
+    ['neither address', {}],
+    ['both addresses', { entry: 'https://cdn.example.test/mf-manifest.json', remoteVersion: '^2' }],
+    ['an untrimmed entry', { entry: ' https://cdn.example.test/mf-manifest.json ' }],
+    ['an empty remoteVersion', { remoteVersion: '  ' }],
+  ])('rejects a deployment declaring %s', (_label, address) => {
+    const runtime = createRuntime();
+
+    expect(() =>
+      createMfHost<Pick<ShopContracts, 'checkout'>>({
+        apps: {
+          checkout: { remote: 'checkout_remote', ...address } as RemoteDeployment,
+        },
+        name: 'shop-shell',
+        runtime: runtime.instance,
+      }),
+    ).toThrowError(expect.objectContaining({ code: frontsErrorCodes.resolutionFailed }));
+    expect(runtime.registerRemotes).not.toHaveBeenCalled();
   });
 
   it('pairs a custom resolver with an explicit application catalog', async () => {

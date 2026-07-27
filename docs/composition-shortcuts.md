@@ -323,13 +323,43 @@ const composition = createMfHost<ShopContracts>({
 });
 ```
 
-`RemoteDeployment` supports the official remote fields `remote`, `entry`, `type`, `alias`,
+`RemoteDeployment` supports the official remote fields `remote`, `type`, `alias`,
 `entryGlobalName`, and `shareScope`, plus Fronts integration fields:
 
 - `expose` defaults to `./application`;
 - `version` becomes resolved identity and conflict evidence;
 - `metadata` becomes frozen resolved deployment metadata;
 - `force` and `preload` pass to the existing MF adapter behaviour.
+
+A deployment must declare exactly one remote address, mirroring the official `Remote` type:
+
+| Field           | Meaning                                                                    |
+| --------------- | -------------------------------------------------------------------------- |
+| `entry`         | A concrete manifest or remote entry URL.                                   |
+| `remoteVersion` | A version selector the official runtime resolves through its own registry. |
+
+<!-- typecheck: shop -->
+
+```ts
+const composition = createMfHost<ShopContracts>({
+  name: 'shop-shell',
+  apps: {
+    account: {
+      remote: 'account_remote',
+      entry: 'https://cdn.example.com/account/mf-manifest.json',
+    },
+    checkout: { remote: 'checkout_remote', remoteVersion: '^2.0.0', version: '2.4.1' },
+  },
+});
+```
+
+`remoteVersion` and `version` are different axes and both may appear. `remoteVersion` is the
+selector the official runtime resolves; `version` is the immutable deployment version Fronts records
+for identity, audit, and conflict detection. Fronts never interprets `remoteVersion`, because remote
+version resolution is a Module Federation responsibility.
+
+Declaring neither address, both, or an untrimmed one is rejected when the composition is created
+rather than at first mount.
 
 All candidates for one logical application must use the same expose. Framework bindings retain one
 catalog reference per logical name, so allowing candidate-specific exposes would make a later
