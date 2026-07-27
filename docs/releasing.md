@@ -74,7 +74,7 @@ Trusted publishing can only be configured after a package exists. Before the fir
 After bootstrap, the empty token environment values fall through to npm's short-lived OIDC
 credential. Do not retain a long-lived publish token as a permanent fallback.
 
-Protect `master` so the Node 22/24 checks and Chromium E2E job are required before merging the
+Protect `master` so the Node 22/24 checks and the browser E2E job are required before merging the
 release PR.
 
 ## Leaving prerelease mode

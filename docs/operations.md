@@ -197,8 +197,8 @@ The repository uses five evidence layers:
 1. unit tests for protocol, resolver, service scope, adapters, and error behavior;
 2. host contract tests for lifecycle transitions, cancellation, replacement, and audit;
 3. a real MF Runtime integration test serving a real remote container over HTTP;
-4. Chromium E2E for the core-only lifecycle and the React/Vue/iframe vertical slice;
-5. Chromium E2E for official and compatible Vite producers, covering the official MF Vite plugin,
+4. Browser E2E for the core-only lifecycle and the React/Vue/iframe vertical slice;
+5. Browser E2E for official and compatible Vite producers, covering the official MF Vite plugin,
    `vite-plugin-federation`, and the production-only OriginJS ESM path.
 
 `pnpm test:e2e` runs the browser suite against development servers. `pnpm test:e2e:preview` performs

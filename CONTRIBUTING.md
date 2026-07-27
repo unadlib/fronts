@@ -13,7 +13,7 @@ tags: [contributing, development, testing, changesets]
 
 - Node.js 22.18 or newer;
 - pnpm 10 or 11 through Corepack;
-- a Chromium installation managed by Playwright for browser E2E;
+- Chromium, Firefox, and WebKit installations managed by Playwright for browser E2E;
 - macOS, Linux, or another environment capable of running the repository's Node and browser tools.
 
 The root [`package.json`](package.json) is the source of truth for engines and the pinned package
@@ -123,10 +123,10 @@ evidence that the repository gate passes.
 
 ## Browser E2E
 
-Install the configured Chromium binary once:
+Install the configured browser binaries once:
 
 ```sh
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium firefox webkit
 ```
 
 Development-server mode:
@@ -269,7 +269,7 @@ Do not report vulnerabilities publicly. Follow [SECURITY.md](SECURITY.md).
 ## Verification
 
 - [`package.json`](package.json) owns required commands, engines, and package-manager configuration.
-- [CI](.github/workflows/ci.yml) owns the Node and Chromium release gates.
+- [CI](.github/workflows/ci.yml) owns the Node and browser-engine release gates.
 - [Releasing](docs/releasing.md) owns Changesets, prerelease, provenance, and publication flow.
 - `pnpm check` is the complete local non-browser gate.
 - `pnpm test:e2e` and `pnpm test:e2e:preview` prove development and built example composition.

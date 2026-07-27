@@ -84,23 +84,26 @@ features used by the chosen path:
 | Iframe integration | Cross-origin iframe sandbox, `postMessage`, transferable `MessagePort`, structured clone, and `crypto.randomUUID()`. |
 | Framework adapters | Browser features required by the selected supported React or Vue version.                                            |
 
-Current CI installs and runs Playwright Chromium only. Therefore:
+CI installs Playwright Chromium, Firefox, and WebKit, and the production-preview E2E gate runs the
+full suite on each. Therefore:
 
-- Chromium is the only CI-verified browser engine.
-- Firefox and WebKit are best effort until the same lifecycle, replacement, service, Shadow DOM,
-  and iframe E2E suite is required for those Playwright projects.
-- Mobile browsers and embedded WebViews are not currently claimed.
+- Chromium, Firefox, and WebKit are CI-verified browser engines. Every producer tier, the DOM,
+  Shadow DOM, and cross-origin iframe containers, host services, updates, and unmount audit run on
+  all three.
+- Mobile browsers and embedded WebViews are not currently claimed. Desktop WebKit coverage is not a
+  claim about iOS Safari, whose engine build and iframe policy differ.
 - Internet Explorer and legacy non-ES2022 browsers are unsupported.
 - No Fronts polyfills are shipped; a consumer may transpile or polyfill its own application, but it
   must not weaken security requirements such as exact iframe origins or secure channel IDs.
 
-Verification: Missing — required Firefox and WebKit browser projects.
+Verification: [`ci.yml`](../.github/workflows/ci.yml) installs all three engines and
+[`playwright-config.ts`](../e2e/playwright-config.ts) declares them as required projects.
 
 ## Runtime environments
 
 | Environment                   | Status         | Boundary                                                                           |
 | ----------------------------- | -------------- | ---------------------------------------------------------------------------------- |
-| Browser shell with DOM        | Primary target | Chromium is CI-verified; engine coverage is defined above.                         |
+| Browser shell with DOM        | Primary target | Chromium, Firefox, and WebKit are CI-verified; see above.                          |
 | Node ESM/CommonJS import      | CI-verified    | Public entries import without mounting browser containers.                         |
 | Server-side rendering         | Unsupported    | Fronts does not define server rendering, hydration, or server lifecycle semantics. |
 | Web Worker / Service Worker   | Unsupported    | No DOM container or worker application contract exists.                            |
@@ -192,7 +195,8 @@ compatibility issue.
 
 - `pnpm check` verifies formatting, builds, tarball consumption, types, unit/integration tests, and
   coverage on the Node versions configured in CI.
-- `pnpm test:e2e:preview` rebuilds and verifies the current producer matrix in Chromium.
+- `pnpm test:e2e:preview` rebuilds and verifies the current producer matrix in Chromium, Firefox,
+  and WebKit.
 - [`packages/mf/test/runtime-integration.test.ts`](../packages/mf/test/runtime-integration.test.ts)
   loads a real remote container through the official runtime.
 - [`e2e`](../e2e) contains the browser evidence for core-only, framework, container, and Vite

@@ -184,6 +184,6 @@ when code is not trusted.
   verifies DOM/Shadow ownership, capability filtering, revocation, and provider cleanup.
 - `pnpm exec vitest run packages/core/test/iframe.test.ts` verifies origin/source validation,
   channel negotiation, RPC grants, cancellation, and cleanup.
-- `pnpm test:e2e` and `pnpm test:e2e:preview` exercise the cross-origin iframe boundary in a real
-  Chromium browser.
+- `pnpm test:e2e` and `pnpm test:e2e:preview` exercise the cross-origin iframe boundary in real
+  Chromium, Firefox, and WebKit browsers.
 - [Iframe deployment](iframe-deployment.md) defines the production wiring and CSP checklist.

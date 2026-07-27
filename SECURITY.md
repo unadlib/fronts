@@ -169,7 +169,8 @@ NEEDS_REVIEW before first publication:
 - `pnpm exec vitest run packages/core/test/iframe.test.ts packages/core/test/services.test.ts`
   verifies the highest-risk origin, RPC, capability, revocation, and cleanup boundaries.
 - `pnpm check` verifies public packages, types, runtime contracts, and required coverage.
-- `pnpm test:e2e:preview` verifies built artifacts and cross-origin iframe behavior in Chromium.
+- `pnpm test:e2e:preview` verifies built artifacts and cross-origin iframe behavior in Chromium,
+  Firefox, and WebKit.
 - Human review is required for report intake, disclosure timing, severity, affected versions, and
   deployment-specific security headers.
 
