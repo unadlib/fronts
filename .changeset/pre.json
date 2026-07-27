@@ -2,10 +2,10 @@
   "mode": "pre",
   "tag": "next",
   "initialVersions": {
-    "@fronts/core": "1.0.0-alpha.0",
-    "@fronts/mf": "1.0.0-alpha.0",
-    "@fronts/react": "1.0.0-alpha.0",
-    "@fronts/vue3": "1.0.0-alpha.0"
+    "@fronts/core": "1.0.0-next.0",
+    "@fronts/mf": "1.0.0-next.0",
+    "@fronts/react": "1.0.0-next.0",
+    "@fronts/vue3": "1.0.0-next.0"
   },
   "changesets": []
 }
