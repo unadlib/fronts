@@ -1,4 +1,3 @@
-import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +8,9 @@ import type {
   ResolvedApp,
 } from '@fronts/core';
 import { normalizeAppRef } from '@fronts/core';
-import { render, screen, waitFor } from '@testing-library/react';
+// `act` is imported from Testing Library rather than React: React moved it into the `react` package
+// in 18.3, and the adapter's declared peer range still starts at 18.2.
+import { act, render, screen, waitFor } from '@testing-library/react';
 
 import {
   RemoteApp,

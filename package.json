@@ -34,6 +34,7 @@
     "test:e2e:preview": "pnpm build && playwright test --config playwright.preview.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --if-present typecheck",
+    "verify:framework-minimums": "node scripts/verify-framework-minimums.mjs",
     "verify:packages": "node scripts/verify-packages.mjs",
     "version-packages": "changeset version",
     "release": "pnpm check && changeset publish"

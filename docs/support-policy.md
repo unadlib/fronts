@@ -37,15 +37,15 @@ APIs. New support claims require a repeatable repository check.
 
 ## Package and toolchain support
 
-| Surface                    | Declared boundary                         | Current verification                                         | Notes                                                                                 |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Public package Node engine | Node `>=22.18.0`                          | `pnpm check` on Node 22 and 24                               | Applies to package installation/import and repository tooling.                        |
-| Repository package manager | pnpm `>=10 <12`                           | Workspace pinned to pnpm 10                                  | Consumer projects do not need pnpm unless their own setup chooses it.                 |
-| JavaScript output          | ES2022, ESM and CommonJS                  | Build plus isolated tarball imports of every public entry    | Fronts ships no legacy-browser polyfill bundle.                                       |
-| TypeScript declarations    | Declarations emitted for ESM and CommonJS | Workspace typecheck with the pinned compiler                 | No minimum consumer TypeScript matrix is currently claimed.                           |
-| Module Federation runtime  | `@module-federation/runtime` `^2.7.0`     | Adapter unit tests and real-runtime HTTP integration         | The low-level adapter requires an injected instance; `createMfHost()` may create one. |
-| React adapter              | React and React DOM `>=18.2.0 <20`        | Contract tests and examples with the workspace React version | Minimum React 18.2 is declared but not separately matrix-tested.                      |
-| Vue adapter                | Vue `>=3.4.0 <4`                          | Contract tests and examples with the workspace Vue version   | Minimum Vue 3.4 is declared but not separately matrix-tested.                         |
+| Surface                    | Declared boundary                         | Current verification                                      | Notes                                                                                 |
+| -------------------------- | ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Public package Node engine | Node `>=22.18.0`                          | `pnpm check` on Node 22 and 24                            | Applies to package installation/import and repository tooling.                        |
+| Repository package manager | pnpm `>=10 <12`                           | Workspace pinned to pnpm 10                               | Consumer projects do not need pnpm unless their own setup chooses it.                 |
+| JavaScript output          | ES2022, ESM and CommonJS                  | Build plus isolated tarball imports of every public entry | Fronts ships no legacy-browser polyfill bundle.                                       |
+| TypeScript declarations    | Declarations emitted for ESM and CommonJS | Workspace typecheck with the pinned compiler              | No minimum consumer TypeScript matrix is currently claimed.                           |
+| Module Federation runtime  | `@module-federation/runtime` `^2.7.0`     | Adapter unit tests and real-runtime HTTP integration      | The low-level adapter requires an injected instance; `createMfHost()` may create one. |
+| React adapter              | React and React DOM `>=18.2.0 <20`        | Contract tests plus a required minimum-version job        | Both the declared minimum and the workspace version are CI-verified.                  |
+| Vue adapter                | Vue `>=3.4.0 <4`                          | Contract tests plus a required minimum-version job        | Both the declared minimum and the workspace version are CI-verified.                  |
 
 Verification sources:
 
@@ -66,11 +66,16 @@ Verification: Missing — minimum consumer TypeScript version matrix.
 
 ### Framework range verification
 
-React 18.2 and Vue 3.4 are valid peer boundaries in the package manifests, but the regular suite
-installs one workspace version of each framework. Before stable, the release gate SHOULD add focused
-minimum-version jobs or narrow the peer ranges to the versions continuously tested.
+The regular suite installs one workspace version of each framework, so a declared lower bound needs
+its own gate. `pnpm verify:framework-minimums` derives the minimum from each published peer range,
+installs exactly those versions through a temporary override, and runs both adapter suites against
+them. Deriving the version from the range means widening or narrowing a peer range moves the gate
+with it instead of leaving a stale number behind.
 
-Verification: Missing — explicit React 18.2 and Vue 3.4 minimum-version jobs.
+React 18.2 and Vue 3.4 are therefore CI-verified, not merely declared.
+
+Verification: [`verify-framework-minimums.mjs`](../scripts/verify-framework-minimums.mjs), required
+by [CI](../.github/workflows/ci.yml).
 
 ## Browser support
 

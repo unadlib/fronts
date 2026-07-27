@@ -26,6 +26,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
 
+  framework-minimums:
+    name: Declared framework minimums
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify:framework-minimums
+
   e2e:
     name: Browser E2E
     runs-on: ubuntu-latest
