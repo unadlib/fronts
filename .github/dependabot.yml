@@ -1,0 +1,38 @@
+version: 2
+
+# The repository has one pnpm workspace and one lockfile at the root. Declaring that explicitly
+# keeps scanning bound to the tree that exists: the pre-1.0 rewrite removed /website and the older
+# example projects, and their manifests are what produced a long tail of unmergeable updates.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    groups:
+      # Runtime peers are the compatibility surface the support policy claims, so they stay
+      # individually reviewable. Everything else is tooling and is safe to review as one batch.
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Published peer ranges are a support-policy decision, not a dependency bump.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: vue
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - '*'
