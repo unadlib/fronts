@@ -56,6 +56,11 @@ for (const { owner, peer } of claims) {
 
 stdout.write(`Verifying declared framework minimums: ${JSON.stringify(overrides)}\n`);
 
+// The adapter suites reach @fronts/core through its package exports, which resolve to dist. Build
+// with the committed dependency set first, so a clean checkout verifies what a warm one does and the
+// only variable left in the run below is the framework version.
+run('pnpm', ['build']);
+
 const originalManifest = readFileSync(rootManifestPath, 'utf8');
 const manifest = JSON.parse(originalManifest);
 manifest.pnpm = { ...manifest.pnpm, overrides: { ...manifest.pnpm?.overrides, ...overrides } };
